@@ -1,10 +1,10 @@
 import React from 'react'
-import Home from './page/Home'
+import RoyalCart from '../components/Cart'
 
 const page = () => {
   return (
-    <div className='no-scrollbar'>
-      <Home/>
+    <div>
+      <RoyalCart/>
     </div>
   )
 }

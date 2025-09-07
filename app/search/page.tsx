@@ -1,10 +1,10 @@
 import React from 'react'
-import Home from './page/Home'
+import SearchPage from '../components/SearchBar'
 
 const page = () => {
   return (
-    <div className='no-scrollbar'>
-      <Home/>
+    <div>
+      <SearchPage/>
     </div>
   )
 }

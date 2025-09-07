@@ -1,0 +1,1 @@
+export const baseUrl: string = 'https://krg7j44d-3001.inc1.devtunnels.ms';
