@@ -8,17 +8,18 @@ import { RootState } from "../store/store";
 import { setUser, logoutUser } from "../store/userSlice";
 import Link from "next/link";
 import toast from 'react-hot-toast';
-
+import {  selectUniqueItemCount } from '../store/cartSlice'
 import { usePathname } from 'next/navigation';
 import MegaMenu from './Categories';
 
 
-export default function Navbar({ cartCount = 2 }: { cartCount?: number }) {
+export default function Navbar() {
+  const cartCount = useSelector(selectUniqueItemCount);
   const pathname = usePathname();
   const dispatch = useDispatch();
   const user = useSelector((state: RootState) => state.user);
   console.log(user,',.,.,.');
-  
+
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isSignUp, setIsSignUp] = useState(false);

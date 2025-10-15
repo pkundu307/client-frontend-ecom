@@ -5,7 +5,6 @@ import { use } from "react";
 import {
   Squares2X2Icon,
   ListBulletIcon,
-  StarIcon,
   HeartIcon,
   EyeIcon,
   ShoppingCartIcon,
@@ -433,7 +432,7 @@ const ProductListing = ({ params }: { params: Promise<{ categoryid: string }> })
       });
       setError(null);
     } catch (err) {
-      setError("Failed to load products. Please try again.");
+      setError(`Failed to load products. Please try again.${(err as Error).message}`);
     } finally {
       setLoading(false);
     }
