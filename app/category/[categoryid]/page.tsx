@@ -61,7 +61,7 @@ const fetchProductsByCategory = async (
 ): Promise<ProductResponse> => {
   try {
     const response = await fetch(
-      `http://localhost:3001/products/featured/category/${categoryId}?page=${page}&limit=${limit}`
+      `${process.env.NEXT_PUBLIC_API_URL}/${categoryId}?page=${page}&limit=${limit}`
     );
     if (!response.ok) {
       throw new Error("Failed to fetch products");

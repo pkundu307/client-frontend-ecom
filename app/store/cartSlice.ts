@@ -6,10 +6,10 @@ import { CartState, CartItem, AddToCartPayload } from './types';
 // 🔧 API CONFIGURATION
 // ===================================================
 
-const API_BASE_URL = 'http://localhost:3001';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
 
 const getAuthHeaders = () => {
-  const token = localStorage.getItem('access_token');
+  const token = localStorage.getItem('token');
   return {
     headers: { Authorization: `Bearer ${token}` },
   };

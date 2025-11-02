@@ -11,12 +11,14 @@ import toast from 'react-hot-toast';
 import {  selectUniqueItemCount } from '../store/cartSlice'
 import { usePathname } from 'next/navigation';
 import MegaMenu from './Categories';
-
-
+import { addItemToServer, clearLocalCart } from "../store/cartSlice";
+import { AppDispatch } from "../store/store";
+import Image from 'next/image';
 export default function Navbar() {
+  
   const cartCount = useSelector(selectUniqueItemCount);
   const pathname = usePathname();
-  const dispatch = useDispatch();
+  const dispatch = useDispatch<AppDispatch>();
   const user = useSelector((state: RootState) => state.user);
   console.log(user,',.,.,.');
 
@@ -133,8 +135,8 @@ export default function Navbar() {
     }
   };
 
-  const handleGoogleLoginSuccess = async (credentialResponse: any) => {
-    if (!credentialResponse.credential) {
+  const handleGoogleLoginSuccess = async (credentialResponse: { credential?: string }) => {
+    if (!credentialResponse?.credential) {
       console.error("No credentials received");
       toast.error("No credentials received from Google", {
         duration: 3000,
@@ -199,6 +201,48 @@ export default function Navbar() {
       setName("");
       setEmail("");
       setPassword("");
+      localStorage.setItem("token", data.token);
+localStorage.setItem("user", JSON.stringify({ name: data.name, role: data.role }));
+
+// Dispatch user info to Redux
+dispatch(setUser({ name: data.name, role: data.role }));
+
+interface CartItem {
+  productId: string;
+  variantId: string;
+  quantity: number;
+  customizationImage?: string;
+  customizationDetails?: string;
+}
+
+// ✅ Step 1: Sync local (guest) cart to server
+const guestCart = JSON.parse(localStorage.getItem("guest_cart") || "[]");
+
+if (guestCart.length > 0) {
+  console.log("Syncing guest cart to server...");
+console.log(guestCart);
+
+ const syncPromises = guestCart.map((item: CartItem) => {
+          const payload = {
+            productId: item.productId,
+            variantId: item.variantId,
+            quantity: item.quantity,
+            // Match the backend API which now expects an array of images
+            customizationImages: item.customizationImage ? [item.customizationImage] : [],
+            customizationDetails: item.customizationDetails ? JSON.stringify(item.customizationDetails) : undefined,
+          };
+
+console.log(payload,'pppppppppppppppppppppppuuuu');
+return dispatch(addItemToServer(payload)).unwrap();
+
+  })
+  console.log(syncPromises,'ppppppppppppppppppppppppppp');
+  
+
+  // ✅ Step 2: Clear local cart once synced
+  dispatch(clearLocalCart());
+  console.log("Guest cart synced successfully!");
+}
     } catch (error) {
       console.error("Google Login Error:", error);
       toast.error("Google login failed. Please try again.", {
@@ -290,9 +334,15 @@ export default function Navbar() {
     <nav className="shadow-lg py-2 px-6 z-20 sticky top-0 backdrop-blur-sm bg-royal-green/95">
     <div className="max-w-7xl mx-auto flex justify-between items-center">
         <Link href="/">
-          <div className="text-royal-gold text-2xl font-bold drop-shadow-sm">
-            Royal<span className="text-white">Greens</span>
-          </div>
+         <div className="text-royal-gold text-2xl font-bold drop-shadow-sm flex items-center gap-2">
+  <Image
+    src="/logo.png" // Replace with your image path
+    alt="Jotto Logo"
+    width={80}       // Adjust size as needed
+    height={140}
+    className='border-2 border-royal-gold rounded-lg'
+  />
+</div>
           </Link>
           {!isMobile && (
             <div className="flex-1 mx-6">

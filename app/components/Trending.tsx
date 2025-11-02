@@ -24,7 +24,7 @@ export default function MyntraCarousel() {
   useEffect(() => {
     const fetchBanners = async () => {
       try {
-        const res = await fetch("http://localhost:3001/banners");
+        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/banners`);
         const data = await res.json();
         setBanners(data);
       } catch (err) {

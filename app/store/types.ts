@@ -1,8 +1,11 @@
+// types.ts
+
 // Define the structure of the product/variant data returned in the cart
 interface CartProductInfo {
     id: string;
     title: string;
     slug: string;
+    images: string[]; // Added: Essential for fallback images
 }
 
 interface CartVariantInfo {
@@ -23,6 +26,7 @@ export interface CartItem {
     customizationDetails: unknown | null; // JSON object
     
     // Included relations from the API response
+    product: CartProductInfo | null; // Added: Makes `item.product.title` valid
     variant: CartVariantInfo | null; 
 }
 
@@ -33,6 +37,7 @@ export interface CartState {
   error: string | null;
   isAuthenticated: boolean; // toggled when user logs in/out
 }
+
 // Defines the shape of the data needed for the add to cart API call
 export interface AddToCartPayload {
     productId: string;

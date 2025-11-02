@@ -1,1 +1,1 @@
-export const baseUrl: string = 'https://krg7j44d-3001.inc1.devtunnels.ms';
+export const baseUrl: string = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';

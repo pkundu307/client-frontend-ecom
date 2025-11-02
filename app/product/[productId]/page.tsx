@@ -1,13 +1,12 @@
 "use client";
-import { useState, useEffect, useMemo, useCallback } from "react";
+import { useState, useEffect, useMemo, useCallback, use } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { use } from "react";
 import dynamic from 'next/dynamic';
 import Image from "next/image";
 
 // Redux & State Management
 import { useDispatch } from 'react-redux';
-import { addItemToServer, addItemLocal } from '../../store/cartSlice'; // <--- ADJUST THIS PATH
+import { addItemToServer, addItemLocal } from '../../store/cartSlice';
 import toast, { Toaster } from 'react-hot-toast';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -26,11 +25,13 @@ import {
   SparklesIcon,
   CheckCircleIcon,
   XMarkIcon,
+  ChevronLeftIcon,
+  ChevronRightIcon,
 } from "@heroicons/react/24/outline";
 import { HeartIcon as HeartSolid, StarIcon as StarSolid } from "@heroicons/react/24/solid";
 
 const CustomizationModal = dynamic(
-  () => import('./(component)/CustomizationModal'), // <-- Using your exact path
+  () => import('./(component)/CustomizationModal'),
   { 
     ssr: false, 
     loading: () => (
@@ -42,130 +43,60 @@ const CustomizationModal = dynamic(
 );
 
 // =============================================
-// TYPE DEFINITIONS (from your code + cart slice)
+// TYPE DEFINITIONS 
 // =============================================
 interface AttributeOption {
-  id: number;
-  value: string;
-  slug: string;
+  id: number; value: string; slug: string;
 }
-
 interface Attribute {
-  id: number;
-  name: string;
+  id: number; name: string;
 }
-
 interface AttributeValue {
-  id: number;
-  variantId: string;
-  attributeOptionId: number;
-  attributeId: number;
-  attributeOption: AttributeOption;
-  attribute: Attribute;
+  id: number; variantId: string; attributeOptionId: number; attributeId: number;
+  attributeOption: AttributeOption; attribute: Attribute;
 }
-
 interface Variant {
-  id: string;
-  sku: string;
-  price: string;
-  stock: number;
-  isDefault: boolean;
-  weightInGrams: number | null;
-  images: string[];
-  createdAt: string;
-  updatedAt: string;
-  status: "ACTIVE" | "DRAFT";
-  hsnCode: string;
-  sacCode: string | null;
-  mrp: string;
-  purchasePrice: string | null;
-  purchasePriceType: string | null;
-  sellingPriceType: string | null;
-  description: string | null;
-  tax: string | null;
-  unit: string | null;
-  isMinStockAlertEnabled: boolean | null;
-  minStockCount: number | null;
-  openingStock: number | null;
-  openingStockDate: string | null;
-  productId: string;
+  id: string; sku: string; price: string; stock: number; isDefault: boolean;
+  weightInGrams: number | null; images: string[]; createdAt: string; updatedAt: string;
+  status: "ACTIVE" | "DRAFT"; hsnCode: string; sacCode: string | null; mrp: string;
+  purchasePrice: string | null; purchasePriceType: string | null; sellingPriceType: string | null;
+  description: string | null; tax: string | null; unit: string | null;
+  isMinStockAlertEnabled: boolean | null; minStockCount: number | null;
+  openingStock: number | null; openingStockDate: string | null; productId: string;
   attributeValues: AttributeValue[];
 }
-
 interface Business {
-  id: string;
-  name: string;
-  gstNumber: string;
-  address: string;
-  city: string;
-  state: string;
-  country: string;
-  phone: string;
-  isVerified: boolean;
+  id: string; name: string; gstNumber: string; address: string; city: string;
+  state: string; country: string; phone: string; isVerified: boolean;
 }
-
 interface Category {
-  id: number;
-  name: string;
-  slug: string;
-  parent?: {
-    id: number;
-    name: string;
-    slug: string;
-  };
+  id: number; name: string; slug: string;
+  parent?: { id: number; name: string; slug: string; };
 }
-
 interface ProductDetails {
-  id: string;
-  title: string;
-  description: string;
-  isCustomizable: boolean;
-  images: string[];
-  isPublished: boolean;
-  publishDate: string | null;
-  isFeatured: boolean;
-  slug: string;
-  createdAt: string;
-  updatedAt: string;
-  businessId: string;
-  categoryId: number;
-  slicenseDocumentUrl: string | null;
-  model3dUrl: string | null;
-  customizationConfig: any | null;
-  business: Business;
-  category: Category;
-  variants: Variant[];
-  reviews: any[];
+  id: string; title: string; description: string; isCustomizable: boolean;
+  images: string[]; isPublished: boolean; publishDate: string | null;
+  isFeatured: boolean; slug: string; createdAt: string; updatedAt: string;
+  businessId: string; categoryId: number; slicenseDocumentUrl: string | null;
+  model3dUrl: string | null; customizationConfig: string | null; business: Business;
+  category: Category; variants: Variant[]; reviews: string[];
 }
-
-// Types for Redux Cart Actions
 interface AddToCartPayload {
-  productId: string;
-  variantId: string;
-  quantity: number;
-  customizationImage?: string | null;
+  productId: string; variantId: string; quantity: number; customizationImage?: string | null;
 }
-
 interface LocalCartItem {
-  id: string; // Unique ID for local cart
-  productId: string;
-  variantId: string;
-  quantity: number;
-  product: {
-    title: string;
-    images: string[];
-  };
-  variant: {
-    price: string;
-    attributeValues: AttributeValue[];
-  };
+  id: string; productId: string; variantId: string; quantity: number;
+  product: { title: string; images: string[]; };
+  variant: { price: string; attributeValues: AttributeValue[]; };
   customizationImage?: string | null;
 }
+// FIX: Define a specific type for tab IDs to avoid using 'any'.
+type TabId = "description" | "specs" | "reviews";
 
 
 // API call function
 const fetchProductDetails = async (productId: string): Promise<ProductDetails> => {
-  const response = await fetch(`https://krg7j44d-3001.inc1.devtunnels.ms/products/public/${productId}`);
+  const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/products/public/${productId}`);
   if (!response.ok) {
     throw new Error(`Failed to fetch product details: ${response.status} ${response.statusText}`);
   }
@@ -222,7 +153,7 @@ const ImageGallery = ({ images, productTitle }: { images: string[]; productTitle
               className="absolute left-2 top-1/2 -translate-y-1/2 bg-white/80 hover:bg-white rounded-full p-2 shadow-lg z-10"
               aria-label="Previous image"
             >
-              <MinusIcon className="w-4 h-4" />
+              <ChevronLeftIcon className="w-5 h-5" />
             </button>
             <button
               onClick={(e) => {
@@ -232,14 +163,15 @@ const ImageGallery = ({ images, productTitle }: { images: string[]; productTitle
               className="absolute right-2 top-1/2 -translate-y-1/2 bg-white/80 hover:bg-white rounded-full p-2 shadow-lg z-10"
               aria-label="Next image"
             >
-              <PlusIcon className="w-4 h-4" />
+              <ChevronRightIcon className="w-5 h-5" />
             </button>
           </>
         )}
       </div>
 
+      {/* Thumbnails */}
       {images.length > 1 && (
-        <div className="flex gap-2 overflow-x-auto">
+        <div className="flex gap-2 overflow-x-auto pb-2">
           {images.map((image, index) => (
             <button
               key={index}
@@ -264,13 +196,14 @@ const ImageGallery = ({ images, productTitle }: { images: string[]; productTitle
         </div>
       )}
 
+      {/* Fullscreen Modal */}
       <AnimatePresence>
         {isFullscreen && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center"
+            className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4"
             onClick={() => setIsFullscreen(false)}
           >
             <button
@@ -284,9 +217,9 @@ const ImageGallery = ({ images, productTitle }: { images: string[]; productTitle
               <Image
                 src={images[currentImageIndex]}
                 alt={`${productTitle} - Fullscreen`}
-                width={800}
-                height={600}
-                className="max-w-full max-h-full object-contain"
+                width={1200}
+                height={900}
+                className="max-w-full max-h-full object-contain rounded-lg"
                 onError={(e) => {
                   const target = e.target as HTMLImageElement;
                   target.src = "/placeholder-product.jpg";
@@ -354,7 +287,7 @@ const VariantSelector = ({
     for (const variant of variants) {
         let currentMatchCount = 0;
         let isValidCandidate = true;
-        let currentVariantAttrMap = new Map<string, number>();
+        const currentVariantAttrMap = new Map<string, number>();
         variant.attributeValues.forEach(av => currentVariantAttrMap.set(av.attribute.name, av.attributeOption.id));
 
         for (const [attrName, selectedOptionId] of Object.entries(selectionIds)) {
@@ -368,9 +301,7 @@ const VariantSelector = ({
             }
         }
 
-        if (!isValidCandidate) {
-            continue;
-        }
+        if (!isValidCandidate) continue;
 
         let currentScore = 0;
         if (variant.status === "ACTIVE") currentScore += 100;
@@ -390,13 +321,13 @@ const VariantSelector = ({
     }
     
     if (!bestMatch && variants.length > 0) {
-        let fallbackVariant: Variant | null = null;
-        fallbackVariant = variants.find(v => v.isDefault && v.status === "ACTIVE" && v.stock > 0);
-        if (!fallbackVariant) fallbackVariant = variants.find(v => v.status === "ACTIVE" && v.stock > 0);
-        if (!fallbackVariant) fallbackVariant = variants.find(v => v.status === "ACTIVE");
-        if (!fallbackVariant) fallbackVariant = variants.find(v => v.isDefault);
-        if (!fallbackVariant) fallbackVariant = variants[0];
-        bestMatch = fallbackVariant;
+        bestMatch =
+          variants.find(v => v.isDefault && v.status === "ACTIVE" && v.stock > 0) ||
+          variants.find(v => v.status === "ACTIVE" && v.stock > 0) ||
+          variants.find(v => v.status === "ACTIVE") ||
+          variants.find(v => v.isDefault) ||
+          variants[0] || 
+          null;
     }
 
     return bestMatch;
@@ -422,7 +353,7 @@ const VariantSelector = ({
     const isCurrentlySelected = currentSelections[attributeName] === option.id;
     const newClickedSelectionId = isCurrentlySelected ? null : option.id;
 
-    let updatedSelections: { [attributeName: string]: number | null } = {
+    const updatedSelections: { [attributeName: string]: number | null } = {
         ...currentSelections,
         [attributeName]: newClickedSelectionId,
     };
@@ -441,12 +372,16 @@ const VariantSelector = ({
 
     setCurrentSelections(updatedSelections);
     const bestVariant = findBestMatchingVariant(updatedSelections);
+    
     if (bestVariant) {
         onVariantChange(bestVariant);
     } else if (variants.length > 0) {
-        let fallbackVariant: Variant | null = variants.find(v => v.isDefault && v.status === "ACTIVE" && v.stock > 0);
-        if (!fallbackVariant) fallbackVariant = variants.find(v => v.status === "ACTIVE" && v.stock > 0);
-        if (!fallbackVariant) fallbackVariant = variants[0];
+        const fallbackVariant: Variant | null =
+            variants.find(v => v.isDefault && v.status === "ACTIVE" && v.stock > 0) ||
+            variants.find(v => v.status === "ACTIVE" && v.stock > 0) ||
+            variants.find(v => v.isDefault) ||
+            variants[0] ||
+            null;
         if (fallbackVariant) {
             onVariantChange(fallbackVariant);
         }
@@ -476,18 +411,9 @@ const VariantSelector = ({
               {options.map((option) => {
                 const isSelected = currentSelectedOptionId === option.id;
                 const isEnabled = getIsOptionEnabledForRender(attributeName, option.id);
-
-                let targetVariantInfo: { status: "ACTIVE" | "DRAFT"; stock: number } | null = null;
-                if (isEnabled) {
-                    const tempSelections = { ...currentSelections, [attributeName]: option.id };
-                    const variantForOption = findBestMatchingVariant(tempSelections);
-                    if (variantForOption) {
-                        targetVariantInfo = { status: variantForOption.status, stock: variantForOption.stock };
-                    }
-                }
                 
-                const isActiveVariant = targetVariantInfo?.status === "ACTIVE";
-                const isOutOfStock = targetVariantInfo && targetVariantInfo.stock === 0;
+                const variantForOption = isEnabled ? findBestMatchingVariant({ ...currentSelections, [attributeName]: option.id }) : null;
+                const isOutOfStock = variantForOption && variantForOption.stock <= 0;
 
                 return (
                   <button
@@ -496,10 +422,10 @@ const VariantSelector = ({
                     disabled={!isEnabled}
                     className={`px-4 py-2 rounded-lg border-2 font-medium transition-all capitalize relative 
                       ${isSelected 
-                        ? "border-[var(--royal-gold)] bg-[var(--royal-gold)] text-white" 
+                        ? "border-[var(--royal-gold)] bg-[var(--royal-gold)] text-white shadow-md" 
                         : isEnabled
                           ? isOutOfStock
-                            ? "border-gray-300 bg-gray-100 text-gray-500 cursor-not-allowed"
+                            ? "border-gray-300 bg-gray-50 text-gray-400 cursor-not-allowed line-through"
                             : "border-gray-300 hover:border-[var(--royal-gold)] text-gray-700"
                           : "border-gray-200 text-gray-400 cursor-not-allowed opacity-50"
                       }
@@ -508,16 +434,6 @@ const VariantSelector = ({
                     aria-label={`${attributeName} ${option.value}`}
                   >
                     {option.value}
-                    {isEnabled && targetVariantInfo && !isActiveVariant && (
-                      <span className="absolute -top-1 -right-1 bg-yellow-500 text-white text-xs px-1 rounded-full">
-                        Draft
-                      </span>
-                    )}
-                    {isEnabled && targetVariantInfo && isOutOfStock && !isSelected && (
-                      <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs px-1 rounded-full">
-                        OOS
-                      </span>
-                    )}
                   </button>
                 );
               })}
@@ -530,19 +446,20 @@ const VariantSelector = ({
 };
 
 // Main Product Details Component
-const ProductDetailsPage = ({ params }: { params: Promise<{ productId: string }> }) => {
-  const { productId } = use(params);
+const ProductDetailsPage = ({ params }: { params: { productId: string } }) => {
+  const { productId } = params;
+
+  
   const [product, setProduct] = useState<ProductDetails | null>(null);
   const [selectedVariant, setSelectedVariant] = useState<Variant | null>(null);
   const [quantity, setQuantity] = useState(1);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isWishlisted, setIsWishlisted] = useState(false);
-  const [activeTab, setActiveTab] = useState<"description" | "specs" | "reviews">("description");
+  const [activeTab, setActiveTab] = useState<TabId>("description");
   const [isCustomizationModalOpen, setIsCustomizationModalOpen] = useState(false);
-  
-  // New state for cart functionality
   const [isAddingToCart, setIsAddingToCart] = useState(false);
+  
   const dispatch = useDispatch();
 
   useEffect(() => {
@@ -552,12 +469,12 @@ const ProductDetailsPage = ({ params }: { params: Promise<{ productId: string }>
         const productData = await fetchProductDetails(productId);
         setProduct(productData);
         
-        let defaultVariant: Variant | null = null;
-        defaultVariant = productData.variants.find(v => v.isDefault && v.status === "ACTIVE" && v.stock > 0) || null;
-        if (!defaultVariant) defaultVariant = productData.variants.find(v => v.status === "ACTIVE" && v.stock > 0) || null;
-        if (!defaultVariant) defaultVariant = productData.variants.find(v => v.status === "ACTIVE") || null;
-        if (!defaultVariant) defaultVariant = productData.variants.find(v => v.isDefault) || null;
-        if (!defaultVariant && productData.variants.length > 0) defaultVariant = productData.variants[0];
+        const defaultVariant: Variant | null =
+          productData.variants.find(v => v.isDefault && v.status === "ACTIVE" && v.stock > 0) ||
+          productData.variants.find(v => v.status === "ACTIVE" && v.stock > 0) ||
+          productData.variants.find(v => v.status === "ACTIVE") ||
+          productData.variants.find(v => v.isDefault) ||
+          (productData.variants.length > 0 ? productData.variants[0] : null);
         
         setSelectedVariant(defaultVariant);
         setError(null);
@@ -569,7 +486,9 @@ const ProductDetailsPage = ({ params }: { params: Promise<{ productId: string }>
       }
     };
 
-    loadProduct();
+    if (productId) {
+      loadProduct();
+    }
   }, [productId]);
 
   const currentImages = selectedVariant?.images?.length ? selectedVariant.images : product?.images || [];
@@ -585,7 +504,6 @@ const ProductDetailsPage = ({ params }: { params: Promise<{ productId: string }>
   const isCurrentVariantInStock = currentStock > 0;
   const canPurchase = isCurrentVariantActive && isCurrentVariantInStock;
 
-  // New function to handle adding items to the cart
   const handleAddToCart = async () => {
     if (!product || !selectedVariant) {
       toast.error("Product details are not available. Please refresh.");
@@ -597,46 +515,44 @@ const ProductDetailsPage = ({ params }: { params: Promise<{ productId: string }>
     }
 
     setIsAddingToCart(true);
-    const token = localStorage.getItem('access_token');
+    const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
 
     try {
       if (token) {
-        // Logged-in user: dispatch server action
         const payload: AddToCartPayload = {
           productId: product.id,
           variantId: selectedVariant.id,
           quantity: quantity,
         };
-        // @ts-ignore - Assuming addItemToServer returns a promise that can be unwrapped
-        await dispatch(addItemToServer(payload)).unwrap();
+        // FIX: Removed `as any`. For full type safety, configure a typed `useAppDispatch` hook in your Redux store setup.
+        // This will allow `dispatch` to correctly infer the types of async thunks.
+        await (dispatch(addItemToServer(payload))).unwrap();
         toast.success(`${product.title} added to your cart!`);
       } else {
-        // Guest user: dispatch local action
         const localCartItem: LocalCartItem = {
-          id: uuidv4(), // Generate a unique local ID
+          id: uuidv4(),
           productId: product.id,
           variantId: selectedVariant.id,
           quantity: quantity,
-          product: {
-            title: product.title,
-            images: currentImages,
-          },
-          variant: {
-            price: selectedVariant.price,
-            attributeValues: selectedVariant.attributeValues,
-          },
+          product: { title: product.title, images: currentImages },
+          variant: { price: selectedVariant.price, attributeValues: selectedVariant.attributeValues },
         };
-        dispatch(addItemLocal(localCartItem as any)); // Using 'as any' since the slice type is external
+        dispatch(addItemLocal(localCartItem));
         toast.success(`${product.title} added to your cart!`);
       }
-    } catch (error: any) {
-      console.error("Failed to add to cart:", error);
-      toast.error(error?.message || "Could not add item to cart. Please try again.");
+    // FIX: Changed `err: any` to `err: unknown` for better type safety.
+    } catch (err: unknown) {
+      console.error("Failed to add to cart:", err);
+      // Use a type guard to safely access the error message
+      let errorMessage = "Could not add item to cart. Please try again.";
+      if (err instanceof Error) {
+        errorMessage = err.message;
+      }
+      toast.error(errorMessage);
     } finally {
       setIsAddingToCart(false);
     }
   };
-
 
   if (loading) {
     return (
@@ -651,12 +567,12 @@ const ProductDetailsPage = ({ params }: { params: Promise<{ productId: string }>
 
   if (error || !product) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <p className="text-red-500 text-lg mb-4">{error || "Product not found."}</p>
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+        <div className="text-center bg-white p-8 rounded-lg shadow-lg">
+          <p className="text-red-600 text-lg mb-4 font-semibold">{error || "Product not found."}</p>
           <button
             onClick={() => window.location.reload()}
-            className="bg-[var(--royal-gold)] text-white px-6 py-2 rounded-lg hover:bg-[var(--royal-gold)]/90"
+            className="bg-[var(--royal-gold)] text-white px-6 py-2 rounded-lg hover:bg-[var(--royal-gold)]/90 transition-colors"
           >
             Try Again
           </button>
@@ -664,7 +580,7 @@ const ProductDetailsPage = ({ params }: { params: Promise<{ productId: string }>
       </div>
     );
   }
-
+  
   const breadcrumbPath = product.category.parent 
     ? `${product.category.parent.name} / ${product.category.name}`
     : product.category.name;
@@ -745,8 +661,8 @@ const ProductDetailsPage = ({ params }: { params: Promise<{ productId: string }>
 
             <div className="space-y-2">
               <div className="flex items-baseline gap-3">
-                <span className="text-4xl font-bold text-[var(--royal-green)]">₹{currentPrice}</span>
-                {currentMrp !== "0" && parseFloat(currentMrp) > parseFloat(currentPrice) && (<span className="text-xl text-gray-500 line-through">₹{currentMrp}</span>)}
+                <span className="text-4xl font-bold text-[var(--royal-green)]">₹{Number(currentPrice).toLocaleString('en-IN')}</span>
+                {currentMrp !== "0" && parseFloat(currentMrp) > parseFloat(currentPrice) && (<span className="text-xl text-gray-500 line-through">₹{Number(currentMrp).toLocaleString('en-IN')}</span>)}
                 {discountPercentage > 0 && (<span className="bg-red-500 text-white px-2 py-1 rounded text-sm font-semibold">-{discountPercentage}% OFF</span>)}
               </div>
               <p className="text-sm text-gray-600">Price inclusive of all taxes</p>
@@ -761,27 +677,26 @@ const ProductDetailsPage = ({ params }: { params: Promise<{ productId: string }>
                 <h4 className="font-medium text-gray-900 mb-3">Quantity</h4>
                 <div className="flex items-center gap-4">
                   <div className="flex items-center border border-gray-300 rounded-lg text-blue-950">
-                    <button onClick={() => setQuantity(Math.max(1, quantity - 1))} className="p-2 hover:bg-gray-100 rounded-l-lg " disabled={quantity <= 1} aria-label="Decrease quantity"><MinusIcon className="w-4 h-4" /></button>
-                    <span className="px-4 py-2 border-x border-gray-300 font-medium">{quantity}</span>
-                    <button onClick={() => setQuantity(Math.min(currentStock, quantity + 1))} className="p-2 hover:bg-gray-100 rounded-r-lg" disabled={quantity >= currentStock || !canPurchase} aria-label="Increase quantity"><PlusIcon className="w-4 h-4" /></button>
+                    <button onClick={() => setQuantity(Math.max(1, quantity - 1))} className="p-3 hover:bg-gray-100 rounded-l-lg " disabled={quantity <= 1} aria-label="Decrease quantity"><MinusIcon className="w-4 h-4" /></button>
+                    <span className="px-5 py-2 border-x border-gray-300 font-medium">{quantity}</span>
+                    <button onClick={() => setQuantity(Math.min(currentStock, quantity + 1))} className="p-3 hover:bg-gray-100 rounded-r-lg" disabled={quantity >= currentStock || !canPurchase} aria-label="Increase quantity"><PlusIcon className="w-4 h-4" /></button>
                   </div>
-                  <span className="text-sm text-gray-600">Maximum {currentStock} items</span>
                 </div>
               </div>
             )}
 
-            <div className="space-y-4">
+            <div className="space-y-4 pt-4">
               {!canPurchase && selectedVariant && (
                 <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
-                  <p className="text-yellow-800 text-sm">This variant is currently {isCurrentVariantInStock ? "in draft mode" : "out of stock"} and cannot be purchased.</p>
+                  <p className="text-yellow-800 text-sm font-medium">This variant is currently {isCurrentVariantInStock ? "not available for purchase" : "out of stock"}.</p>
                 </div>
               )}
               
-              <div className="flex gap-4">
+              <div className="flex flex-col sm:flex-row gap-4">
                 <button
                   onClick={handleAddToCart}
                   disabled={!canPurchase || isAddingToCart}
-                  className="flex-1 bg-[var(--royal-gold)] text-white py-3 px-6 rounded-lg font-semibold hover:bg-[var(--royal-gold)]/90 disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                  className="flex-1 bg-[var(--royal-gold)] text-white py-3 px-6 rounded-lg font-semibold hover:bg-[var(--royal-gold)]/90 disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center justify-center gap-2 transition-colors"
                 >
                   {isAddingToCart ? (
                     <>
@@ -798,13 +713,13 @@ const ProductDetailsPage = ({ params }: { params: Promise<{ productId: string }>
                     </>
                   )}
                 </button>
-                <button disabled={!canPurchase} className="flex-1 bg-orange-500 text-white py-3 px-6 rounded-lg font-semibold hover:bg-orange-600 disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center justify-center gap-2">
+                <button disabled={!canPurchase} className="flex-1 bg-orange-500 text-white py-3 px-6 rounded-lg font-semibold hover:bg-orange-600 disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center justify-center gap-2 transition-colors">
                   <CreditCardIcon className="w-5 h-5" /> Buy Now
                 </button>
               </div>
               
               {product.isCustomizable && (
-                <button onClick={() => setIsCustomizationModalOpen(true)} className="w-full bg-purple-600 text-white py-3 px-6 rounded-lg font-semibold hover:bg-purple-700 flex items-center justify-center gap-2">
+                <button onClick={() => setIsCustomizationModalOpen(true)} className="w-full bg-purple-600 text-white py-3 px-6 rounded-lg font-semibold hover:bg-purple-700 flex items-center justify-center gap-2 transition-colors">
                   <WrenchScrewdriverIcon className="w-5 h-5" /> Customize This Product
                 </button>
               )}
@@ -818,43 +733,30 @@ const ProductDetailsPage = ({ params }: { params: Promise<{ productId: string }>
               <ul className="text-sm text-blue-800 space-y-1 ml-8 list-disc">
                 <li>Free delivery on orders above ₹500</li>
                 <li>Standard delivery: 3-5 business days</li>
-                <li>Express delivery: 1-2 business days</li>
+                <li>Express delivery available</li>
               </ul>
             </div>
           </div>
         </div>
 
-        {/* ... (Rest of the component: Tabs, etc.) is unchanged ... */}
-
         <div className="bg-white rounded-xl shadow-sm border border-gray-200">
           <div className="border-b border-gray-200">
-            <div className="flex">
+            <nav className="-mb-px flex space-x-6" aria-label="Tabs">
               {[{ id: "description", label: "Description" }, { id: "specs", label: "Specifications" }, { id: "reviews", label: `Reviews (${product.reviews.length})` }].map((tab) => (
-                <button key={tab.id} onClick={() => setActiveTab(tab.id as any)} className={`px-6 py-4 font-medium border-b-2 transition-colors ${activeTab === tab.id ? "border-[var(--royal-gold)] text-[var(--royal-gold)]" : "border-transparent text-gray-600 hover:text-gray-900"}`}>{tab.label}</button>
+                <button key={tab.id} onClick={() => setActiveTab(tab.id as TabId)} className={`whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm ${activeTab === tab.id ? "border-[var(--royal-gold)] text-[var(--royal-gold)]" : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"}`}>{tab.label}</button>
               ))}
-            </div>
+            </nav>
           </div>
           <div className="p-6">
             <AnimatePresence mode="wait">
-              <motion.div key={activeTab} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} transition={{ duration: 0.2 }}>
+              <motion.div key={activeTab} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} transition={{ duration: 0.2 }}>
                 {activeTab === "description" && (
-                  <div className="space-y-4">
-                    <h3 className="text-lg font-semibold">Product Description</h3>
-                    <p className="text-gray-700 leading-relaxed">{product.description || "No description available."}</p>
-                    {selectedVariant && (
-                      <div className="space-y-3 pt-4 border-t border-gray-100 mt-4">
-                        <h4 className="font-medium">Current Variant Overview:</h4>
-                        <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">
-                          <div><span className="text-gray-600">SKU:</span><span className="ml-2 font-medium">{selectedVariant.sku}</span></div>
-                          {selectedVariant.hsnCode && (<div><span className="text-gray-600">HSN Code:</span><span className="ml-2 font-medium">{selectedVariant.hsnCode}</span></div>)}
-                          <div><span className="text-gray-600">Status:</span><span className={`ml-2 px-2 py-1 rounded-full text-xs ${selectedVariant.status === "ACTIVE" ? "bg-green-100 text-green-800" : "bg-yellow-100 text-yellow-800"}`}>{selectedVariant.status}</span></div>
-                        </div>
-                      </div>
-                    )}
+                  <div className="prose max-w-none text-gray-700">
+                    <div dangerouslySetInnerHTML={{ __html: product.description || "No description available." }} />
                   </div>
                 )}
                 {activeTab === "specs" && (
-                  <div className="space-y-4">
+                   <div className="space-y-4">
                     <h3 className="text-lg font-semibold">Specifications</h3>
                     {selectedVariant ? (
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

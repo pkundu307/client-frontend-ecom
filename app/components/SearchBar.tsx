@@ -71,7 +71,7 @@ export default function SearchPage() {
                 key={item.id}
                 className="group flex items-center p-4 hover:bg-[var(--royal-green)]/40 
                           border-b border-[var(--royal-gold)]/10 last:border-0 cursor-pointer"
-                role="option"
+                // role="option"
               >
                 {item.image && (
                   <Image
