@@ -2,13 +2,17 @@
 import { useState, useEffect, useMemo, useCallback, use } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import dynamic from 'next/dynamic';
-import Image from "next/image";
 
+import Image from "next/image";
+import { useAppDispatch } from '../../store/hook';
 // Redux & State Management
-import { useDispatch } from 'react-redux';
-import { addItemToServer, addItemLocal } from '../../store/cartSlice';
+// import { useAppDispatch } from '../../store/hooks';
+import { addItemToServer,
+  
+  // addItemLocal 
+} from '../../store/cartSlice';
 import toast, { Toaster } from 'react-hot-toast';
-import { v4 as uuidv4 } from 'uuid';
+// import { v4 as uuidv4 } from 'uuid';
 
 // Icons
 import {
@@ -29,6 +33,7 @@ import {
   ChevronRightIcon,
 } from "@heroicons/react/24/outline";
 import { HeartIcon as HeartSolid, StarIcon as StarSolid } from "@heroicons/react/24/solid";
+// import { useDispatch } from "react-redux";
 
 const CustomizationModal = dynamic(
   () => import('./(component)/CustomizationModal'),
@@ -45,6 +50,11 @@ const CustomizationModal = dynamic(
 // =============================================
 // TYPE DEFINITIONS 
 // =============================================
+interface ProductPageProps {
+  params: Promise<{
+    productId: string;
+  }>;
+}
 interface AttributeOption {
   id: number; value: string; slug: string;
 }
@@ -84,12 +94,13 @@ interface ProductDetails {
 interface AddToCartPayload {
   productId: string; variantId: string; quantity: number; customizationImage?: string | null;
 }
-interface LocalCartItem {
-  id: string; productId: string; variantId: string; quantity: number;
-  product: { title: string; images: string[]; };
-  variant: { price: string; attributeValues: AttributeValue[]; };
-  customizationImage?: string | null;
-}
+// interface LocalCartItem {
+//   id: string; productId: string; variantId: string; quantity: number;
+//   product: { title: string; images: string[]; };
+//   variant: { price: string; attributeValues: AttributeValue[]; };
+//   customizationImage?: string | null;
+//   customizationDetails?: Record<string, string>;
+// }
 // FIX: Define a specific type for tab IDs to avoid using 'any'.
 type TabId = "description" | "specs" | "reviews";
 
@@ -446,8 +457,11 @@ const VariantSelector = ({
 };
 
 // Main Product Details Component
-const ProductDetailsPage = ({ params }: { params: { productId: string } }) => {
-  const { productId } = params;
+export default function ProductPage({ params }: ProductPageProps) {
+  const resolvedParams = use(
+    params instanceof Promise ? params : Promise.resolve(params)
+  );
+  const { productId } = resolvedParams;
 
   
   const [product, setProduct] = useState<ProductDetails | null>(null);
@@ -460,7 +474,7 @@ const ProductDetailsPage = ({ params }: { params: { productId: string } }) => {
   const [isCustomizationModalOpen, setIsCustomizationModalOpen] = useState(false);
   const [isAddingToCart, setIsAddingToCart] = useState(false);
   
-  const dispatch = useDispatch();
+  const dispatch = useAppDispatch();
 
   useEffect(() => {
     const loadProduct = async () => {
@@ -524,21 +538,24 @@ const ProductDetailsPage = ({ params }: { params: { productId: string } }) => {
           variantId: selectedVariant.id,
           quantity: quantity,
         };
+        console.log("Dispatching addItemToServer with payload:", payload);
+        
         // FIX: Removed `as any`. For full type safety, configure a typed `useAppDispatch` hook in your Redux store setup.
         // This will allow `dispatch` to correctly infer the types of async thunks.
         await (dispatch(addItemToServer(payload))).unwrap();
+        
         toast.success(`${product.title} added to your cart!`);
       } else {
-        const localCartItem: LocalCartItem = {
-          id: uuidv4(),
-          productId: product.id,
-          variantId: selectedVariant.id,
-          quantity: quantity,
-          product: { title: product.title, images: currentImages },
-          variant: { price: selectedVariant.price, attributeValues: selectedVariant.attributeValues },
-        };
-        dispatch(addItemLocal(localCartItem));
-        toast.success(`${product.title} added to your cart!`);
+        // const localCartItem: LocalCartItem = {
+        //   id: uuidv4(),
+        //   productId: product.id,
+        //   variantId: selectedVariant.id,
+        //   quantity: quantity,
+        //   product: { title: product.title, images: currentImages },
+        //   variant: { price: selectedVariant.price, attributeValues: selectedVariant.attributeValues },
+        // };
+        // dispatch(addItemLocal(localCartItem));
+        // toast.success(`${product.title} added to your cart!`);
       }
     // FIX: Changed `err: any` to `err: unknown` for better type safety.
     } catch (err: unknown) {
@@ -696,22 +713,47 @@ const ProductDetailsPage = ({ params }: { params: { productId: string } }) => {
                 <button
                   onClick={handleAddToCart}
                   disabled={!canPurchase || isAddingToCart}
-                  className="flex-1 bg-[var(--royal-gold)] text-white py-3 px-6 rounded-lg font-semibold hover:bg-[var(--royal-gold)]/90 disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center justify-center gap-2 transition-colors"
+                  className={`flex-1 ${localStorage.getItem("token")?"bg-[var(--royal-gold)]":"bg-grey-500"}  text-white py-3 px-6 rounded-lg font-semibold hover:bg-[var(--royal-gold)]/90 disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center justify-center gap-2 transition-colors`}
                 >
-                  {isAddingToCart ? (
-                    <>
-                      <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                      </svg>
-                      Adding...
-                    </>
-                  ) : (
-                    <>
-                      <ShoppingCartIcon className="w-5 h-5" />
-                      Add to Cart
-                    </>
-                  )}
+        <button
+  className={`flex items-center justify-center px-4 py-2 rounded-md font-medium transition-colors duration-200
+    ${isAddingToCart ? "bg-gray-500 cursor-wait text-white" :
+      localStorage.getItem("token")
+        ? " text-white"
+        : "bg-gray-300 text-gray-500 cursor-not-allowed"}`}
+  disabled={isAddingToCart || !localStorage.getItem("token")}
+>
+  {isAddingToCart ? (
+    <>
+      <svg
+        className="animate-spin -ml-1 mr-3 h-5 w-5 text-white"
+        xmlns="http://www.w3.org/2000/svg"
+        fill="none"
+        viewBox="0 0 24 24"
+      >
+        <circle
+          className="opacity-25"
+          cx="12"
+          cy="12"
+          r="10"
+          stroke="currentColor"
+          strokeWidth="4"
+        ></circle>
+        <path
+          className="opacity-75"
+          fill="currentColor"
+          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+        ></path>
+      </svg>
+      Adding...
+    </>
+  ) : (
+    <>
+      <ShoppingCartIcon className="w-5 h-5 mr-2" />
+      {localStorage.getItem("token") ? "Add to Cart" : "Login to Add to Cart"}
+    </>
+  )}
+</button>
                 </button>
                 <button disabled={!canPurchase} className="flex-1 bg-orange-500 text-white py-3 px-6 rounded-lg font-semibold hover:bg-orange-600 disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center justify-center gap-2 transition-colors">
                   <CreditCardIcon className="w-5 h-5" /> Buy Now
@@ -803,4 +845,4 @@ const ProductDetailsPage = ({ params }: { params: { productId: string } }) => {
   );
 };
 
-export default ProductDetailsPage;
+// export default ProductDetailsPage;

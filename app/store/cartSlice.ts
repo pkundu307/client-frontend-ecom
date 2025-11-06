@@ -1,24 +1,35 @@
+// src/store/cartSlice.ts
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
 import axios, { AxiosError } from 'axios';
 import { CartState, CartItem, AddToCartPayload } from './types';
 
-// ===================================================
-// 🔧 API CONFIGURATION
-// ===================================================
+/**
+ * NOTE:
+ * - This file assumes you have `./types` exporting CartState, CartItem, AddToCartPayload.
+ * - Adjust API_BASE_URL to match your env / runtime config if needed.
+ */
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+// -----------------------------
+// API CONFIG
+// -----------------------------
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
 
+// -----------------------------
+// Auth header helper
+// -----------------------------
 const getAuthHeaders = () => {
-  const token = localStorage.getItem('token');
+  const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+  if (!token) return {}; // safe: return empty object when unauthenticated
   return {
-    headers: { Authorization: `Bearer ${token}` },
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
   };
 };
 
-// ===================================================
-// 🔧 ERROR HANDLER
-// ===================================================
-
+// -----------------------------
+// Error handler
+// -----------------------------
 interface ErrorResponse {
   message?: string;
 }
@@ -26,16 +37,54 @@ interface ErrorResponse {
 const handleAxiosError = (error: unknown, defaultMessage: string): string => {
   if (axios.isAxiosError(error)) {
     const axiosError = error as AxiosError<ErrorResponse>;
-    return axiosError.response?.data?.message || defaultMessage;
+    return axiosError.response?.data?.message || axiosError.message || defaultMessage;
   }
-  return defaultMessage;
+  // Non-axios error
+  try {
+    return (error as Error).message || defaultMessage;
+  } catch {
+    return defaultMessage;
+  }
 };
 
-// ===================================================
-// 🌐 ASYNC THUNKS (SERVER-MODE)
-// ===================================================
+// -----------------------------
+// LocalStorage helpers (guest cart)
+// -----------------------------
+const GUEST_CART_KEY = 'guest_cart';
 
-// 1️⃣ Fetch all cart items
+const loadCartFromStorage = (): CartItem[] => {
+  try {
+    if (typeof window === 'undefined') return [];
+    const data = localStorage.getItem(GUEST_CART_KEY);
+    return data ? JSON.parse(data) : [];
+  } catch {
+    return [];
+  }
+};
+
+const saveCartToStorage = (cart: CartItem[]) => {
+  try {
+    if (typeof window === 'undefined') return;
+    localStorage.setItem(GUEST_CART_KEY, JSON.stringify(cart));
+  } catch {
+    /* ignore */
+  }
+};
+
+// Helper to compare customization (simple deterministic compare)
+const sameCustomization = (a?: Record<string, unknown> | null, b?: Record<string, unknown> | null) => {
+  try {
+    return JSON.stringify(a || {}) === JSON.stringify(b || {});
+  } catch {
+    return false;
+  }
+};
+
+// -----------------------------
+// Async thunks (server-side)
+// -----------------------------
+
+// 1) Fetch cart items
 export const fetchCartItems = createAsyncThunk<CartItem[], void, { rejectValue: string }>(
   'cart/fetchItems',
   async (_, { rejectWithValue }) => {
@@ -47,17 +96,42 @@ export const fetchCartItems = createAsyncThunk<CartItem[], void, { rejectValue: 
     }
   }
 );
-export const selectUniqueItemCount = (state: { cart: CartState }) =>
-  state.cart.items.length;
-// 2️⃣ Add item to server cart
+
+// 2) Add item to server (handles multipart uploads)
 export const addItemToServer = createAsyncThunk<CartItem, AddToCartPayload, { rejectValue: string }>(
   'cart/addItemToServer',
   async (payload, { rejectWithValue }) => {
     try {
-      const res = await axios.post<CartItem>(`${API_BASE_URL}/cart/add-item`, payload, {
-        ...getAuthHeaders(),
-        headers: { ...getAuthHeaders().headers, 'Content-Type': 'application/json' },
-      });
+      // Ensure logged in
+      const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+      if (!token) return rejectWithValue('Please log in first.');
+
+      const { productId, variantId, quantity, customizationDetails, customizationImages } = payload;
+
+      const formData = new FormData();
+      formData.append('productId', productId);
+      if (variantId) formData.append('variantId', variantId);
+      formData.append('quantity', quantity.toString());
+      if (customizationDetails) formData.append('customizationDetails', JSON.stringify(customizationDetails));
+
+      if (Array.isArray(customizationImages)) {
+        customizationImages.forEach((file) => {
+          // `file` should be an instance of File in browser
+          formData.append('customizationImages', file as File);
+        });
+      }
+
+      const res = await axios.post<CartItem>(
+        `${API_BASE_URL}/cart/add-item`,
+        formData,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            // DO NOT set Content-Type here — axios sets the correct multipart boundary.
+          },
+        },
+      );
+
       return res.data;
     } catch (error) {
       return rejectWithValue(handleAxiosError(error, 'Failed to add item to cart.'));
@@ -65,13 +139,14 @@ export const addItemToServer = createAsyncThunk<CartItem, AddToCartPayload, { re
   }
 );
 
-// 3️⃣ Update item quantity / customization
+// 3) Update item on server (payload `data` may be JSON; if you need to update images, change to multipart)
 export const updateItemOnServer = createAsyncThunk<
   CartItem,
   { id: string; data: Partial<AddToCartPayload> },
   { rejectValue: string }
 >('cart/updateItemOnServer', async ({ id, data }, { rejectWithValue }) => {
   try {
+    // Simple JSON patch/update
     const res = await axios.patch<CartItem>(`${API_BASE_URL}/cart/${id}`, data, getAuthHeaders());
     return res.data;
   } catch (error) {
@@ -79,70 +154,63 @@ export const updateItemOnServer = createAsyncThunk<
   }
 });
 
-// 4️⃣ Delete item from server cart
-export const deleteItemFromServer = createAsyncThunk<
-  string, // return deleted item id
-  string, // payload = id
-  { rejectValue: string }
->('cart/deleteItemFromServer', async (id, { rejectWithValue }) => {
-  try {
-    await axios.delete(`${API_BASE_URL}/cart/${id}`, getAuthHeaders());
-    return id;
-  } catch (error) {
-    return rejectWithValue(handleAxiosError(error, 'Failed to remove cart item.'));
+// 4) Delete item from server
+export const deleteItemFromServer = createAsyncThunk<string, string, { rejectValue: string }>(
+  'cart/deleteItemFromServer',
+  async (id, { rejectWithValue }) => {
+    try {
+      await axios.delete(`${API_BASE_URL}/cart/${id}`, getAuthHeaders());
+      return id;
+    } catch (error) {
+      return rejectWithValue(handleAxiosError(error, 'Failed to remove cart item.'));
+    }
   }
-});
+);
 
-// ===================================================
-// 🧱 LOCAL STORAGE HELPERS (GUEST-MODE)
-// ===================================================
-
-const loadCartFromStorage = (): CartItem[] => {
-  try {
-    const data = localStorage.getItem('guest_cart');
-    return data ? JSON.parse(data) : [];
-  } catch {
-    return [];
-  }
-};
-
-const saveCartToStorage = (cart: CartItem[]) => {
-  localStorage.setItem('guest_cart', JSON.stringify(cart));
-};
-
-// ===================================================
-// 🧩 SLICE SETUP
-// ===================================================
-
+// -----------------------------
+// Slice initial state & helpers
+// -----------------------------
 const initialState: CartState = {
   items: loadCartFromStorage(),
   isLoading: false,
   error: null,
-  isAuthenticated: false, // toggled on login/logout
+  isAuthenticated: false,
 };
 
+// Utility to merge a server-returned item into state (replace or push)
+const mergeServerItem = (items: CartItem[], newItem: CartItem) => {
+  const idx = items.findIndex((i) => i.id === newItem.id);
+  if (idx !== -1) {
+    items[idx] = newItem;
+  } else {
+    items.push(newItem);
+  }
+};
+
+// -----------------------------
+// Slice
+// -----------------------------
 export const cartSlice = createSlice({
   name: 'cart',
   initialState,
   reducers: {
-    // ---------------------------------------------
-    // 🧭 AUTH MODE TOGGLE
-    // ---------------------------------------------
+    // Toggle authentication status (used to switch guest <> server mode)
     setAuthStatus: (state, action: PayloadAction<boolean>) => {
       state.isAuthenticated = action.payload;
+      // If switching to guest mode (false) keep guest storage in sync
+      if (!action.payload) saveCartToStorage(state.items);
     },
 
-    // ---------------------------------------------
-    // 🛒 LOCAL CART ACTIONS (GUEST)
-    // ---------------------------------------------
+    // Local-only actions for guest mode
     addItemLocal: (state, action: PayloadAction<CartItem>) => {
       const newItem = action.payload;
-        // Check for existing item with same productId, variantId, and customizationImage
       const existing = state.items.find(
         (item) =>
           item.productId === newItem.productId &&
           item.variantId === newItem.variantId &&
-          item.customizationImage === newItem.customizationImage
+          sameCustomization(item.customizationDetails, newItem.customizationDetails) &&
+          // compare customizationImages arrays by JSON
+          JSON.stringify(item.customizationImages || []) === JSON.stringify(newItem.customizationImages || [])
       );
 
       if (existing) {
@@ -155,11 +223,11 @@ export const cartSlice = createSlice({
 
     updateItemLocal: (state, action: PayloadAction<{ id: string; data: Partial<CartItem> }>) => {
       const { id, data } = action.payload;
-      const item = state.items.find((i) => i.id === id);
-      if (item) {
-        Object.assign(item, data);
+      const idx = state.items.findIndex((i) => i.id === id);
+      if (idx !== -1) {
+        state.items[idx] = { ...state.items[idx], ...data };
+        saveCartToStorage(state.items);
       }
-      saveCartToStorage(state.items);
     },
 
     removeItemLocal: (state, action: PayloadAction<string>) => {
@@ -169,22 +237,18 @@ export const cartSlice = createSlice({
 
     clearLocalCart: (state) => {
       state.items = [];
-      localStorage.removeItem('guest_cart');
+      saveCartToStorage(state.items);
     },
   },
 
   extraReducers: (builder) => {
-    // =============================================
-    // 🌐 SERVER CART HANDLING
-    // =============================================
-
-    // FETCH CART
+    // FETCH
     builder
       .addCase(fetchCartItems.pending, (state) => {
         state.isLoading = true;
         state.error = null;
       })
-      .addCase(fetchCartItems.fulfilled, (state, action) => {
+      .addCase(fetchCartItems.fulfilled, (state, action: PayloadAction<CartItem[]>) => {
         state.isLoading = false;
         state.items = action.payload;
       })
@@ -193,52 +257,47 @@ export const cartSlice = createSlice({
         state.error = action.payload || 'Error fetching cart.';
       });
 
-    // ADD ITEM
+    // ADD
     builder
       .addCase(addItemToServer.pending, (state) => {
         state.isLoading = true;
         state.error = null;
       })
-      .addCase(addItemToServer.fulfilled, (state, action) => {
+      .addCase(addItemToServer.fulfilled, (state, action: PayloadAction<CartItem>) => {
         state.isLoading = false;
-        const newItem = action.payload;
-        const index = state.items.findIndex((i) => i.id === newItem.id);
-        if (index !== -1) {
-          state.items[index] = newItem;
-        } else {
-          state.items.push(newItem);
-        }
+        mergeServerItem(state.items, action.payload);
       })
       .addCase(addItemToServer.rejected, (state, action) => {
         state.isLoading = false;
         state.error = action.payload || 'Error adding to cart.';
       });
 
-    // UPDATE ITEM
+    // UPDATE
     builder
       .addCase(updateItemOnServer.pending, (state) => {
         state.isLoading = true;
+        state.error = null;
       })
-      .addCase(updateItemOnServer.fulfilled, (state, action) => {
+      .addCase(updateItemOnServer.fulfilled, (state, action: PayloadAction<CartItem>) => {
         state.isLoading = false;
-        const updated = action.payload;
-        const index = state.items.findIndex((i) => i.id === updated.id);
-        if (index !== -1) state.items[index] = updated;
+        mergeServerItem(state.items, action.payload);
       })
       .addCase(updateItemOnServer.rejected, (state, action) => {
         state.isLoading = false;
         state.error = action.payload || 'Error updating cart item.';
       });
 
-    // DELETE ITEM
+    // DELETE
     builder
       .addCase(deleteItemFromServer.pending, (state) => {
         state.isLoading = true;
+        state.error = null;
       })
-      .addCase(deleteItemFromServer.fulfilled, (state, action) => {
+      .addCase(deleteItemFromServer.fulfilled, (state, action: PayloadAction<string>) => {
         state.isLoading = false;
-        const id = action.payload;
-        state.items = state.items.filter((i) => i.id !== id);
+        state.items = state.items.filter((i) => i.id !== action.payload);
+        // sync guest storage just in case
+        saveCartToStorage(state.items);
       })
       .addCase(deleteItemFromServer.rejected, (state, action) => {
         state.isLoading = false;
@@ -247,10 +306,9 @@ export const cartSlice = createSlice({
   },
 });
 
-// ===================================================
-// 🚀 EXPORTS
-// ===================================================
-
+// -----------------------------
+// Exports
+// -----------------------------
 export const {
   addItemLocal,
   updateItemLocal,
@@ -260,3 +318,11 @@ export const {
 } = cartSlice.actions;
 
 export default cartSlice.reducer;
+
+// -----------------------------
+// Selectors (example)
+// -----------------------------
+export const selectCartItems = (state: { cart: CartState }) => state.cart.items;
+export const selectCartLoading = (state: { cart: CartState }) => state.cart.isLoading;
+export const selectCartError = (state: { cart: CartState }) => state.cart.error;
+export const selectUniqueItemCount = (state: { cart: CartState }) => state.cart.items.length;

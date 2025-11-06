@@ -1,48 +1,65 @@
-// types.ts
+// src/store/types.ts
 
-// Define the structure of the product/variant data returned in the cart
-interface CartProductInfo {
-    id: string;
-    title: string;
-    slug: string;
-    images: string[]; // Added: Essential for fallback images
+// ----------------------------------------------
+// Product info within the cart (for UI display)
+// ----------------------------------------------
+export interface CartProductInfo {
+  id: string;
+  title: string;
+  slug: string;
+  images: string[]; // Fallback images
 }
 
-interface CartVariantInfo {
-    id: string;
-    sku: string;
-    price: string; // Keep as string/Decimal for accurate finance handling
-    images: string[];
-    product: CartProductInfo;
+// ----------------------------------------------
+// Variant info within the cart
+// ----------------------------------------------
+export interface CartVariantInfo {
+  id: string;
+  sku?: string;
+  price: string; // keep as string/Decimal for precision
+  images: string[];
+  product: CartProductInfo; // each variant belongs to a product
 }
 
-// Matches the structure returned by GET /cart
+// ----------------------------------------------
+// Single cart item as returned from API
+// ----------------------------------------------
 export interface CartItem {
-    id: string;
-    productId: string;
-    variantId: string | null;
-    quantity: number;
-    customizationImage: string | null;
-    customizationDetails: unknown | null; // JSON object
-    
-    // Included relations from the API response
-    product: CartProductInfo | null; // Added: Makes `item.product.title` valid
-    variant: CartVariantInfo | null; 
+  id: string;
+  productId: string;
+  variantId: string | null;
+  quantity: number;
+
+  // ✅ Backend fields
+  customizationImages: string[]; // now matches your Prisma model
+  customizationDetails: Record<string, ''> | null;
+
+  // ✅ Related data (from include in Prisma)
+  product?: CartProductInfo | null;
+  variant?: CartVariantInfo | null;
 }
 
-// Defines the shape of the entire Redux state slice for the cart
+// ----------------------------------------------
+// Cart state shape in Redux
+// ----------------------------------------------
 export interface CartState {
   items: CartItem[];
   isLoading: boolean;
   error: string | null;
-  isAuthenticated: boolean; // toggled when user logs in/out
+  isAuthenticated: boolean; // toggled on login/logout
 }
 
-// Defines the shape of the data needed for the add to cart API call
+// ----------------------------------------------
+// Add-to-cart payload structure (frontend → backend)
+// ----------------------------------------------
 export interface AddToCartPayload {
-    productId: string;
-    variantId?: string;
-    quantity: number;
-    customizationImage?: string;
-    customizationDetails?: string; // JSON string
+  productId: string;
+  variantId?: string;
+  quantity: number;
+
+  // ✅ Multiple images, handled as multipart
+  customizationImages?: File[];
+
+  // ✅ JSON object (will be stringified before upload)
+  customizationDetails?: Record<string, ''>;
 }

@@ -11,7 +11,7 @@ import toast from 'react-hot-toast';
 import {  selectUniqueItemCount } from '../store/cartSlice'
 import { usePathname } from 'next/navigation';
 import MegaMenu from './Categories';
-import { addItemToServer, clearLocalCart } from "../store/cartSlice";
+// import { addItemToServer, clearLocalCart } from "../store/cartSlice";
 import { AppDispatch } from "../store/store";
 import Image from 'next/image';
 export default function Navbar() {
@@ -33,6 +33,7 @@ export default function Navbar() {
   const [mobileSearchTerm, setMobileSearchTerm] = useState("");
   const [showSearchBar, setShowSearchBar] = useState(true);
   const [lastScrollY, setLastScrollY] = useState(0);
+console.log(isModalOpen);
 
   useEffect(() => {
     const checkScreenSize = () => setIsMobile(window.innerWidth < 768);
@@ -207,13 +208,13 @@ localStorage.setItem("user", JSON.stringify({ name: data.name, role: data.role }
 // Dispatch user info to Redux
 dispatch(setUser({ name: data.name, role: data.role }));
 
-interface CartItem {
-  productId: string;
-  variantId: string;
-  quantity: number;
-  customizationImage?: string;
-  customizationDetails?: string;
-}
+// interface CartItem {
+//   productId: string;
+//   variantId: string;
+//   quantity: number;
+//   customizationImage?: string;
+//   customizationDetails?: string;
+// }
 
 // ✅ Step 1: Sync local (guest) cart to server
 const guestCart = JSON.parse(localStorage.getItem("guest_cart") || "[]");
@@ -222,25 +223,25 @@ if (guestCart.length > 0) {
   console.log("Syncing guest cart to server...");
 console.log(guestCart);
 
- const syncPromises = guestCart.map((item: CartItem) => {
-          const payload = {
-            productId: item.productId,
-            variantId: item.variantId,
-            quantity: item.quantity,
-            // Match the backend API which now expects an array of images
-            customizationImages: item.customizationImage ? [item.customizationImage] : [],
-            customizationDetails: item.customizationDetails ? JSON.stringify(item.customizationDetails) : undefined,
-          };
+//  const syncPromises = guestCart.map((item: CartItem) => {
+//           const payload = {
+//             productId: item.productId,
+//             variantId: item.variantId,
+//             quantity: item.quantity,
+//             // Match the backend API which now expects an array of images
+//             customizationImages: item.customizationImage ? [item.customizationImage] : [],
+//             customizationDetails: item.customizationDetails ? JSON.stringify(item.customizationDetails) : undefined,
+//           };
+          
 
-console.log(payload,'pppppppppppppppppppppppuuuu');
-return dispatch(addItemToServer(payload)).unwrap();
+// return dispatch(addItemToServer(payload)).unwrap();
 
-  })
-  console.log(syncPromises,'ppppppppppppppppppppppppppp');
+//   })
+//   console.log(syncPromises,'ppppppppppppppppppppppppppp');
   
 
   // ✅ Step 2: Clear local cart once synced
-  dispatch(clearLocalCart());
+  // dispatch(clearLocalCart());
   console.log("Guest cart synced successfully!");
 }
     } catch (error) {
@@ -381,6 +382,7 @@ return dispatch(addItemToServer(payload)).unwrap();
                     <>
                       <div className="px-4 py-2 text-white bg-white/10 border-b border-royal-gold/20">Welcome, {user.name}</div>
                       <a href="/profile" className="block px-4 py-2 text-white hover:bg-white/20 transition-colors duration-200">Profile</a>
+                       <a href="/profile" className="block px-4 py-2 text-white hover:bg-white/20 transition-colors duration-200">My Orders</a>
                       <div onClick={handleLogout} className="block w-full text-left px-4 py-2 text-white hover:bg-white/20 transition-colors duration-200 cursor-pointer">Logout</div>
                     </>
                   ) : (
@@ -404,7 +406,7 @@ return dispatch(addItemToServer(payload)).unwrap();
       {/* Modal content */}
       <div className="relative z-10">
         <button
-          className="absolute -top-2 -right-2 text-royal-gold hover:text-white transition-colors duration-200 bg-white/10 rounded-full w-8 h-8 flex items-center justify-center backdrop-blur-sm"
+          className="absolute -top-2 -right-2 text-royal-gold hover:text-white transition-colors duration-200 bg-white/10 rounded-full w-8 h-8 flex items-center justify-center backdrop-blur-sm -z-50"
           onClick={() => setIsModalOpen(false)}
         >
           ✖

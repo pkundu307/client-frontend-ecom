@@ -440,7 +440,7 @@ const ProductListing = ({ params }: { params: Promise<{ categoryid: string }> })
 
   useEffect(() => {
     loadProducts();
-  }, [categoryId]); // Re-fetch when categoryId changes
+  }, ); // Re-fetch when categoryId changes
 
   const handleToggleWishlist = (productId: string) => {
     setWishlistedItems((prev) => {
