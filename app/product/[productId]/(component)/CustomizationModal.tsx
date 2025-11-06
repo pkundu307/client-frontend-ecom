@@ -232,7 +232,7 @@ const CustomizationModal = ({
       const token = localStorage.getItem("token");
       const response = await axios.post(
         // Replace with your actual backend URL
-        `http://localhost:3001/cart/add-item`,
+        `${process.env.NEXT_PUBLIC_API_URL}/cart/add-item`,
         formData,
         {
           headers: {
