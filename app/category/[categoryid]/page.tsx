@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { motion } from "framer-motion";
 import { use } from "react";
 import {
@@ -61,7 +61,7 @@ const fetchProductsByCategory = async (
 ): Promise<ProductResponse> => {
   try {
     const response = await fetch(
-      `${process.env.NEXT_PUBLIC_API_URL}/${categoryId}?page=${page}&limit=${limit}`
+      `${process.env.NEXT_PUBLIC_API_URL}/products/featured/category/${categoryId}?page=${page}&limit=${limit}`
     );
     if (!response.ok) {
       throw new Error("Failed to fetch products");
@@ -133,9 +133,9 @@ const ProductCardGrid = ({
           )}
           
           {/* Customizable Badge - not needed here if also in info block */}
-          {/* {product.isCustomizable && (
+          {product.isCustomizable && (
             <CustomizableBadge />
-          )} */}
+          )}
         </div>
 
         {/* Action Buttons */}
@@ -419,7 +419,7 @@ const ProductListing = ({ params }: { params: Promise<{ categoryid: string }> })
 
   const categoryId = categoryid;
 
-  const loadProducts = async (page = 1) => {
+  const loadProducts = useCallback(async (page = 1) => {
     try {
       setLoading(true);
       const response = await fetchProductsByCategory(categoryId, page);
@@ -436,11 +436,11 @@ const ProductListing = ({ params }: { params: Promise<{ categoryid: string }> })
     } finally {
       setLoading(false);
     }
-  };
+  }, [categoryId]);
 
   useEffect(() => {
     loadProducts();
-  }, ); // Re-fetch when categoryId changes
+  }, [loadProducts]); // Re-fetch when categoryId changes
 
   const handleToggleWishlist = (productId: string) => {
     setWishlistedItems((prev) => {

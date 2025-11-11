@@ -19,7 +19,7 @@ const products = [
 const BasedOnYourActivity = () => {
   return (
     <div className="no-scrollbar">
-    <section className="bg-royal-green/80 py-8 h-fit">
+    <section className="bg-royal-green/80 py-8 h-fit no-scrollbar">
       <div className="max-w-7xl mx-auto px-6">
         {/* Section Header */}
         <h2 className="text-2xl font-bold text-royal-gold mb-4">

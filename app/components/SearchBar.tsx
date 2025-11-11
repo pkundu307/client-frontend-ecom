@@ -36,19 +36,17 @@ export default function SearchPage() {
         <label htmlFor="search" className="text-[var(--royal-gold)]">
           <Search size={24} />
         </label>
-        <input
-          id="search"
-          type="text"
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          onFocus={() => setIsFocused(true)}
-          onBlur={() => setIsFocused(false)}
-          placeholder="Discover premium greens..."
-          className="flex-1 bg-transparent text-lg placeholder:text-[var(--royal-gold)]/70 
-                    focus:outline-none border-2 border-[var(--royal-gold)]/30 rounded-xl
-                    px-4 py-3 transition-all focus:border-[var(--royal-gold)]/50"
-          aria-label="Search products"
-        />
+      <input
+  id="search"
+  type="text"
+  value={query}
+  onChange={(e) => setQuery(e.target.value)}
+  onFocus={() => setIsFocused(true)}
+  onBlur={() => setIsFocused(false)}
+  placeholder="Discover premium greens..."
+  className="flex-1 bg-transparent text-lg placeholder:text-black focus:outline-none border-2 border-[var(--royal-gold)]/30 rounded-xl px-4 py-3 transition-all focus:border-[var(--royal-gold)]/50"
+  aria-label="Search products"
+/>
         {query && (
           <button 
             onClick={() => setQuery("")}

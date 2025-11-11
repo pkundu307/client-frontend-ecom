@@ -603,245 +603,432 @@ export default function ProductPage({ params }: ProductPageProps) {
     : product.category.name;
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <Toaster position="top-center" reverseOrder={false} />
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <nav className="text-sm text-gray-500 mb-8" aria-label="Breadcrumb">
-          <span>Home</span>
-          <span className="mx-2">/</span>
-          <span>{breadcrumbPath}</span>
-          <span className="mx-2">/</span>
-          <span className="text-gray-900">{product.title}</span>
-        </nav>
-
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 mb-12">
-          <div>
-            <ImageGallery images={currentImages} productTitle={product.title} />
-          </div>
-
-          <div className="space-y-6">
-            <div>
-              <div className="flex items-start justify-between mb-2">
-                <h1 className="text-3xl font-bold text-gray-900">{product.title}</h1>
-                <div className="flex gap-2">
-                  <button onClick={() => setIsWishlisted(!isWishlisted)} className="p-2 rounded-full border border-gray-300 hover:border-red-500 transition-colors" aria-label={isWishlisted ? "Remove from wishlist" : "Add to wishlist"}>
-                    {isWishlisted ? <HeartSolid className="w-6 h-6 text-red-500" /> : <HeartIcon className="w-6 h-6 text-gray-600" />}
-                  </button>
-                  <button className="p-2 rounded-full border border-gray-300 hover:border-gray-400 transition-colors" aria-label="Share product">
-                    <ShareIcon className="w-6 h-6 text-gray-600" />
-                  </button>
-                </div>
-              </div>
-              
-              <div className="flex items-center gap-3 mb-4 flex-wrap">
-                {product.isCustomizable && (
-                  <div className="inline-flex items-center gap-1 bg-gradient-to-r from-purple-500 to-pink-500 text-white px-3 py-1 rounded-full text-sm font-semibold">
-                    <SparklesIcon className="w-4 h-4" />
-                    <span>Customizable</span>
-                  </div>
-                )}
-                {product.isFeatured && ( <span className="bg-[var(--royal-gold)] text-white px-3 py-1 rounded-full text-sm font-semibold">Featured</span>)}
-                {selectedVariant && !isCurrentVariantActive && (<span className="bg-yellow-500 text-white px-3 py-1 rounded-full text-sm font-semibold">Draft Product</span>)}
-                {isCurrentVariantInStock ? (
-                  <span className="flex items-center gap-1 text-green-600 text-sm font-medium">
-                    <CheckCircleIcon className="w-4 h-4" />
-                    In Stock ({currentStock} available)
-                  </span>
-                ) : (
-                  <span className="text-red-600 text-sm font-medium">Out of Stock</span>
-                )}
-              </div>
-            </div>
-
-            <div className="bg-gray-50 rounded-lg p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-lg font-semibold text-[var(--royal-gold)]">{product.business.name}</p>
-                  <p className="text-sm text-gray-600">{product.business.city}, {product.business.state}</p>
-                  <p className="text-xs text-gray-500">GST: {product.business.gstNumber}</p>
-                </div>
-                {product.business.isVerified && (
-                  <div className="flex items-center gap-1 text-green-600">
-                    <ShieldCheckIcon className="w-5 h-5" />
-                    <span className="text-sm font-medium">Verified</span>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            <div className="flex items-center gap-2">
-              <div className="flex items-center">
-                {[1, 2, 3, 4, 5].map((star) => (<StarSolid key={star} className="w-5 h-5 text-yellow-400" />))}
-              </div>
-              <span className="text-gray-600">({product.reviews.length} reviews)</span>
-            </div>
-
-            <div className="space-y-2">
-              <div className="flex items-baseline gap-3">
-                <span className="text-4xl font-bold text-[var(--royal-green)]">₹{Number(currentPrice).toLocaleString('en-IN')}</span>
-                {currentMrp !== "0" && parseFloat(currentMrp) > parseFloat(currentPrice) && (<span className="text-xl text-gray-500 line-through">₹{Number(currentMrp).toLocaleString('en-IN')}</span>)}
-                {discountPercentage > 0 && (<span className="bg-red-500 text-white px-2 py-1 rounded text-sm font-semibold">-{discountPercentage}% OFF</span>)}
-              </div>
-              <p className="text-sm text-gray-600">Price inclusive of all taxes</p>
-            </div>
-
-            {product.variants.length > 0 && (
-              <VariantSelector variants={product.variants} selectedVariant={selectedVariant} onVariantChange={setSelectedVariant} />
-            )}
-
-            {selectedVariant && (
-              <div>
-                <h4 className="font-medium text-gray-900 mb-3">Quantity</h4>
-                <div className="flex items-center gap-4">
-                  <div className="flex items-center border border-gray-300 rounded-lg text-blue-950">
-                    <button onClick={() => setQuantity(Math.max(1, quantity - 1))} className="p-3 hover:bg-gray-100 rounded-l-lg " disabled={quantity <= 1} aria-label="Decrease quantity"><MinusIcon className="w-4 h-4" /></button>
-                    <span className="px-5 py-2 border-x border-gray-300 font-medium">{quantity}</span>
-                    <button onClick={() => setQuantity(Math.min(currentStock, quantity + 1))} className="p-3 hover:bg-gray-100 rounded-r-lg" disabled={quantity >= currentStock || !canPurchase} aria-label="Increase quantity"><PlusIcon className="w-4 h-4" /></button>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            <div className="space-y-4 pt-4">
-              {!canPurchase && selectedVariant && (
-                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
-                  <p className="text-yellow-800 text-sm font-medium">This variant is currently {isCurrentVariantInStock ? "not available for purchase" : "out of stock"}.</p>
-                </div>
-              )}
-              
-              <div className="flex flex-col sm:flex-row gap-4">
-                <button
-                  onClick={handleAddToCart}
-                  disabled={!canPurchase || isAddingToCart}
-                  className={`flex-1 ${localStorage.getItem("token")?"bg-[var(--royal-gold)]":"bg-grey-500"}  text-white py-3 px-6 rounded-lg font-semibold hover:bg-[var(--royal-gold)]/90 disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center justify-center gap-2 transition-colors`}
-                >
-        <button
-  className={`flex items-center justify-center px-4 py-2 rounded-md font-medium transition-colors duration-200
-    ${isAddingToCart ? "bg-gray-500 cursor-wait text-white" :
-      localStorage.getItem("token")
-        ? " text-white"
-        : "bg-gray-300 text-gray-500 cursor-not-allowed"}`}
-  disabled={isAddingToCart || !localStorage.getItem("token")}
->
-  {isAddingToCart ? (
-    <>
-      <svg
-        className="animate-spin -ml-1 mr-3 h-5 w-5 text-white"
-        xmlns="http://www.w3.org/2000/svg"
-        fill="none"
-        viewBox="0 0 24 24"
-      >
-        <circle
-          className="opacity-25"
-          cx="12"
-          cy="12"
-          r="10"
-          stroke="currentColor"
-          strokeWidth="4"
-        ></circle>
-        <path
-          className="opacity-75"
-          fill="currentColor"
-          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-        ></path>
-      </svg>
-      Adding...
-    </>
-  ) : (
-    <>
-      <ShoppingCartIcon className="w-5 h-5 mr-2" />
-      {localStorage.getItem("token") ? "Add to Cart" : "Login to Add to Cart"}
-    </>
-  )}
-</button>
-                </button>
-                <button disabled={!canPurchase} className="flex-1 bg-orange-500 text-white py-3 px-6 rounded-lg font-semibold hover:bg-orange-600 disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center justify-center gap-2 transition-colors">
-                  <CreditCardIcon className="w-5 h-5" /> Buy Now
-                </button>
-              </div>
-              
-              {product.isCustomizable && (
-                <button onClick={() => setIsCustomizationModalOpen(true)} className="w-full bg-purple-600 text-white py-3 px-6 rounded-lg font-semibold hover:bg-purple-700 flex items-center justify-center gap-2 transition-colors">
-                  <WrenchScrewdriverIcon className="w-5 h-5" /> Customize This Product
-                </button>
-              )}
-            </div>
-
-            <div className="bg-blue-50 rounded-lg p-4">
-              <div className="flex items-center gap-3 mb-2">
-                <TruckIcon className="w-5 h-5 text-blue-600" />
-                <span className="font-medium text-blue-900">Delivery Information</span>
-              </div>
-              <ul className="text-sm text-blue-800 space-y-1 ml-8 list-disc">
-                <li>Free delivery on orders above ₹500</li>
-                <li>Standard delivery: 3-5 business days</li>
-                <li>Express delivery available</li>
-              </ul>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200">
-          <div className="border-b border-gray-200">
-            <nav className="-mb-px flex space-x-6" aria-label="Tabs">
-              {[{ id: "description", label: "Description" }, { id: "specs", label: "Specifications" }, { id: "reviews", label: `Reviews (${product.reviews.length})` }].map((tab) => (
-                <button key={tab.id} onClick={() => setActiveTab(tab.id as TabId)} className={`whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm ${activeTab === tab.id ? "border-[var(--royal-gold)] text-[var(--royal-gold)]" : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"}`}>{tab.label}</button>
-              ))}
-            </nav>
-          </div>
-          <div className="p-6">
-            <AnimatePresence mode="wait">
-              <motion.div key={activeTab} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} transition={{ duration: 0.2 }}>
-                {activeTab === "description" && (
-                  <div className="prose max-w-none text-gray-700">
-                    <div dangerouslySetInnerHTML={{ __html: product.description || "No description available." }} />
-                  </div>
-                )}
-                {activeTab === "specs" && (
-                   <div className="space-y-4">
-                    <h3 className="text-lg font-semibold">Specifications</h3>
-                    {selectedVariant ? (
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div className="space-y-3">
-                          <h4 className="font-medium border-b pb-2">Product Details</h4>
-                          <dl className="space-y-2">
-                            <div className="flex justify-between"><dt className="text-gray-600">SKU:</dt><dd className="font-medium">{selectedVariant.sku}</dd></div>
-                            <div className="flex justify-between"><dt className="text-gray-600">Stock:</dt><dd className="font-medium">{selectedVariant.stock} units</dd></div>
-                            {selectedVariant.hsnCode && (<div className="flex justify-between"><dt className="text-gray-600">HSN Code:</dt><dd className="font-medium">{selectedVariant.hsnCode}</dd></div>)}
-                          </dl>
-                        </div>
-                        <div className="space-y-3">
-                          <h4 className="font-medium border-b pb-2">Variant Attributes</h4>
-                          <dl className="space-y-2">
-                            {selectedVariant.attributeValues.map((attrValue) => (<div key={attrValue.id} className="flex justify-between"><dt className="text-gray-600 capitalize">{attrValue.attribute.name}:</dt><dd className="font-medium capitalize">{attrValue.attributeOption.value}</dd></div>))}
-                          </dl>
-                        </div>
-                      </div>
-                    ) : (<p className="text-gray-600">Select a variant to view specifications.</p>)}
-                  </div>
-                )}
-                {activeTab === "reviews" && (
-                  <div className="text-center py-12">
-                    <StarIcon className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                    <h3 className="text-lg font-semibold text-gray-900 mb-2">No reviews yet</h3>
-                    <p className="text-gray-600 mb-6">Be the first to review this product!</p>
-                    <button className="bg-[var(--royal-gold)] text-white px-6 py-2 rounded-lg font-semibold hover:bg-[var(--royal-gold)]/90">Write a Review</button>
-                  </div>
-                )}
-              </motion.div>
-            </AnimatePresence>
-          </div>
-        </div>
+ <div className="min-h-screen bg-gradient-to-br from-gray-50 via-grey-500 to-gray-200">
+  <Toaster position="top-center" reverseOrder={false} />
+  
+  <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    {/* Breadcrumb */}
+    <motion.nav 
+      initial={{ opacity: 0, y: -10 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="text-sm text-gray-500 mb-8" 
+      aria-label="Breadcrumb"
+    >
+      <div className="flex items-center gap-2">
+        <span className="hover:text-gray-700 transition-colors cursor-pointer">Home</span>
+        <span className="text-gray-300">/</span>
+        <span className="hover:text-gray-700 transition-colors cursor-pointer">{breadcrumbPath}</span>
+        <span className="text-gray-300">/</span>
+        <span className="text-gray-900 font-medium">{product.title}</span>
       </div>
-       {product && (
-        <CustomizationModal
-          isOpen={isCustomizationModalOpen}
-          onClose={() => setIsCustomizationModalOpen(false)}
-          product={product}
-          selectedVariant={selectedVariant}
-        />
-      )}
+    </motion.nav>
+
+    {/* Main Content */}
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 mb-12">
+      {/* Image Gallery */}
+      <motion.div
+        initial={{ opacity: 0, x: -20 }}
+        animate={{ opacity: 1, x: 0 }}
+        transition={{ delay: 0.1 }}
+      >
+        <ImageGallery images={currentImages} productTitle={product.title} />
+      </motion.div>
+
+      {/* Product Info */}
+      <motion.div 
+        initial={{ opacity: 0, x: 20 }}
+        animate={{ opacity: 1, x: 0 }}
+        transition={{ delay: 0.2 }}
+        className="space-y-6"
+      >
+        {/* Header */}
+        <div>
+          <div className="flex items-start justify-between mb-3">
+            <h1 className="text-3xl lg:text-4xl font-semibold text-gray-900 leading-tight">
+              {product.title}
+            </h1>
+            <div className="flex gap-2">
+              <motion.button 
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={() => setIsWishlisted(!isWishlisted)} 
+                className="p-2.5 rounded-xl bg-white/40 backdrop-blur-xl border border-gray-200/60 hover:border-red-300 transition-all shadow-sm" 
+                aria-label={isWishlisted ? "Remove from wishlist" : "Add to wishlist"}
+              >
+                {isWishlisted ? (
+                  <HeartSolid className="w-5 h-5 text-red-500" />
+                ) : (
+                  <HeartIcon className="w-5 h-5 text-gray-600" />
+                )}
+              </motion.button>
+              <motion.button 
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                className="p-2.5 rounded-xl bg-white/40 backdrop-blur-xl border border-gray-200/60 hover:border-gray-300 transition-all shadow-sm" 
+                aria-label="Share product"
+              >
+                <ShareIcon className="w-5 h-5 text-gray-600" />
+              </motion.button>
+            </div>
+          </div>
+          
+          {/* Badges */}
+          <div className="flex items-center gap-2 mb-4 flex-wrap">
+            {product.isCustomizable && (
+              <motion.div 
+                initial={{ scale: 0.9, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                className="inline-flex items-center gap-1.5 bg-gradient-to-r from-purple-500/10 to-pink-500/10 backdrop-blur-xl text-purple-700 px-3 py-1.5 rounded-full text-xs font-semibold border border-purple-200/60"
+              >
+                <SparklesIcon className="w-3.5 h-3.5" />
+                <span>Customizable</span>
+              </motion.div>
+            )}
+            {product.isFeatured && (
+              <span className="bg-amber-500/10 backdrop-blur-xl text-amber-700 px-3 py-1.5 rounded-full text-xs font-semibold border border-amber-200/60">
+                Featured
+              </span>
+            )}
+            {selectedVariant && !isCurrentVariantActive && (
+              <span className="bg-yellow-500/10 backdrop-blur-xl text-yellow-700 px-3 py-1.5 rounded-full text-xs font-semibold border border-yellow-200/60">
+                Draft Product
+              </span>
+            )}
+            {isCurrentVariantInStock ? (
+              <span className="flex items-center gap-1.5 text-green-700 text-xs font-semibold bg-green-500/10 backdrop-blur-xl px-3 py-1.5 rounded-full border border-green-200/60">
+                <CheckCircleIcon className="w-3.5 h-3.5" />
+                In Stock ({currentStock})
+              </span>
+            ) : (
+              <span className="text-red-700 text-xs font-semibold bg-red-500/10 backdrop-blur-xl px-3 py-1.5 rounded-full border border-red-200/60">
+                Out of Stock
+              </span>
+            )}
+          </div>
+        </div>
+
+        {/* Business Info */}
+        <motion.div 
+          whileHover={{ scale: 1.01 }}
+          className="bg-white/40 backdrop-blur-xl rounded-2xl p-4 border border-gray-200/60 shadow-sm"
+        >
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-base font-semibold text-gray-900">{product.business.name}</p>
+              <p className="text-sm text-gray-600 mt-0.5">
+                {product.business.city}, {product.business.state}
+              </p>
+              <p className="text-xs text-gray-500 mt-1">GST: {product.business.gstNumber}</p>
+            </div>
+            {product.business.isVerified && (
+              <div className="flex items-center gap-1.5 text-green-700 bg-green-500/10 px-3 py-1.5 rounded-full border border-green-200/60">
+                <ShieldCheckIcon className="w-4 h-4" />
+                <span className="text-xs font-semibold">Verified</span>
+              </div>
+            )}
+          </div>
+        </motion.div>
+
+        {/* Rating */}
+        <div className="flex items-center gap-2">
+          <div className="flex items-center">
+            {[1, 2, 3, 4, 5].map((star) => (
+              <StarSolid key={star} className="w-5 h-5 text-amber-400" />
+            ))}
+          </div>
+          <span className="text-sm text-gray-600 font-medium">
+            ({product.reviews.length} reviews)
+          </span>
+        </div>
+
+        {/* Pricing */}
+        <div className="space-y-2">
+          <div className="flex items-baseline gap-3 flex-wrap">
+            <span className="text-4xl lg:text-5xl font-bold text-gray-900">
+              ₹{Number(currentPrice).toLocaleString('en-IN')}
+            </span>
+            {currentMrp !== "0" && parseFloat(currentMrp) > parseFloat(currentPrice) && (
+              <span className="text-xl text-gray-400 line-through">
+                ₹{Number(currentMrp).toLocaleString('en-IN')}
+              </span>
+            )}
+            {discountPercentage > 0 && (
+              <span className="bg-red-500/10 backdrop-blur-xl text-red-700 px-3 py-1.5 rounded-full text-sm font-bold border border-red-200/60">
+                {discountPercentage}% OFF
+              </span>
+            )}
+          </div>
+          <p className="text-sm text-gray-500">Inclusive of all taxes</p>
+        </div>
+
+        {/* Variant Selector */}
+        {product.variants.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3 }}
+          >
+            <VariantSelector 
+              variants={product.variants} 
+              selectedVariant={selectedVariant} 
+              onVariantChange={setSelectedVariant} 
+            />
+          </motion.div>
+        )}
+
+        {/* Quantity Selector */}
+        {selectedVariant && (
+          <div>
+            <h4 className="font-semibold text-gray-900 mb-3">Quantity</h4>
+            <div className="flex items-center gap-4">
+              <div className="flex items-center bg-white/40 backdrop-blur-xl border border-gray-200/60 rounded-xl shadow-sm">
+                <motion.button 
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => setQuantity(Math.max(1, quantity - 1))} 
+                  className="p-3 hover:bg-white/60 rounded-l-xl transition-colors" 
+                  disabled={quantity <= 1} 
+                  aria-label="Decrease quantity"
+                >
+                  <MinusIcon className="w-4 h-4 text-gray-700" />
+                </motion.button>
+                <span className="px-6 py-2 border-x border-gray-200/60 font-semibold text-gray-900 min-w-[60px] text-center">
+                  {quantity}
+                </span>
+                <motion.button 
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => setQuantity(Math.min(currentStock, quantity + 1))} 
+                  className="p-3 hover:bg-white/60 rounded-r-xl transition-colors" 
+                  disabled={quantity >= currentStock || !canPurchase} 
+                  aria-label="Increase quantity"
+                >
+                  <PlusIcon className="w-4 h-4 text-gray-700" />
+                </motion.button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Action Buttons */}
+        <div className="space-y-3 pt-4">
+          {!canPurchase && selectedVariant && (
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="bg-yellow-50/40 backdrop-blur-xl border border-yellow-200/60 rounded-xl p-3 shadow-sm"
+            >
+              <p className="text-yellow-800 text-sm font-medium">
+                This variant is currently {isCurrentVariantInStock ? "not available for purchase" : "out of stock"}.
+              </p>
+            </motion.div>
+          )}
+          
+          <div className="flex flex-col sm:flex-row gap-3">
+            <motion.button
+              whileHover={{ scale: canPurchase && localStorage.getItem("token") ? 1.02 : 1 }}
+              whileTap={{ scale: canPurchase && localStorage.getItem("token") ? 0.98 : 1 }}
+              onClick={handleAddToCart}
+              disabled={!canPurchase || isAddingToCart || !localStorage.getItem("token")}
+              className={`flex-1 py-3.5 px-6 rounded-xl font-semibold transition-all duration-200 flex items-center justify-center gap-2 shadow-sm ${
+                isAddingToCart 
+                  ? "bg-gray-400 cursor-wait text-white" 
+                  : localStorage.getItem("token") && canPurchase
+                  ? "bg-gray-900 text-white hover:bg-gray-800"
+                  : "bg-gray-300 text-gray-500 cursor-not-allowed"
+              }`}
+            >
+              {isAddingToCart ? (
+                <>
+                  <svg
+                    className="animate-spin h-5 w-5"
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                  >
+                    <circle
+                      className="opacity-25"
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="currentColor"
+                      strokeWidth="4"
+                    ></circle>
+                    <path
+                      className="opacity-75"
+                      fill="currentColor"
+                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                    ></path>
+                  </svg>
+                  Adding...
+                </>
+              ) : (
+                <>
+                  <ShoppingCartIcon className="w-5 h-5" />
+                  {localStorage.getItem("token") ? "Add to Cart" : "Login to Add"}
+                </>
+              )}
+            </motion.button>
+
+            <motion.button 
+              whileHover={{ scale: canPurchase ? 1.02 : 1 }}
+              whileTap={{ scale: canPurchase ? 0.98 : 1 }}
+              disabled={!canPurchase} 
+              className="flex-1 bg-orange-500 text-white py-3.5 px-6 rounded-xl font-semibold hover:bg-orange-600 disabled:bg-gray-300 disabled:text-gray-500 disabled:cursor-not-allowed flex items-center justify-center gap-2 transition-all shadow-sm"
+            >
+              <CreditCardIcon className="w-5 h-5" /> 
+              Buy Now
+            </motion.button>
+          </div>
+          
+          {product.isCustomizable && (
+            <motion.button 
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              onClick={() => setIsCustomizationModalOpen(true)} 
+              className="w-full bg-gradient-to-r from-purple-500 to-pink-500 text-white py-3.5 px-6 rounded-xl font-semibold hover:from-purple-600 hover:to-pink-600 flex items-center justify-center gap-2 transition-all shadow-md"
+            >
+              <WrenchScrewdriverIcon className="w-5 h-5" /> 
+              Customize This Product
+            </motion.button>
+          )}
+        </div>
+
+        {/* Delivery Info */}
+        <motion.div 
+          whileHover={{ scale: 1.01 }}
+          className="bg-blue-50/40 backdrop-blur-xl rounded-2xl p-4 border border-blue-200/60 shadow-sm"
+        >
+          <div className="flex items-center gap-3 mb-2">
+            <TruckIcon className="w-5 h-5 text-blue-600" />
+            <span className="font-semibold text-blue-900">Delivery Information</span>
+          </div>
+          <ul className="text-sm text-blue-800 space-y-1.5 ml-8 list-disc">
+            <li>Free delivery on orders above ₹500</li>
+            <li>Standard delivery: 3-5 business days</li>
+            <li>Express delivery available</li>
+          </ul>
+        </motion.div>
+      </motion.div>
     </div>
+
+    {/* Tabs Section */}
+    <motion.div 
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: 0.4 }}
+      className="bg-white/40 backdrop-blur-xl rounded-2xl shadow-sm border border-gray-200/60"
+    >
+      <div className="border-b border-gray-200/60">
+        <nav className="-mb-px flex space-x-6 px-6" aria-label="Tabs">
+          {[
+            { id: "description", label: "Description" }, 
+            { id: "specs", label: "Specifications" }, 
+            { id: "reviews", label: `Reviews (${product.reviews.length})` }
+          ].map((tab) => (
+            <motion.button 
+              key={tab.id} 
+              whileHover={{ y: -2 }}
+              whileTap={{ scale: 0.98 }}
+              onClick={() => setActiveTab(tab.id as TabId)} 
+              className={`whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-all ${
+                activeTab === tab.id 
+                  ? "border-gray-900 text-gray-900" 
+                  : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+              }`}
+            >
+              {tab.label}
+            </motion.button>
+          ))}
+        </nav>
+      </div>
+      
+      <div className="p-6">
+        <AnimatePresence mode="wait">
+          <motion.div 
+            key={activeTab} 
+            initial={{ opacity: 0, y: 10 }} 
+            animate={{ opacity: 1, y: 0 }} 
+            exit={{ opacity: 0, y: -10 }} 
+            transition={{ duration: 0.2 }}
+          >
+            {activeTab === "description" && (
+              <div className="prose max-w-none text-gray-700">
+                <div dangerouslySetInnerHTML={{ __html: product.description || "No description available." }} />
+              </div>
+            )}
+            
+            {activeTab === "specs" && (
+              <div className="space-y-4">
+                <h3 className="text-lg font-semibold text-gray-900">Specifications</h3>
+                {selectedVariant ? (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="space-y-3">
+                      <h4 className="font-medium border-b border-gray-200 pb-2 text-gray-900">Product Details</h4>
+                      <dl className="space-y-2">
+                        <div className="flex justify-between">
+                          <dt className="text-gray-600">SKU:</dt>
+                          <dd className="font-medium text-gray-900">{selectedVariant.sku}</dd>
+                        </div>
+                        <div className="flex justify-between">
+                          <dt className="text-gray-600">Stock:</dt>
+                          <dd className="font-medium text-gray-900">{selectedVariant.stock} units</dd>
+                        </div>
+                        {selectedVariant.hsnCode && (
+                          <div className="flex justify-between">
+                            <dt className="text-gray-600">HSN Code:</dt>
+                            <dd className="font-medium text-gray-900">{selectedVariant.hsnCode}</dd>
+                          </div>
+                        )}
+                      </dl>
+                    </div>
+                    <div className="space-y-3">
+                      <h4 className="font-medium border-b border-gray-200 pb-2 text-gray-900">Variant Attributes</h4>
+                      <dl className="space-y-2">
+                        {selectedVariant.attributeValues.map((attrValue) => (
+                          <div key={attrValue.id} className="flex justify-between">
+                            <dt className="text-gray-600 capitalize">{attrValue.attribute.name}:</dt>
+                            <dd className="font-medium text-gray-900 capitalize">{attrValue.attributeOption.value}</dd>
+                          </div>
+                        ))}
+                      </dl>
+                    </div>
+                  </div>
+                ) : (
+                  <p className="text-gray-600">Select a variant to view specifications.</p>
+                )}
+              </div>
+            )}
+            
+            {activeTab === "reviews" && (
+              <div className="text-center py-12">
+                <StarIcon className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">No reviews yet</h3>
+                <p className="text-gray-600 mb-6">Be the first to review this product!</p>
+                <motion.button 
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  className="bg-gray-900 text-white px-6 py-2.5 rounded-xl font-semibold hover:bg-gray-800 transition-colors shadow-sm"
+                >
+                  Write a Review
+                </motion.button>
+              </div>
+            )}
+          </motion.div>
+        </AnimatePresence>
+      </div>
+    </motion.div>
+  </div>
+
+  {/* Customization Modal */}
+  {product && (
+    <CustomizationModal
+      isOpen={isCustomizationModalOpen}
+      onClose={() => setIsCustomizationModalOpen(false)}
+      product={product}
+      selectedVariant={selectedVariant}
+    />
+  )}
+</div>
+
   );
 };
 

@@ -68,9 +68,9 @@ const MegaMenu: React.FC = () => {
   }
 
   return (
-    <nav className="relative bg-white shadow-sm" onMouseLeave={handleMouseLeave}>
+    <nav className="relative bg-[linear-gradient(to_right,_#0a1c0a,_#001f4d,_#000000)] shadow-sm" onMouseLeave={handleMouseLeave}>
       {/* Top Level Navigation Bar */}
-      <div className="w-full overflow-x-auto">
+      <div className="w-full overflow-x-auto no-scrollbar">
         <div className="flex items-center justify-start min-w-max px-4">
           {categories.map((l1Category) => (
             <div
@@ -82,8 +82,8 @@ const MegaMenu: React.FC = () => {
                 href={`/category/${l1Category.id}`}
                 className={`px-4 text-sm font-semibold tracking-wide uppercase transition-colors duration-200 whitespace-nowrap ${
                   hoveredCategory?.id === l1Category.id
-                    ? 'text-purple-600'
-                    : 'text-gray-700 hover:text-purple-600'
+                    ? 'text-grey-200 hover:text-purple-600'
+                    : 'text-white hover:text-purple-600'
                 }`}
               >
                 {l1Category.name}
@@ -103,7 +103,7 @@ const MegaMenu: React.FC = () => {
 
       {/* Mega Menu Dropdown Panel */}
       {hoveredCategory && (
-        <div className="absolute top-full left-0 w-full bg-gray-50/95 backdrop-blur-sm shadow-lg border-t border-gray-200 z-30">
+        <div className="absolute top-full left-0 w-full bg-black backdrop-blur-sm shadow-lg border-t border-gray-200 z-30">
           <div className="w-full overflow-x-auto">
             <div className="px-8 py-4">
               {/* Grid layout for L2 categories - back to vertical columns */}
