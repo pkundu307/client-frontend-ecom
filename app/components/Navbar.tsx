@@ -31,6 +31,24 @@ export default function Navbar() {
   const [mobileSearchTerm, setMobileSearchTerm] = useState("");
   const [showSearchBar, setShowSearchBar] = useState(true);
   const [lastScrollY, setLastScrollY] = useState(0);
+  const [isScrollingUp, setIsScrollingUp] = useState(false);
+  const [lastScrollY2, setLastScrollY2] = useState(0);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      const currentScrollY = window.scrollY;
+      if (currentScrollY < lastScrollY2) {
+        setIsScrollingUp(true);
+      } else if (currentScrollY > lastScrollY2) {
+        setIsScrollingUp(false);
+      }
+      setLastScrollY2(currentScrollY);
+    };
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+    };
+  }, [lastScrollY2]);
 
   useEffect(() => {
     const checkScreenSize = () => setIsMobile(window.innerWidth < 768);
@@ -86,7 +104,6 @@ export default function Navbar() {
       );
 
       setIsModalOpen(false);
-
       localStorage.setItem("token", data.token);
       localStorage.setItem("user", JSON.stringify({ name: data.name, role: data.role }));
       dispatch(setUser({ name: data.name, role: data.role }));
@@ -151,7 +168,6 @@ export default function Navbar() {
       const guestCart = JSON.parse(localStorage.getItem("guest_cart") || "[]");
       if (guestCart.length > 0) {
         // Reserved for future sync (kept intact).
-        // Clear local cart after syncing if needed.
       }
     } catch (error) {
       toast.error(`${error}Google login failed. Please try again.`, {
@@ -178,22 +194,38 @@ export default function Navbar() {
     });
   };
 
-  useEffect(() => {
-    const token = localStorage.getItem("token");
-    if (token) {
-      fetch(`${baseUrl}/auth/protected`, {
-        method: "GET",
-        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-      })
-        .then((response) => {
-          if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-          return response.json();
-        })
-        .then(() => {})
-        .catch(() => {});
-    }
-  }, []);
+useEffect(() => {
+  const token = localStorage.getItem("token");
 
+  if (token) {
+    const fetchProtectedData = async () => {
+      try {
+        const response = await fetch(`${baseUrl}/auth/protected`, {
+          method: "GET",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        });
+
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const data = await response.json();
+        const photoUrl = data.user?.picture;
+
+        if (photoUrl) {
+          localStorage.setItem("photo", photoUrl);
+        }
+      } catch (error) {
+        console.error("Failed to fetch protected data:", error);
+      }
+    };
+
+    fetchProtectedData();
+  }
+}, []);
   useEffect(() => {
     const handleScroll = () => {
       if (window.scrollY > lastScrollY) setShowSearchBar(false);
@@ -204,81 +236,95 @@ export default function Navbar() {
     return () => window.removeEventListener("scroll", handleScroll);
   }, [isMobile, lastScrollY]);
 
-  // Motion variants and helpers (UI only)
   const tapBounce = { scale: 0.96 };
-  const hoverLift = {
-    y: -1.5,
-    boxShadow: "0 10px 24px rgba(0,0,0,0.25)",
-    transition: { type: "spring", stiffness: 400, damping: 28, mass: 0.6 },
-  };
   const dropdownVariants = {
-    hidden: { opacity: 0, y: -6, scale: 0.98, filter: "blur(8px)" },
+    hidden: { opacity: 0, y: -6, scale: 0.98 },
     show: {
       opacity: 1,
       y: 0,
       scale: 1,
-      filter: "blur(0px)",
       transition: { type: "spring", stiffness: 420, damping: 32, mass: 0.7 },
     },
-    exit: { opacity: 0, y: -6, scale: 0.98, filter: "blur(6px)", transition: { duration: 0.18, ease: "easeOut" } },
+    exit: { opacity: 0, y: -6, scale: 0.98, transition: { duration: 0.18 } },
   };
 
   return (
     <>
       <GoogleOAuthProvider clientId="939883123761-up76q4mal36sd3quh558ssccr1cqc035.apps.googleusercontent.com">
-        {/* NAVBAR */}
-        <nav className="py-2 px-6 z-20 sticky top-0 glass backdrop-blur-md supports-[backdrop-filter]:bg-transparent bg-[rgba(10,15,25,0.65)]">
+        {/* NAVBAR - Neumorphic */}
+        <nav 
+          className="py-4 px-6 z-20 sticky top-0 bg-[#e8ecf0]"
+          style={{
+            boxShadow: '0 4px 12px rgba(197, 205, 213, 0.5), 0 -2px 8px rgba(255, 255, 255, 0.8)'
+          }}
+        >
           <div className="max-w-7xl mx-auto flex justify-between items-center">
             {/* LOGO */}
-            <motion.div whileHover={hoverLift}>
-              <Link href="/" className="flex items-center gap-3">
+            <Link href="/" className="flex items-center gap-3">
+              <div
+                className="rounded-2xl p-1"
+                style={{
+                  boxShadow: '6px 6px 12px #c5cdd5, -6px -6px 12px #ffffff'
+                }}
+              >
                 <Image
                   src="/logo.png"
                   alt="Jotto Logo"
-                  width={64}
-                  height={64}
-                  className="rounded-xl border border-[rgba(255,255,255,0.18)] shadow-lg"
+                  width={56}
+                  height={56}
+                  className="rounded-xl"
                 />
-                <span className="text-royal-gold text-2xl font-bold drop-shadow-sm"></span>
-              </Link>
-            </motion.div>
+              </div>
+            </Link>
 
-            {/* SEARCH (Desktop only) */}
+            {/* SEARCH (Desktop only) - Neumorphic */}
             {!isMobile && (
               <div className="flex-1 mx-6">
                 <div className="relative w-full max-w-xl">
                   <input
                     type="text"
-                    placeholder="Discover premium 3D products..."
-                    className="input-glass w-full pl-6 pr-14 py-3 rounded-2xl transition-all duration-300 shadow-inner focus:ring-0 placeholder:text-[rgba(255,255,255,0.6)]"
+                    placeholder="Discover premium products..."
+                    className={`w-full pl-6 pr-14 py-3 rounded-2xl bg-[#e8ecf0] transition-all duration-300 focus:outline-none text-gray-900 ${
+                      isScrollingUp ? 'placeholder-yellow-600' : 'placeholder-gray-700'
+                    }`}
+                    style={{
+                      boxShadow: 'inset 4px 4px 8px #c5cdd5, inset -4px -4px 8px #ffffff'
+                    }}
                   />
                   <motion.button
                     whileTap={tapBounce}
-                    className="absolute right-2.5 top-1/2 -translate-y-1/2 h-10 w-10 rounded-xl btn-accent flex items-center justify-center transition-all duration-200 shadow-lg hover:scale-105"
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 h-10 w-10 rounded-xl bg-[#e8ecf0] flex items-center justify-center transition-all duration-200"
+                    style={{
+                      boxShadow: '4px 4px 8px #c5cdd5, -4px -4px 8px #ffffff'
+                    }}
                   >
-                    <Search className="text-black w-5 h-5" />
+                    <Search className="text-gray-700 w-5 h-5" />
                   </motion.button>
                 </div>
               </div>
             )}
 
-            {/* CART + PROFILE */}
-            <div className="flex items-center space-x-5">
+            {/* CART + PROFILE - Neumorphic */}
+            <div className="flex items-center space-x-4">
               {/* CART */}
               <Link href="/cart" aria-label="Cart">
                 <motion.button
                   whileTap={tapBounce}
-                  className="relative text-royal-gold hover:text-white transition-colors duration-200 rounded-lg px-1 py-1"
+                  className="relative text-royal-gold p-3 rounded-xl bg-[#e8ecf0]"
+                  style={{
+                    boxShadow: '6px 6px 12px #c5cdd5, -6px -6px 12px #ffffff'
+                  }}
                 >
-                  <motion.span whileHover={{ rotate: -6 }} transition={{ type: "spring", stiffness: 500, damping: 20 }}>
-                    <ShoppingCart className="w-6 h-6 drop-shadow-sm" />
-                  </motion.span>
+                  <ShoppingCart className="w-6 h-6" />
                   {cartCount > 0 && (
                     <motion.span
                       initial={{ scale: 0.6, opacity: 0 }}
                       animate={{ scale: 1, opacity: 1 }}
                       transition={{ type: "spring", stiffness: 500, damping: 18 }}
-                      className="absolute -top-2 -right-2 bg-royal-gold text-royal-green text-xs px-2 py-0.5 rounded-full font-bold shadow-lg"
+                      className="absolute -top-2 -right-2 bg-royal-gold text-white text-xs px-2 py-0.5 rounded-full font-bold"
+                      style={{
+                        boxShadow: '2px 2px 4px #c5cdd5'
+                      }}
                     >
                       {cartCount}
                     </motion.span>
@@ -291,13 +337,14 @@ export default function Navbar() {
                 <motion.button
                   whileTap={tapBounce}
                   onClick={() => setProfileDropdownOpen(!profileDropdownOpen)}
-                  className="text-royal-gold hover:text-white transition-colors duration-200 focus:outline-none rounded-lg p-1"
+                  className="text-royal-gold p-3 rounded-xl bg-[#e8ecf0]"
+                  style={{
+                    boxShadow: '6px 6px 12px #c5cdd5, -6px -6px 12px #ffffff'
+                  }}
                   aria-haspopup="menu"
                   aria-expanded={profileDropdownOpen}
                 >
-                  <motion.span whileHover={{ rotate: 6 }} transition={{ type: "spring", stiffness: 500, damping: 20 }}>
-                    <User className="w-6 h-6 drop-shadow-sm" />
-                  </motion.span>
+                  <User className="w-6 h-6" />
                 </motion.button>
 
                 <AnimatePresence>
@@ -308,30 +355,34 @@ export default function Navbar() {
                       initial="hidden"
                       animate="show"
                       exit="exit"
-                      className="absolute right-0 mt-3 w-56 glass-strong rounded-xl shadow-2xl z-50 overflow-hidden backdrop-blur-2xl backdrop-saturate-200 bg-[rgba(12,18,32,0.55)] border border-[rgba(255,255,255,0.08)]"
+                      className="absolute right-0 mt-3 w-56 bg-[#e8ecf0] rounded-2xl z-50 overflow-hidden"
+                      style={{
+                        boxShadow: '12px 12px 24px #c5cdd5, -12px -12px 24px #ffffff'
+                      }}
                     >
-                      <div
-                        className="pointer-events-none absolute inset-0 opacity-70"
-                        style={{
-                          background:
-                            "radial-gradient(120% 60% at 10% 20%, rgba(255,255,255,0.14), rgba(255,255,255,0.04) 35%, transparent 70%)",
-                        }}
-                      />
                       {user.name ? (
                         <>
-                          <div className="px-4 py-2 bg-[rgba(255,255,255,0.86)] border-b border-[rgba(92,178,224,0.12)] text-[rgba(8,15,26,0.95)] font-medium">
+                          <div className="px-4 py-3 border-b border-gray-300/30 text-gray-900 font-semibold">
                             Welcome, {user.name}
                           </div>
-                          <motion.a whileTap={tapBounce} href="/profile" className="block px-4 bg-[rgba(255,255,255,0.86)] py-2 hover:bg-[rgba(255,255,255,0.08)] text-[rgba(8,15,26,0.95)]">
+                          <motion.a 
+                            whileTap={tapBounce} 
+                            href="/profile" 
+                            className="block px-4 py-3 hover:bg-gray-300/20 text-gray-800 transition-colors"
+                          >
                             Profile
                           </motion.a>
-                          <motion.a whileTap={tapBounce} href="/orders" className="block px-4 bg-[rgba(255,255,255,0.86)] py-2 hover:bg-[rgba(255,255,255,0.08)] text-[rgba(8,15,26,0.95)]">
+                          <motion.a 
+                            whileTap={tapBounce} 
+                            href="/orders" 
+                            className="block px-4 py-3 hover:bg-gray-300/20 text-gray-800 transition-colors"
+                          >
                             My Orders
                           </motion.a>
                           <motion.button
                             whileTap={tapBounce}
                             onClick={handleLogout}
-                            className="block w-full text-left px-4 py-2 bg-[rgba(255,255,255,0.86)] hover:bg-[rgba(255,255,255,0.08)] text-[rgba(8,15,26,0.95)]"
+                            className="block w-full text-left px-4 py-3 hover:bg-gray-300/20 text-gray-800 transition-colors"
                           >
                             Logout
                           </motion.button>
@@ -340,7 +391,7 @@ export default function Navbar() {
                         <motion.button
                           whileTap={tapBounce}
                           onClick={() => setIsModalOpen(true)}
-                          className="block w-full text-left px-4 py-2 text-[rgba(8,15,26,0.95)] bg-[rgba(255,255,255,0.86)] hover:bg-[rgba(255,255,255,0.08)]"
+                          className="block w-full text-left px-4 py-3 text-gray-800 hover:bg-gray-300/20 transition-colors"
                         >
                           Login
                         </motion.button>
@@ -353,7 +404,7 @@ export default function Navbar() {
           </div>
         </nav>
 
-        {/* AUTH MODAL */}
+        {/* AUTH MODAL - Neumorphic */}
         <AnimatePresence>
           {isModalOpen && (
             <motion.div
@@ -361,26 +412,32 @@ export default function Navbar() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-[rgba(7,10,16,0.7)] backdrop-blur-xl flex justify-center items-center z-[9999]"
+              className="fixed inset-0 bg-black/40 backdrop-blur-lg flex justify-center items-center z-[9999]"
             >
               <motion.div
                 key="auth-card"
-                initial={{ opacity: 0, y: 18, scale: 0.98, filter: "blur(8px)" }}
-                animate={{ opacity: 1, y: 0, scale: 1, filter: "blur(0px)" }}
-                exit={{ opacity: 0, y: 18, scale: 0.98, filter: "blur(6px)" }}
+                initial={{ opacity: 0, y: 18, scale: 0.98 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: 18, scale: 0.98 }}
                 transition={{ type: "spring", stiffness: 420, damping: 32, mass: 0.8 }}
-                className="relative glass-strong p-8 rounded-2xl w-96 max-w-[90vw] border border-[rgba(255,255,255,0.08)] shadow-2xl"
+                className="relative bg-[#e8ecf0] p-8 rounded-3xl w-96 max-w-[90vw]"
+                style={{
+                  boxShadow: '20px 20px 40px #c5cdd5, -20px -20px 40px #ffffff'
+                }}
               >
                 <motion.button
                   whileTap={tapBounce}
-                  className="absolute -top-3 -right-3 text-royal-gold hover:text-white bg-[rgba(255,255,255,0.1)] rounded-full w-8 h-8 flex items-center justify-center shadow-md transition-all duration-200 hover:scale-105"
+                  className="absolute -top-3 -right-3 text-gray-700 bg-[#e8ecf0] rounded-full w-10 h-10 flex items-center justify-center transition-all duration-200 font-bold text-xl"
+                  style={{
+                    boxShadow: '6px 6px 12px #c5cdd5, -6px -6px 12px #ffffff'
+                  }}
                   onClick={() => setIsModalOpen(false)}
                   aria-label="Close"
                 >
                   ✖
                 </motion.button>
 
-                <h2 className="text-2xl font-bold text-center mb-6 text-[rgba(232,238,248,0.98)] drop-shadow-sm">
+                <h2 className="text-3xl font-bold text-center mb-8 text-gray-900">
                   {isSignUp ? "Join Jotto" : "Welcome Back"}
                 </h2>
 
@@ -389,7 +446,10 @@ export default function Navbar() {
                     <input
                       type="text"
                       placeholder="Full Name"
-                      className="input-glass w-full px-4 py-3 rounded-lg transition-all duration-300"
+                      className="w-full px-5 py-3 rounded-2xl bg-[#e8ecf0] text-gray-900 placeholder-gray-600 transition-all duration-300 focus:outline-none"
+                      style={{
+                        boxShadow: 'inset 4px 4px 8px #c5cdd5, inset -4px -4px 8px #ffffff'
+                      }}
                       value={name}
                       onChange={(e) => setName(e.target.value)}
                     />
@@ -400,7 +460,10 @@ export default function Navbar() {
                   <input
                     type="email"
                     placeholder="Email Address"
-                    className="input-glass w-full px-4 py-3 rounded-lg transition-all duration-300"
+                    className="w-full px-5 py-3 rounded-2xl bg-[#e8ecf0] text-gray-900 placeholder-gray-600 transition-all duration-300 focus:outline-none"
+                    style={{
+                      boxShadow: 'inset 4px 4px 8px #c5cdd5, inset -4px -4px 8px #ffffff'
+                    }}
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                   />
@@ -410,7 +473,10 @@ export default function Navbar() {
                   <input
                     type="password"
                     placeholder="Password"
-                    className="input-glass w-full px-4 py-3 rounded-lg transition-all duration-300"
+                    className="w-full px-5 py-3 rounded-2xl bg-[#e8ecf0] text-gray-900 placeholder-gray-600 transition-all duration-300 focus:outline-none"
+                    style={{
+                      boxShadow: 'inset 4px 4px 8px #c5cdd5, inset -4px -4px 8px #ffffff'
+                    }}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                   />
@@ -418,24 +484,39 @@ export default function Navbar() {
 
                 <motion.button
                   whileTap={tapBounce}
-                  className="w-full btn-accent py-3 rounded-lg hover:shadow-lg transition-all duration-300 font-bold text-lg mb-4"
+                  className="w-full bg-[#e8ecf0] py-4 rounded-2xl font-bold text-lg mb-6 text-gray-900 transition-all duration-300"
+                  style={{
+                    boxShadow: '8px 8px 16px #c5cdd5, -8px -8px 16px #ffffff'
+                  }}
                   onClick={handleLoginSignup}
                 >
                   {isSignUp ? "Create Account" : "Sign In"}
                 </motion.button>
 
                 {/* Divider */}
-                <div className="relative mb-4">
+                <div className="relative mb-6">
                   <div className="absolute inset-0 flex items-center">
-                    <div className="w-full border-t border-[rgba(255,255,255,0.18)]" />
+                    <div className="w-full border-t border-gray-400/30" />
                   </div>
                   <div className="relative flex justify-center text-sm">
-                    <span className="px-3 chip-contrast rounded-full bg-[rgba(255,255,255,0.08)]">or</span>
+                    <span 
+                      className="px-4 py-1 rounded-full bg-[#e8ecf0] text-gray-700 font-semibold"
+                      style={{
+                        boxShadow: 'inset 2px 2px 4px #c5cdd5, inset -2px -2px 4px #ffffff'
+                      }}
+                    >
+                      or
+                    </span>
                   </div>
                 </div>
 
                 {/* GOOGLE LOGIN */}
-                <div className="w-full input-glass rounded-lg hover:bg-[rgba(255,255,255,0.12)] transition-all duration-300 overflow-hidden">
+                <div 
+                  className="w-full rounded-2xl overflow-hidden"
+                  style={{
+                    boxShadow: '4px 4px 8px #c5cdd5, -4px -4px 8px #ffffff'
+                  }}
+                >
                   <GoogleLogin
                     onSuccess={handleGoogleLoginSuccess}
                     onError={() => console.log("Google Login Failed")}
@@ -447,11 +528,11 @@ export default function Navbar() {
                 </div>
 
                 {/* TOGGLE SIGNIN/SIGNUP */}
-                <p className="text-center text-sm mt-6 text-[rgba(232,238,248,0.9)]">
+                <p className="text-center text-sm mt-6 text-gray-700">
                   {isSignUp ? "Already have an account?" : "Don't have an account?"}{" "}
                   <button
                     onClick={() => setIsSignUp(!isSignUp)}
-                    className="text-royal-gold font-semibold hover:text-white transition-colors duration-200 underline"
+                    className="text-royal-gold font-bold hover:text-gray-900 transition-colors duration-200 underline"
                   >
                     {isSignUp ? "Sign In" : "Sign Up"}
                   </button>
@@ -464,39 +545,43 @@ export default function Navbar() {
         {/* MEGA MENU */}
         <MegaMenu />
 
-        {/* MOBILE SEARCH */}
-{isMobile && showSearchBar && !pathname.includes("/search") && (
-  <Link href="/search">
-    <motion.div
-      whileHover={{ y: -1 }}
-      transition={{ type: "spring", stiffness: 500, damping: 30 }}
-      className="fixed bottom-4 left-4 right-4 w-auto backdrop-blur-xl py-3 px-3 shadow-[0_8px_32px_rgba(0,0,0,0.12)] z-[9999] rounded-full"
-      style={{
-        background: 'linear-gradient(to bottom, rgba(255,255,255,0.7), rgba(255,255,255,0.85)) rounded-lg'
-      }}
-    >
-      <div className="relative w-full">
-        <input
-          type="text"
-          placeholder="Search premium 3D products..."
-          className="w-full pl-6 pr-14 py-3 rounded-full transition-all duration-300 bg-white/60 backdrop-blur-sm border border-gray-200/60 shadow-sm placeholder:text-gray-500 text-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-300/50"
-          value={mobileSearchTerm}
-          onChange={(e) => setMobileSearchTerm(e.target.value)}
-          readOnly
-        />
-        <motion.button
-          whileTap={tapBounce}
-          type="button"
-          className="absolute right-2.5 top-1/2 -translate-y-1/2 h-10 w-10 rounded-full bg-gray-900 hover:bg-gray-800 flex items-center justify-center transition-all duration-200 shadow-md"
-        >
-          <Search className="text-white w-5 h-5" />
-        </motion.button>
-      </div>
-    </motion.div>
-  </Link>
-)}
-
-
+        {/* MOBILE SEARCH - Neumorphic */}
+        {isMobile && showSearchBar && !pathname.includes("/search") && (
+          <Link href="/search">
+            <motion.div
+              whileHover={{ y: -2 }}
+              transition={{ type: "spring", stiffness: 500, damping: 30 }}
+              className="fixed bottom-4 left-4 right-4 bg-[#e8ecf0] py-3 px-3 z-[9999] rounded-full"
+              style={{
+                boxShadow: '8px 8px 16px #c5cdd5, -8px -8px 16px #ffffff'
+              }}
+            >
+              <div className="relative w-full">
+                <input
+                  type="text"
+                  placeholder="Search premium 3D products..."
+                  className="w-full pl-6 pr-14 py-3 rounded-full bg-[#e8ecf0] placeholder:text-gray-600 text-gray-900 focus:outline-none"
+                  style={{
+                    boxShadow: 'inset 3px 3px 6px #c5cdd5, inset -3px -3px 6px #ffffff'
+                  }}
+                  value={mobileSearchTerm}
+                  onChange={(e) => setMobileSearchTerm(e.target.value)}
+                  readOnly
+                />
+                <motion.button
+                  whileTap={tapBounce}
+                  type="button"
+                  className="absolute right-2 top-1/2 -translate-y-1/2 h-10 w-10 rounded-full bg-[#e8ecf0] flex items-center justify-center transition-all duration-200"
+                  style={{
+                    boxShadow: '4px 4px 8px #c5cdd5, -4px -4px 8px #ffffff'
+                  }}
+                >
+                  <Search className="text-gray-700 w-5 h-5" />
+                </motion.button>
+              </div>
+            </motion.div>
+          </Link>
+        )}
       </GoogleOAuthProvider>
     </>
   );

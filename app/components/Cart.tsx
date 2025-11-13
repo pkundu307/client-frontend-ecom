@@ -12,23 +12,20 @@ import {
   setAuthStatus,
 } from "../store/cartSlice";
 import { motion, AnimatePresence } from "framer-motion";
-import { TrashIcon, ChevronUpIcon, ChevronDownIcon } from "@heroicons/react/24/outline";
+import { TrashIcon, MinusIcon, PlusIcon, ShoppingBagIcon } from "@heroicons/react/24/outline";
 import Image from "next/image";
 import { CartItem } from "../store/types";
 
 const cardVariants = {
-  initial: { opacity: 0, y: 12, scale: 0.99, filter: "blur(6px)" },
+  initial: { opacity: 0, y: 12, scale: 0.99 },
   animate: {
     opacity: 1,
     y: 0,
     scale: 1,
-    filter: "blur(0px)",
-    transition: { type: "spring", stiffness: 420, damping: 30, mass: 0.7 },
+    transition: { type: "spring", stiffness: 300, damping: 25 },
   },
-  exit: { opacity: 0, y: -10, scale: 0.99, filter: "blur(4px)", transition: { duration: 0.18 } },
+  exit: { opacity: 0, y: -10, scale: 0.98, transition: { duration: 0.2 } },
 };
-
-const tapBounce = { scale: 0.96 };
 
 const RoyalCart = () => {
   const dispatch = useDispatch<AppDispatch>();
@@ -65,35 +62,47 @@ const RoyalCart = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[var(--background)] text-[var(--foreground)]">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
+    <div className="min-h-screen bg-[#e8ecf0] py-8 px-4">
+      <div className="max-w-7xl mx-auto">
         {/* Heading */}
-        <div className="flex items-center justify-between mb-6 sm:mb-10">
-          <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight">
-            <span className="bg-clip-text text-transparent bg-gradient-to-r from-[var(--royal-gold)] to-[var(--accent-primary)]">
-              Cart
-            </span>
+        <motion.div 
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="flex items-center justify-between mb-10"
+        >
+          <h1 className="text-4xl sm:text-5xl font-bold text-gray-900">
+            Shopping Cart
           </h1>
           {cartItems.length > 0 && (
-            <span className="chip-contrast rounded-full px-3 py-1 text-sm border border-[rgba(255,255,255,0.14)]">
-              {cartItems.length} items
-            </span>
+            <div 
+              className="bg-[#e8ecf0] text-gray-800 rounded-full px-5 py-2 text-sm font-semibold"
+              style={{
+                boxShadow: 'inset 4px 4px 8px #c5cdd5, inset -4px -4px 8px #ffffff'
+              }}
+            >
+              {cartItems.length} {cartItems.length === 1 ? 'item' : 'items'}
+            </div>
           )}
-        </div>
+        </motion.div>
 
         {/* Layout */}
-        <div className="grid sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8">
+        <div className="grid lg:grid-cols-3 gap-8">
           {/* Items */}
-          <div className="lg:col-span-2 space-y-4 sm:space-y-6">
+          <div className="lg:col-span-2 space-y-6">
             <AnimatePresence initial={false}>
               {cartItems.length === 0 ? (
-                <motion.p
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  className="text-center text-[var(--royal-gold)] text-lg font-medium py-12"
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  className="bg-[#e8ecf0] rounded-3xl p-16 text-center"
+                  style={{
+                    boxShadow: '12px 12px 24px #c5cdd5, -12px -12px 24px #ffffff'
+                  }}
                 >
-                  Your cart is empty.
-                </motion.p>
+                  <ShoppingBagIcon className="w-24 h-24 text-gray-400 mx-auto mb-6" />
+                  <p className="text-2xl text-gray-900 font-semibold">Your cart is empty</p>
+                  <p className="text-sm text-gray-600 mt-3">Add some products to get started!</p>
+                </motion.div>
               ) : (
                 cartItems.map((item) => (
                   <motion.div
@@ -102,73 +111,90 @@ const RoyalCart = () => {
                     initial="initial"
                     animate="animate"
                     exit="exit"
-                    className="glass-strong relative rounded-xl p-4 sm:p-6 border border-[rgba(255,255,255,0.12)] shadow-2xl overflow-hidden"
+                    className="bg-[#e8ecf0] relative rounded-3xl p-6"
+                    style={{
+                      boxShadow: '12px 12px 24px #c5cdd5, -12px -12px 24px #ffffff'
+                    }}
                   >
-                    {/* Decorative liquid highlight */}
-                    <div
-                      className="pointer-events-none absolute inset-0 opacity-70"
-                      style={{
-                        background:
-                          "radial-gradient(140% 70% at 0% 0%, rgba(255,255,255,0.10), rgba(255,255,255,0.04) 40%, transparent 70%)",
-                      }}
-                    />
-
-                    <div className="relative flex flex-col sm:flex-row items-center sm:items-start gap-4 sm:gap-6">
+                    <div className="flex flex-col sm:flex-row items-center sm:items-start gap-6">
                       {/* Image */}
                       <div className="shrink-0">
-                        <Image
-                          width={128}
-                          height={128}
-                          src={
-                            item.variant?.images?.[0] ||
-                            item.variant?.product?.images?.[0] ||
-                            "/placeholder.png"
-                          }
-                          alt={item.variant?.product?.title || "Cart item"}
-                          className="w-24 h-24 sm:w-32 sm:h-32 object-cover rounded-lg border border-[rgba(255,255,255,0.18)] shadow-lg"
-                        />
+                        <div 
+                          className="relative w-28 h-28 sm:w-36 sm:h-36 rounded-2xl overflow-hidden"
+                          style={{
+                            boxShadow: 'inset 6px 6px 12px #c5cdd5, inset -6px -6px 12px #ffffff'
+                          }}
+                        >
+                          <Image
+                            fill
+                            src={
+                              item.variant?.images?.[0] ||
+                              item.variant?.product?.images?.[0] ||
+                              "/placeholder.png"
+                            }
+                            alt={item.variant?.product?.title || "Cart item"}
+                            className="object-cover"
+                          />
+                        </div>
                       </div>
 
                       {/* Details */}
-                      <div className="flex-1 text-center sm:text-left">
-                        <h3 className="text-lg sm:text-xl font-semibold">
-                          <span className="text-[var(--foreground)]">{item.variant?.product?.title || "Product"}</span>
+                      <div className="flex-1 w-full text-center sm:text-left">
+                        <h3 className="text-xl font-bold text-gray-900 mb-2">
+                          {item.variant?.product?.title || "Product"}
                         </h3>
 
+                        <p className="text-sm text-gray-600 mb-4">
+                          ${Number(item.variant?.price || 0).toFixed(2)} each
+                        </p>
+
                         {/* Controls */}
-                        <div className="mt-3 sm:mt-4 flex flex-col sm:flex-row items-center gap-3 sm:gap-6">
+                        <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
                           {/* Quantity */}
-                          <div className="flex items-center gap-2 rounded-full px-3 py-2 bg-[rgba(255,255,255,0.06)] border border-[rgba(255,255,255,0.14)] backdrop-blur-md">
+                          <div 
+                            className="flex items-center bg-[#e8ecf0] rounded-2xl"
+                            style={{
+                              boxShadow: 'inset 4px 4px 8px #c5cdd5, inset -4px -4px 8px #ffffff'
+                            }}
+                          >
                             <motion.button
-                              whileTap={tapBounce}
+                              whileTap={{ scale: 0.92 }}
                               onClick={() => updateQuantity(item, false)}
-                              className="text-[var(--royal-gold)] hover:opacity-80"
+                              className="p-4 rounded-l-2xl hover:text-gray-900 transition-colors"
+                              aria-label="Decrease quantity"
                             >
-                              <ChevronDownIcon className="w-5 h-5" />
+                              <MinusIcon className="w-4 h-4 text-gray-700" />
                             </motion.button>
-                            <span className="text-lg font-medium">{item.quantity}</span>
+                            <span className="px-6 py-2 font-bold text-gray-900 min-w-[60px] text-center text-lg">
+                              {item.quantity}
+                            </span>
                             <motion.button
-                              whileTap={tapBounce}
+                              whileTap={{ scale: 0.92 }}
                               onClick={() => updateQuantity(item, true)}
-                              className="text-[var(--royal-gold)] hover:opacity-80"
+                              className="p-4 rounded-r-2xl hover:text-gray-900 transition-colors"
+                              aria-label="Increase quantity"
                             >
-                              <ChevronUpIcon className="w-5 h-5" />
+                              <PlusIcon className="w-4 h-4 text-gray-700" />
                             </motion.button>
                           </div>
 
                           {/* Price */}
-                          <p className="text-xl sm:text-2xl font-extrabold text-[var(--royal-gold)] tabular-nums">
+                          <p className="text-3xl font-bold text-gray-900">
                             ${Number(Number(item.variant?.price || 0) * item.quantity).toFixed(2)}
                           </p>
 
                           {/* Remove */}
                           <motion.button
-                            whileTap={tapBounce}
+                            whileTap={{ scale: 0.92 }}
+                            whileHover={{ scale: 1.05 }}
                             onClick={() => removeItem(item)}
-                            className="ml-auto text-red-400 hover:text-red-300 transition-colors"
+                            className="p-3 rounded-2xl bg-[#e8ecf0]"
+                            style={{
+                              boxShadow: '6px 6px 12px #c5cdd5, -6px -6px 12px #ffffff'
+                            }}
                             aria-label="Remove item"
                           >
-                            <TrashIcon className="w-6 h-6" />
+                            <TrashIcon className="w-5 h-5 text-gray-700" />
                           </motion.button>
                         </div>
                       </div>
@@ -182,37 +208,59 @@ const RoyalCart = () => {
           {/* Summary */}
           {cartItems.length > 0 && (
             <motion.div
-              initial={{ opacity: 0, y: 16 }}
+              initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ type: "spring", stiffness: 420, damping: 30 }}
-              className="glass-strong p-6 sm:p-8 rounded-2xl h-fit lg:sticky top-8 border border-[rgba(255,255,255,0.14)] shadow-2xl"
+              transition={{ type: "spring", stiffness: 300, damping: 25 }}
+              className="bg-[#e8ecf0] p-8 rounded-3xl h-fit lg:sticky top-8"
+              style={{
+                boxShadow: '12px 12px 24px #c5cdd5, -12px -12px 24px #ffffff'
+              }}
             >
-              <h2 className="text-xl sm:text-2xl font-bold text-[var(--foreground)] mb-4 sm:mb-6">
+              <h2 className="text-2xl font-bold text-gray-900 mb-8">
                 Order Summary
               </h2>
 
-              <div className="space-y-4">
+              <div className="space-y-6">
                 <div className="flex justify-between text-lg">
-                  <span>Subtotal</span>
-                  <span className="font-extrabold text-[var(--royal-gold)] tabular-nums">${subtotal.toFixed(2)}</span>
+                  <span className="text-gray-600">Subtotal</span>
+                  <span className="font-bold text-gray-900">${subtotal.toFixed(2)}</span>
                 </div>
 
-                <div className="py-4 border-y border-[rgba(255,255,255,0.14)]">
-                  <div className="flex justify-between mb-1">
-                    <span>Shipping</span>
-                    <span className="text-[var(--royal-gold)]">Free</span>
+                <div className="py-6 border-t border-b border-gray-400/20">
+                  <div className="flex justify-between mb-2">
+                    <span className="text-gray-600">Shipping</span>
+                    <span 
+                      className="text-gray-900 font-semibold px-3 py-1 rounded-xl bg-[#e8ecf0] text-sm"
+                      style={{
+                        boxShadow: 'inset 2px 2px 4px #c5cdd5, inset -2px -2px 4px #ffffff'
+                      }}
+                    >
+                      Free
+                    </span>
                   </div>
-                  <p className="text-sm opacity-75">Royal Priority Shipping</p>
+                  <p className="text-sm text-gray-600">Standard delivery: 3-5 business days</p>
+                </div>
+
+                <div className="flex justify-between text-2xl font-bold pt-2">
+                  <span className="text-gray-900">Total</span>
+                  <span className="text-gray-900">${subtotal.toFixed(2)}</span>
                 </div>
 
                 <motion.button
-                  whileTap={tapBounce}
-                  className="text-white w-full btn-accent py-3 sm:py-4 rounded-xl font-bold hover:shadow-lg transition-all duration-300 flex items-center justify-center gap-2"
+                  whileTap={{ scale: 0.97 }}
+                  whileHover={{ scale: 1.02 }}
+                  className="w-full bg-[#e8ecf0] text-gray-900 py-5 rounded-2xl font-bold transition-all duration-300 flex items-center justify-center gap-2 mt-8 text-lg"
+                  style={{
+                    boxShadow: '8px 8px 16px #c5cdd5, -8px -8px 16px #ffffff'
+                  }}
                 >
-                 <p
-                 className="text-white"
-                 >Proceed to Checkout <span className="text-xl sm:text-2xl">→</span></p> 
+                  <span>Proceed to Checkout</span>
+                  <span className="text-2xl">→</span>
                 </motion.button>
+
+                <p className="text-xs text-center text-gray-600 mt-4">
+                  🔒 Secure checkout • SSL encrypted
+                </p>
               </div>
             </motion.div>
           )}
