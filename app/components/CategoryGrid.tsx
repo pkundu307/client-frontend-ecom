@@ -1,4 +1,7 @@
+"use client";
+
 import Image from "next/image";
+import { motion } from "framer-motion";
 
 const categories = [
   {
@@ -35,31 +38,56 @@ const categories = [
 
 export default function CategoryGrid() {
   return (
-    <div className="max-w-7xl mx-auto px-4 py-10">
-      <h2 className="text-3xl font-bold text-primary text-center mb-6">
+    <div className="max-w-7xl mx-auto px-4 py-10 bg-[#e8ecf0]">
+      <h2 className="text-3xl font-bold text-gray-900 text-center mb-8">
         Shop by Category
       </h2>
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6">
         {categories.map((category) => (
-          <div
+          <motion.div
             key={category.id}
-            className="relative rounded-lg overflow-hidden shadow-lg group"
+            whileHover={{ y: -4 }}
+            whileTap={{ scale: 0.98 }}
+            className="bg-[#e8ecf0] rounded-3xl overflow-hidden group cursor-pointer"
+            style={{
+              boxShadow: '8px 8px 16px #c5cdd5, -8px -8px 16px #ffffff'
+            }}
           >
-            <Image
-              src={category.image}
-              alt={category.name}
-              width={300}
-              height={400}
-              className="w-full h-full object-cover transform transition-transform duration-300 group-hover:scale-105"
-            />
-            <div className="absolute bottom-0 left-0 w-full bg-gradient-to-t from-accent/80 to-transparent p-4 text-white">
-              <h3 className="text-lg font-bold">{category.name}</h3>
-              <p className="text-sm">{category.discount}</p>
-              <button className="mt-2 bg-secondary text-white px-3 py-1 rounded-md text-sm">
-                Shop Now
-              </button>
+            {/* Image Container */}
+            <div className="relative w-full aspect-[3/4] overflow-hidden rounded-t-3xl">
+              <Image
+                src={category.image}
+                alt={category.name}
+                width={300}
+                height={400}
+                className="w-full h-full object-cover transform transition-transform duration-300 group-hover:scale-110"
+              />
+              {/* Gradient overlay */}
+              <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
             </div>
-          </div>
+
+            {/* Category Info */}
+            <div className="p-4">
+              <h3 className="text-lg font-bold text-gray-900 mb-1">
+                {category.name}
+              </h3>
+              <p className="text-sm text-gray-600 mb-3">
+                {category.discount}
+              </p>
+              
+              {/* Shop Now Button */}
+              <motion.button
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                className="w-full bg-gray-900 text-white py-2.5 rounded-xl font-semibold text-sm transition-all"
+                style={{
+                  boxShadow: '4px 4px 8px #c5cdd5, -4px -4px 8px #ffffff'
+                }}
+              >
+                Shop Now
+              </motion.button>
+            </div>
+          </motion.div>
         ))}
       </div>
     </div>

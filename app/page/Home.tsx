@@ -15,6 +15,7 @@ const Home = () => {
       <BasedOnYourActivity/>
       <PublicFavorite/>
       <WeekSpecial/>
+      
     </div>
   )
 }

@@ -2,11 +2,14 @@
 
 import { useEffect, useState } from "react";
 import { Swiper, SwiperSlide } from "swiper/react";
-import { Autoplay, Pagination } from "swiper/modules";
+import { Autoplay, Pagination, EffectFade } from "swiper/modules";
 import "swiper/css";
 import "swiper/css/pagination";
+import "swiper/css/effect-fade";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
+import { motion } from "framer-motion";
+import { ArrowRight, Sparkles } from "lucide-react";
 
 interface Banner {
   id: number;
@@ -35,76 +38,175 @@ export default function MyntraCarousel() {
   }, []);
 
   return (
-    <div className="relative max-w-7xl mx-auto py-3 md:py-6 px-2 md:px-4 z-10">
-      <Swiper
-        modules={[Autoplay, Pagination]}
-        spaceBetween={10}
-        slidesPerView={1}
-        loop={true}
-        autoplay={{ delay: 2500 }}
-        pagination={{ clickable: true }}
-        className="rounded-lg"
-      >
-        {banners.map((banner) => (
-          <SwiperSlide key={banner.id} className="relative">
-            <div
-              onClick={() => router.push(banner.targetUrl)}
-              className="cursor-pointer"
-            >
-              {/* Background Image */}
-              <Image
-                src={banner.bannerImageUrl}
-                alt={banner.title}
-                width={1200}
-                height={500}
-                className="w-full h-[200px] sm:h-[280px] md:h-[350px] lg:h-[400px] object-cover rounded-lg sepia-0 hover:sepia transition-all duration-500"
-              />
+    <div className="relative w-full bg-[#e8ecf0] pt-6 pb-10">
+      <div className="max-w-7xl mx-auto px-4 md:px-6">
+        <div 
+          className="rounded-3xl overflow-hidden"
+          style={{
+            boxShadow: '20px 20px 40px #c5cdd5, -20px -20px 40px #ffffff'
+          }}
+        >
+          <Swiper
+            modules={[Autoplay, Pagination, EffectFade]}
+            spaceBetween={0}
+            slidesPerView={1}
+            loop={true}
+            effect="fade"
+            autoplay={{ 
+              delay: 4000,
+              disableOnInteraction: false 
+            }}
+            pagination={{ 
+              clickable: true,
+              bulletActiveClass: "swiper-pagination-bullet-active",
+              bulletClass: "swiper-pagination-bullet"
+            }}
+className="hero-carousel"
+style={
+  {
+    ["--swiper-pagination-color"]: "#667eea",
+    ["--swiper-pagination-bullet-inactive-color"]: "#999",
+    ["--swiper-pagination-bullet-inactive-opacity"]: "0.5",
+    ["--swiper-pagination-bullet-size"]: "10px",
+    ["--swiper-pagination-bullet-horizontal-gap"]: "6px",
+  } as React.CSSProperties
+}
+          >
+            {banners.map((banner, index) => (
+              <SwiperSlide key={banner.id}>
+                <div
+                  onClick={() => router.push(banner.targetUrl)}
+                  className="relative cursor-pointer group"
+                >
+                  {/* Background Image - Reduced Height */}
+                  <div className="relative h-[280px] sm:h-[350px] md:h-[420px] lg:h-[400px] overflow-hidden">
+                    <Image
+                      src={banner.bannerImageUrl}
+                      alt={banner.title}
+                      fill
+                      priority={index === 0}
+                      className="object-cover transition-transform duration-700 group-hover:scale-105"
+                    />
+                    
+                    {/* Gradient Overlays */}
+                    <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/50 to-transparent" />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+                  </div>
 
-              {/* Left Side Dark Gradient Overlay */}
-              <div className="absolute left-0 top-0 h-full w-full sm:w-4/6 md:w-3/6 bg-gradient-to-r from-black/90 via-black/60 sm:via-black/40 to-transparent pointer-events-none z-10 rounded-l-lg"></div>
+                  {/* Content Overlay */}
+                  <div className="absolute inset-0 flex items-center">
+                    <div className="max-w-7xl mx-auto px-6 md:px-12 w-full">
+                      <motion.div
+                        initial={{ opacity: 0, x: -50 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: 0.3, duration: 0.8 }}
+                        className="max-w-2xl"
+                      >
+                        {/* Brand Logo */}
+                        {banner.brandLogoUrl && (
+                          <motion.div
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: 0.4 }}
+                            className="mb-4"
+                          >
+                            <div 
+                              className="inline-block bg-white/95 backdrop-blur-xl p-2.5 md:p-3 rounded-2xl"
+                              style={{
+                                boxShadow: '0 8px 16px rgba(0,0,0,0.15)'
+                              }}
+                            >
+                              <Image
+                                src={banner.brandLogoUrl}
+                                alt="Brand Logo"
+                                width={100}
+                                height={50}
+                                className="w-[70px] h-[35px] md:w-[100px] md:h-[50px] object-contain"
+                              />
+                            </div>
+                          </motion.div>
+                        )}
 
-              {/* Overlay Content */}
-              <div className="absolute inset-0 flex flex-col sm:flex-row justify-start sm:justify-between items-start sm:items-center p-4 sm:px-8 md:px-12 z-20">
-                <div className="flex flex-col justify-center space-y-2 sm:space-y-4 w-full sm:w-auto">
-                  {/* Brand Logo on top of title */}
-                  {banner.brandLogoUrl && (
-                    <div className="bg-white p-2 sm:p-3 rounded-md shadow-lg w-fit mb-2">
-                      <Image
-                        src={banner.brandLogoUrl}
-                        alt="Brand Logo"
-                        width={60}
-                        height={30}
-                        className="sm:w-[80px] sm:h-[40px] md:w-[100px] md:h-[50px] object-contain"
-                      />
+                        {/* Title */}
+                        <motion.h1
+                          initial={{ opacity: 0, y: 20 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ delay: 0.5 }}
+                          className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-extrabold text-white mb-3 leading-tight"
+                        >
+                          {banner.title}
+                        </motion.h1>
+
+                        {/* Discount Text */}
+                        {banner.discountText && (
+                          <motion.div
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: 0.6 }}
+                            className="mb-4"
+                          >
+                            <div className="inline-flex items-center gap-2 bg-gradient-to-r from-yellow-400 to-orange-500 px-3 py-1.5 rounded-full">
+                              <Sparkles className="w-4 h-4 text-white" />
+                              <span className="text-white font-bold text-base md:text-lg">
+                                {banner.discountText}
+                              </span>
+                            </div>
+                          </motion.div>
+                        )}
+
+                        {/* CTA Button */}
+                        <motion.div
+                          initial={{ opacity: 0, y: 20 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ delay: 0.7 }}
+                        >
+                          <motion.button
+                            whileHover={{ scale: 1.05, x: 5 }}
+                            whileTap={{ scale: 0.95 }}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              router.push(banner.targetUrl);
+                            }}
+                            className="group/btn inline-flex items-center gap-2.5 bg-white text-gray-900 px-6 py-3 rounded-2xl font-bold text-base transition-all duration-300 hover:bg-gray-100"
+                            style={{
+                              boxShadow: '0 8px 16px rgba(0,0,0,0.2)'
+                            }}
+                          >
+                            Explore Collection
+                            <motion.div
+                              animate={{ x: [0, 5, 0] }}
+                              transition={{ 
+                                duration: 1.5, 
+                                repeat: Infinity,
+                                ease: "easeInOut" 
+                              }}
+                            >
+                              <ArrowRight className="w-5 h-5" />
+                            </motion.div>
+                          </motion.button>
+                        </motion.div>
+                      </motion.div>
                     </div>
-                  )}
-
-                  <div className="text-white">
-                    <h2 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold mb-1 sm:mb-2">
-                      {banner.title}
-                    </h2>
-                    {banner.discountText && (
-                      <p className="text-sm sm:text-lg md:text-xl font-semibold text-yellow-300 mb-2 sm:mb-0">
-                        {banner.discountText}
-                      </p>
-                    )}
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation(); // prevent double navigation
-                        router.push(banner.targetUrl);
-                      }}
-                      className="mt-2 sm:mt-4 px-4 sm:px-6 md:px-8 py-2 sm:py-3 bg-white text-gray-900 font-semibold rounded-md hover:bg-gray-100 transition-colors duration-300 text-sm sm:text-base"
-                    >
-                      + Explore
-                    </button>
                   </div>
                 </div>
-                <div className="hidden sm:block flex-1"></div>
-              </div>
-            </div>
-          </SwiperSlide>
-        ))}
-      </Swiper>
+              </SwiperSlide>
+            ))}
+          </Swiper>
+        </div>
+      </div>
+
+      {/* Custom Swiper Pagination Styles */}
+      <style jsx global>{`
+        .hero-carousel .swiper-pagination {
+          bottom: 20px !important;
+        }
+        .hero-carousel .swiper-pagination-bullet {
+          transition: all 0.3s ease;
+        }
+        .hero-carousel .swiper-pagination-bullet-active {
+          transform: scale(1.3);
+        }
+      `}</style>
     </div>
   );
 }
