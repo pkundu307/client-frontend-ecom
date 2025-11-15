@@ -191,6 +191,41 @@ const WeekSpecial = () => {
               </div>
             </div>
           </motion.div>
+                <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.5 }}
+            whileHover={{ y: -8 }}
+            className="md:col-span-2 rounded-3xl p-8 min-h-[200px] relative overflow-hidden group"
+            style={{
+              background: 'linear-gradient(135deg, #ff9a9e 0%, #fecfef 50%, #fecfef 100%)',
+              boxShadow: '12px 12px 24px #c5cdd5, -12px -12px 24px #ffffff'
+            }}
+          >
+            <div className="absolute inset-0 bg-gradient-to-br from-white/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+            
+            <div className="relative z-10 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+              <div>
+                <div className="inline-flex items-center gap-2 bg-white/30 backdrop-blur-xl px-4 py-2 rounded-full mb-3">
+                  <Star className="w-4 h-4 text-white fill-white" />
+                  <span className="text-white text-sm font-semibold">Best Seller</span>
+                </div>
+                <h3 className="text-2xl font-bold text-white mb-2">Signature Collection</h3>
+                <p className="text-white/90">Hand-selected royal selection with premium finish</p>
+              </div>
+              <div className="text-right">
+                <span className="text-3xl font-bold text-white block mb-2">₹39,999</span>
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  className="bg-white text-pink-600 font-bold px-6 py-2 rounded-xl text-sm"
+                  style={{ boxShadow: '0 4px 8px rgba(0,0,0,0.2)' }}
+                >
+                  Shop Now
+                </motion.button>
+              </div>
+            </div>
+          </motion.div>
         </div>
       </div>
     </section>

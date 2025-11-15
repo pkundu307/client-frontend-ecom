@@ -88,7 +88,7 @@ const Model = ({
 
         if (activeTexture) {
           material.map = activeTexture;
-          activeTexture.flipY = true;
+          activeTexture.flipY = false;
           activeTexture.needsUpdate = true;
           material.needsUpdate = true;
         } else {

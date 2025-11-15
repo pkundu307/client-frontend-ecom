@@ -3,23 +3,46 @@
 import { ShoppingCart } from 'lucide-react';
 import React from 'react';
 import { motion } from 'framer-motion';
+import Image from 'next/image';
 
 const Demand = () => {
   return (
     <div>
       <section className="bg-gradient-to-br from-[#d8e4e6] via-[#e8ecf0] to-[#dfe7e9] py-16 px-6 min-h-screen">
         <div className="max-w-7xl mx-auto">
-          {/* Section Header */}
-          <div className="text-center mb-16">
+          {/* Section Header with Character */}
+          <div className="text-center mb-16 relative">
+            {/* Character positioned at top right of header */}
+            <motion.div
+              animate={{ 
+                y: [0, -15, 0],
+                rotate: [0, 5, -5, 0]
+              }}
+              transition={{ 
+                duration: 4,
+                repeat: Infinity,
+                ease: "easeInOut"
+              }}
+              className="absolute -top-8 right-0 md:right-20 lg:right-32 z-10"
+            >
+              <Image
+                src="/character.png"
+                alt="Shopping Character"
+                width={120}
+                height={120}
+                className="drop-shadow-2xl"
+              />
+            </motion.div>
+
             <motion.h2 
               initial={{ opacity: 0, y: -20 }}
               animate={{ opacity: 1, y: 0 }}
               className="text-5xl font-bold text-gray-900 mb-4 relative inline-block"
             >
               Hot Demand
-              <span className="absolute -bottom-2 left-0 right-0 h-1.5 bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 rounded-full w-3/4 mx-auto"></span>
+              <span className="absolute -bottom-2 left-0 right-0 h-1.5 bg-gradient-to-r from-red-500 via-orange-500 to-yellow-500 rounded-full w-3/4 mx-auto"></span>
             </motion.h2>
-            <p className="text-gray-600 mt-6 text-lg">Curated Choices for Discerning Tastes</p>
+            <p className="text-gray-600 mt-6 text-lg">Trending Products {"Everyone's"} Buying</p>
           </div>
 
           {/* Product Grid */}
@@ -48,16 +71,16 @@ const Demand = () => {
 
                 {/* Product Info */}
                 <div className="p-6">
-                  <h3 className="text-2xl font-bold text-gray-900 mb-2 group-hover:text-blue-600 transition-colors">
-                    Royal Heritage Box
+                  <h3 className="text-2xl font-bold text-gray-900 mb-2 group-hover:text-red-600 transition-colors">
+                    Premium Product {item}
                   </h3>
                   <p className="text-gray-600 text-sm mb-5 leading-relaxed">
-                    Handcrafted luxury with 24k gold detailing
+                    High-demand item with exclusive features
                   </p>
                   
                   {/* Price & CTA */}
                   <div className="flex justify-between items-center">
-                    <span className="text-gray-900 font-bold text-2xl">₹29,999</span>
+                    <span className="text-gray-900 font-bold text-2xl">₹{29999 - (item * 5000)}</span>
                     <motion.button 
                       whileHover={{ scale: 1.05 }}
                       whileTap={{ scale: 0.95 }}
@@ -79,7 +102,7 @@ const Demand = () => {
                     boxShadow: '0 4px 8px rgba(239, 68, 68, 0.2), inset 0 1px 2px rgba(255, 255, 255, 0.3)'
                   }}
                 >
-                  98% Sold
+                  🔥 {98 - index * 5}% Sold
                 </div>
 
                 {/* Shine effect on hover */}

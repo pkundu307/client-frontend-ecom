@@ -10,10 +10,10 @@ import {
   Mail, 
   Phone, 
   MapPin,
-  Sparkles,
-  Package,
-  Truck,
-  Shield,
+//   Sparkles,
+//   Package,
+//   Truck,
+//   Shield,
 //   CreditCard
 } from "lucide-react";
 
@@ -21,7 +21,7 @@ const Footer = () => {
   return (
     <footer className="bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 text-gray-300">
       {/* Trust Badges Section */}
-      <div className="border-b border-gray-700/50">
+      {/* <div className="border-b border-gray-700/50">
         <div className="max-w-7xl mx-auto px-6 py-12">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
             <motion.div 
@@ -85,7 +85,7 @@ const Footer = () => {
             </motion.div>
           </div>
         </div>
-      </div>
+      </div> */}
 
       {/* Main Footer Content */}
       <div className="max-w-7xl mx-auto px-6 py-16">
