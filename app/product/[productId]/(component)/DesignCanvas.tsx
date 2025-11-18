@@ -33,6 +33,7 @@ interface PredefinedImage {
 }
 interface DesignCanvasProps {
   onCanvasUpdate: (dataUrl: string) => void;
+  onImagesChange: (images: File[]) => void;
 }
 
 // APIs
@@ -61,7 +62,7 @@ const FONT_FAMILIES = [
 const DEFAULT_FONT = "Arial";
 const DEFAULT_COLOR = "#000000";
 
-const DesignCanvas = ({ onCanvasUpdate }: DesignCanvasProps) => {
+const DesignCanvas = ({ onCanvasUpdate, onImagesChange }: DesignCanvasProps) => {
   // Canvas
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -70,6 +71,7 @@ const DesignCanvas = ({ onCanvasUpdate }: DesignCanvasProps) => {
   const [selectedFont, setSelectedFont] = useState(DEFAULT_FONT);
   const [selectedColor, setSelectedColor] = useState(DEFAULT_COLOR);
   const [cornerRadius, setCornerRadius] = useState(0);
+  const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
 
   // Data
   const [categories, setCategories] = useState<Category[]>([]);
@@ -95,7 +97,6 @@ const DesignCanvas = ({ onCanvasUpdate }: DesignCanvasProps) => {
       canvas.dispose();
     };
   }, []);
-
   // === Fabric listeners ===
   useEffect(() => {
     if (!fabricCanvas) return;
@@ -117,7 +118,9 @@ const DesignCanvas = ({ onCanvasUpdate }: DesignCanvasProps) => {
     fabricCanvas.on("selection:created", updateActiveObject);
     fabricCanvas.on("selection:updated", updateActiveObject);
     fabricCanvas.on("selection:cleared", updateActiveObject);
+    
     updateTexture();
+    
     return () => fabricCanvas.off();
   }, [fabricCanvas, onCanvasUpdate]);
 
@@ -142,6 +145,8 @@ const DesignCanvas = ({ onCanvasUpdate }: DesignCanvasProps) => {
       fabricCanvas.add(img);
       fabricCanvas.setActiveObject(img);
       fabricCanvas.requestRenderAll();
+localStorage.setItem("canvas", uploadedFiles+'');
+
       setIsModalOpen(false);
     } catch {
       alert("This image could not be loaded. Try another one.");
@@ -152,6 +157,14 @@ const DesignCanvas = ({ onCanvasUpdate }: DesignCanvasProps) => {
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !fabricCanvas) return;
+    
+    // Track the uploaded file
+    setUploadedFiles(prev => {
+      const updated = [...prev, file];
+      onImagesChange(updated);
+      return updated;
+    });
+    
     const reader = new FileReader();
     reader.onload = (event) => {
       const dataUrl = event.target?.result as string;
@@ -159,6 +172,7 @@ const DesignCanvas = ({ onCanvasUpdate }: DesignCanvasProps) => {
     };
     reader.readAsDataURL(file);
   };
+
   const handleAddText = () => {
     if (!fabricCanvas) return;
     const text = new fabric.IText("Enter Your Text", {
@@ -172,6 +186,7 @@ const DesignCanvas = ({ onCanvasUpdate }: DesignCanvasProps) => {
     fabricCanvas.setActiveObject(text);
     fabricCanvas.requestRenderAll();
   };
+
   const handleDeleteSelected = () => {
     if (fabricCanvas && activeObject) {
       fabricCanvas.remove(activeObject);
@@ -191,6 +206,7 @@ const DesignCanvas = ({ onCanvasUpdate }: DesignCanvasProps) => {
       fabricCanvas?.requestRenderAll();
     }
   };
+
   const handleColorChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSelectedColor(e.target.value);
     if (activeObject?.type === "i-text") {
@@ -198,6 +214,7 @@ const DesignCanvas = ({ onCanvasUpdate }: DesignCanvasProps) => {
       fabricCanvas?.requestRenderAll();
     }
   };
+
   const handleCornerRadiusChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const r = parseInt(e.target.value, 10);
     setCornerRadius(r);

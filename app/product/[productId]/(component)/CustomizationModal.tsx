@@ -88,7 +88,7 @@ const Model = ({
 
         if (activeTexture) {
           material.map = activeTexture;
-          activeTexture.flipY = false;
+          activeTexture.flipY = true;
           activeTexture.needsUpdate = true;
           material.needsUpdate = true;
         } else {
@@ -161,7 +161,7 @@ const CustomizationModal = ({
   selectedVariant,
 }: CustomizationModalProps) => {
   const [designTextureUrl, setDesignTextureUrl] = useState<string | null>(null);
-  const [allImageSources, setAllImageSources] = useState<(File | string)[]>([]);
+  const [uploadedImages, setUploadedImages] = useState<File[]>([]);
   const [customInstructions, setCustomInstructions] = useState<string>("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -180,24 +180,16 @@ const CustomizationModal = ({
       formData.append("quantity", "1");
       formData.append("customizationDetails", JSON.stringify({ instructions: customInstructions }));
 
+      // Add canvas design as image
       if (designTextureUrl) {
         const f = dataURLtoFile(designTextureUrl, `design-${selectedVariant.sku}.png`);
         if (f) formData.append("customizationImages", f);
       }
 
-      const promises: Promise<File>[] = [];
-      for (const src of allImageSources) {
-        if (src instanceof File) {
-          formData.append("customizationImages", src);
-        } else if (typeof src === "string" && src.startsWith("http")) {
-          const p = fetch(src)
-            .then((r) => r.blob())
-            .then((b) => new File([b], src.substring(src.lastIndexOf("/") + 1), { type: b.type }));
-          promises.push(p);
-        }
-      }
-      const converted = await Promise.all(promises);
-      converted.forEach((f) => formData.append("customizationImages", f));
+      // Add all uploaded images
+      uploadedImages.forEach((file) => {
+        formData.append("customizationImages", file);
+      });
 
       const token = localStorage.getItem("token");
       await axios.post(`${process.env.NEXT_PUBLIC_API_URL}/cart/add-item`, formData, {
@@ -205,7 +197,7 @@ const CustomizationModal = ({
       });
 
       alert("Item added to cart successfully!");
-      setAllImageSources([]);
+      setUploadedImages([]);
       onClose();
     } catch (error) {
       console.error("Error adding to cart:", error);
@@ -317,7 +309,10 @@ const CustomizationModal = ({
                       <p className="text-xs font-semibold text-gray-900">Design Canvas</p>
                     </div>
                     <div className="p-4 h-full flex items-center justify-center">
-                      <DesignCanvas onCanvasUpdate={setDesignTextureUrl} />
+                      <DesignCanvas 
+                        onCanvasUpdate={setDesignTextureUrl}
+                        onImagesChange={setUploadedImages}
+                      />
                     </div>
                   </motion.section>
 
@@ -342,7 +337,7 @@ const CustomizationModal = ({
                       rows={3}
                       value={customInstructions}
                       onChange={(e) => setCustomInstructions(e.target.value)}
-                      placeholder="Controls like corner radius, text color and font, browse graphics library, add image, text..."
+                      placeholder="Add any special customization requests..."
                       className="flex-1 w-full p-2.5 rounded-xl bg-[#e8ecf0] text-gray-900 placeholder-gray-600 focus:outline-none transition resize-none text-sm"
                       style={{
                         boxShadow: 'inset 4px 4px 8px #c5cdd5, inset -4px -4px 8px #ffffff'
@@ -372,6 +367,11 @@ const CustomizationModal = ({
                           >
                             <span className="text-gray-900 text-2xl font-bold">₹{selectedVariant.price}</span>
                           </div>
+                          {uploadedImages.length > 0 && (
+                            <p className="text-xs text-gray-600 mt-2">
+                              {uploadedImages.length} image{uploadedImages.length > 1 ? 's' : ''} uploaded
+                            </p>
+                          )}
                         </div>
                       )}
                     </div>
