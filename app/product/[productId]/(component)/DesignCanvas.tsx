@@ -33,16 +33,15 @@ interface PredefinedImage {
 }
 interface DesignCanvasProps {
   onCanvasUpdate: (dataUrl: string) => void;
-  onImagesChange: (images: File[]) => void;
 }
 
 // APIs
 const CATEGORIES_API_URL =
-  "https://seller-side-backend-fastify-nest.onrender.com/user/predefined-assets/categories";
+  "http://localhost:3001/user/predefined-assets/categories";
 const SUBCATEGORIES_API_URL = (categoryId: string) =>
-  `https://seller-side-backend-fastify-nest.onrender.com/user/predefined-assets/categories/${categoryId}/subcategories`;
+  `http://localhost:3001/user/predefined-assets/categories/${categoryId}/subcategories`;
 const IMAGES_API_URL = (subCategoryId: string) =>
-  `https://seller-side-backend-fastify-nest.onrender.com/user/predefined-assets/subcategories/${subCategoryId}/images`;
+  `http://localhost:3001/user/predefined-assets/subcategories/${subCategoryId}/images`;
 
 const FONT_FAMILIES = [
   "Arial",
@@ -62,7 +61,7 @@ const FONT_FAMILIES = [
 const DEFAULT_FONT = "Arial";
 const DEFAULT_COLOR = "#000000";
 
-const DesignCanvas = ({ onCanvasUpdate, onImagesChange }: DesignCanvasProps) => {
+const DesignCanvas = ({ onCanvasUpdate }: DesignCanvasProps) => {
   // Canvas
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -71,7 +70,6 @@ const DesignCanvas = ({ onCanvasUpdate, onImagesChange }: DesignCanvasProps) => 
   const [selectedFont, setSelectedFont] = useState(DEFAULT_FONT);
   const [selectedColor, setSelectedColor] = useState(DEFAULT_COLOR);
   const [cornerRadius, setCornerRadius] = useState(0);
-  const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
 
   // Data
   const [categories, setCategories] = useState<Category[]>([]);
@@ -97,6 +95,7 @@ const DesignCanvas = ({ onCanvasUpdate, onImagesChange }: DesignCanvasProps) => 
       canvas.dispose();
     };
   }, []);
+
   // === Fabric listeners ===
   useEffect(() => {
     if (!fabricCanvas) return;
@@ -118,9 +117,7 @@ const DesignCanvas = ({ onCanvasUpdate, onImagesChange }: DesignCanvasProps) => 
     fabricCanvas.on("selection:created", updateActiveObject);
     fabricCanvas.on("selection:updated", updateActiveObject);
     fabricCanvas.on("selection:cleared", updateActiveObject);
-    
     updateTexture();
-    
     return () => fabricCanvas.off();
   }, [fabricCanvas, onCanvasUpdate]);
 
@@ -145,8 +142,6 @@ const DesignCanvas = ({ onCanvasUpdate, onImagesChange }: DesignCanvasProps) => 
       fabricCanvas.add(img);
       fabricCanvas.setActiveObject(img);
       fabricCanvas.requestRenderAll();
-localStorage.setItem("canvas", uploadedFiles+'');
-
       setIsModalOpen(false);
     } catch {
       alert("This image could not be loaded. Try another one.");
@@ -157,14 +152,6 @@ localStorage.setItem("canvas", uploadedFiles+'');
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !fabricCanvas) return;
-    
-    // Track the uploaded file
-    setUploadedFiles(prev => {
-      const updated = [...prev, file];
-      onImagesChange(updated);
-      return updated;
-    });
-    
     const reader = new FileReader();
     reader.onload = (event) => {
       const dataUrl = event.target?.result as string;
@@ -172,7 +159,6 @@ localStorage.setItem("canvas", uploadedFiles+'');
     };
     reader.readAsDataURL(file);
   };
-
   const handleAddText = () => {
     if (!fabricCanvas) return;
     const text = new fabric.IText("Enter Your Text", {
@@ -186,7 +172,6 @@ localStorage.setItem("canvas", uploadedFiles+'');
     fabricCanvas.setActiveObject(text);
     fabricCanvas.requestRenderAll();
   };
-
   const handleDeleteSelected = () => {
     if (fabricCanvas && activeObject) {
       fabricCanvas.remove(activeObject);
@@ -206,7 +191,6 @@ localStorage.setItem("canvas", uploadedFiles+'');
       fabricCanvas?.requestRenderAll();
     }
   };
-
   const handleColorChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSelectedColor(e.target.value);
     if (activeObject?.type === "i-text") {
@@ -214,7 +198,6 @@ localStorage.setItem("canvas", uploadedFiles+'');
       fabricCanvas?.requestRenderAll();
     }
   };
-
   const handleCornerRadiusChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const r = parseInt(e.target.value, 10);
     setCornerRadius(r);
@@ -296,7 +279,7 @@ localStorage.setItem("canvas", uploadedFiles+'');
       </div>
 
       {/* Action Buttons */}
-      <div className="grid grid-cols-3 gap-1.5 mb-2 flex-shrink-0">
+      <div className="grid grid-cols-2 gap-1.5 mb-2 flex-shrink-0">
         <input
           ref={fileInputRef}
           type="file"
@@ -318,12 +301,7 @@ localStorage.setItem("canvas", uploadedFiles+'');
           <ChatBubbleBottomCenterTextIcon className="w-3.5 h-3.5 text-gray-700" />
           <span className="text-gray-700 font-medium text-[10px]">Text</span>
         </button>
-        <button
-          onClick={() => setIsModalOpen(true)}
-          className="flex flex-col items-center justify-center gap-0.5 p-1.5 bg-white/40 backdrop-blur-xl border border-white/60 rounded-lg hover:bg-white/60 transition-all duration-200 shadow-sm text-xs"
-        >
-          <span className="text-gray-700 font-medium text-[10px]">Graphics</span>
-        </button>
+       
       </div>
 
       {/* Controls - Static, No Scroll */}

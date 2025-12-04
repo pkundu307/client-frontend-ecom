@@ -5,7 +5,7 @@ import { Providers } from "./store/Provider";
 import Navbar from "./components/Navbar";
 import { Toaster } from "react-hot-toast"; // 1. Import the Toaster component
 import Footer from "./components/Footer";
-
+import Script from "next/script";
 const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],
@@ -38,6 +38,7 @@ export default function RootLayout({
         </Providers>
         <Footer/>
       </body>
+          <Script src="https://checkout.razorpay.com/v1/checkout.js"/>
     </html>
   );
 }

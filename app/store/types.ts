@@ -44,6 +44,7 @@ export interface CartItem {
 // ----------------------------------------------
 export interface CartState {
   items: CartItem[];
+  selected: CartItem[];
   isLoading: boolean;
   error: string | null;
   isAuthenticated: boolean; // toggled on login/logout
