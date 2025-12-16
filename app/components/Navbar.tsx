@@ -13,7 +13,7 @@ import { usePathname } from "next/navigation";
 import MegaMenu from "./Categories";
 import { AppDispatch } from "../store/store";
 import Image from "next/image";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence, Variants } from "framer-motion";
 
 // --- Search Interfaces ---
 interface ProductSearchResult {
@@ -252,16 +252,27 @@ export default function Navbar() {
   }, [debouncedQuery]);
 
   const tapBounce = { scale: 0.96 };
-  const dropdownVariants = {
-    hidden: { opacity: 0, y: -6, scale: 0.98 },
-    show: {
-      opacity: 1,
-      y: 0,
-      scale: 1,
-      transition: { type: "spring", stiffness: 420, damping: 32, mass: 0.7 },
+const dropdownVariants: Variants = {
+  hidden: { opacity: 0, y: -6, scale: 0.98 },
+  show: {
+    opacity: 1,
+    y: 0,
+    scale: 1,
+    transition: {
+      type: "spring",
+      stiffness: 420,
+      damping: 32,
+      mass: 0.7,
     },
-    exit: { opacity: 0, y: -6, scale: 0.98, transition: { duration: 0.18 } },
-  };
+  },
+  exit: {
+    opacity: 0,
+    y: -6,
+    scale: 0.98,
+    transition: { duration: 0.18 },
+  },
+};
+
 
   return (
     <>

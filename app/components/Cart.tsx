@@ -12,24 +12,36 @@ import {
   setAuthStatus,
   setSelected,
 } from "../store/cartSlice";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence, Variants } from "framer-motion";
 import { TrashIcon, MinusIcon, PlusIcon, ShoppingBagIcon } from "@heroicons/react/24/outline";
 import Image from "next/image";
 import { CartItem } from "../store/types";
 import { useRouter } from "next/navigation";
 
 // Animation variants
-const cardVariants = {
-  initial: { opacity: 0, y: 12, scale: 0.99 },
+const cardVariants: Variants = {
+  initial: { opacity: 0, y: 16, scale: 0.98 },
   animate: {
     opacity: 1,
     y: 0,
     scale: 1,
-    transition: { type: "spring", stiffness: 300, damping: 25 },
+    transition: {
+      type: "spring",        // must be a valid AnimationGeneratorType
+      stiffness: 260,
+      damping: 24,
+    },
   },
-  exit: { opacity: 0, y: -10, scale: 0.98, transition: { duration: 0.2 } },
+  exit: {
+    opacity: 0,
+    y: -8,
+    scale: 0.98,
+    transition: {
+      type: "spring",
+      stiffness: 260,
+      damping: 24,
+    },
+  },
 };
-
 const RoyalCart = () => {
   const dispatch = useDispatch<AppDispatch>();
   const router = useRouter();

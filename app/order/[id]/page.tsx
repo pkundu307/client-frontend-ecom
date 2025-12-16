@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { motion } from "framer-motion";
+import { motion, Variants } from "framer-motion";
 import {
   ArrowLeftIcon,
   CalendarIcon,
@@ -45,15 +45,20 @@ type OrderDetail = {
   itemCount: number;
 };
 
-const cardVariants = {
+const cardVariants: Variants = {
   hidden: { opacity: 0, y: 16, scale: 0.98 },
   show: {
     opacity: 1,
     y: 0,
     scale: 1,
-    transition: { type: "spring", stiffness: 260, damping: 24 },
+    transition: {
+      type: "spring",   // valid AnimationGeneratorType
+      stiffness: 260,
+      damping: 24,
+    },
   },
 };
+
 
 const OrderDetailPage: React.FC = () => {
   const router = useRouter();

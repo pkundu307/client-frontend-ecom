@@ -2,7 +2,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence, Variants } from "framer-motion";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import {
@@ -17,15 +17,20 @@ import {
 } from "@heroicons/react/24/outline";
 import { useProfileData, Address, Order} from "./hooks/useProfileData";
 
-const cardVariants = {
+const cardVariants: Variants = {
   hidden: { opacity: 0, y: 16, scale: 0.98 },
   show: {
     opacity: 1,
     y: 0,
     scale: 1,
-    transition: { type: "spring", stiffness: 300, damping: 25 },
+    transition: {
+      type: "spring",   // valid AnimationGeneratorType
+      stiffness: 260,
+      damping: 24,
+    },
   },
 };
+
 
 const tap = { scale: 0.97 };
 
