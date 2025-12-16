@@ -1,7 +1,10 @@
+// app/profile/page.tsx
 "use client";
-import React, { useEffect, useState } from "react";
+
+import React, { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import Image from "next/image";
+import { useRouter } from "next/navigation";
 import {
   MapPinIcon,
   EnvelopeIcon,
@@ -12,30 +15,7 @@ import {
   ShoppingBagIcon,
   CalendarIcon,
 } from "@heroicons/react/24/outline";
-import toast from "react-hot-toast";
-import { baseUrl } from "../utilities/baseUrl";
-
-interface Address {
-  id: string;
-  street: string;
-  city: string;
-  state: string;
-  postalCode: string;
-  country: string;
-}
-interface User {
-  name: string;
-  email?: string;
-  picture?: string;
-}
-
-interface Order {
-  id: string;
-  totalAmount: number;
-  status: string;
-  paymentMethod: string;
-  createdAt: string;
-}
+import { useProfileData, Address, Order} from "./hooks/useProfileData";
 
 const cardVariants = {
   hidden: { opacity: 0, y: 16, scale: 0.98 },
@@ -46,21 +26,31 @@ const cardVariants = {
     transition: { type: "spring", stiffness: 300, damping: 25 },
   },
 };
+
 const tap = { scale: 0.97 };
 
-const ProfilePage = () => {
-  const [user, setUser] = useState<User | null>(null);
-  const [addresses, setAddresses] = useState<Address[]>([]);
-  const [orders, setOrders] = useState<Order[]>([]);
+const ProfilePage: React.FC = () => {
+  const router = useRouter();
+
+  const {
+    user,
+    addresses,
+    orders,
+    isLoading,
+    isAddressMutating,
+    addAddress,
+    updateAddress,
+    deleteAddress,
+  } = useProfileData();
+
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editingAddress, setEditingAddress] = useState<Address | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
   const [showAllAddresses, setShowAllAddresses] = useState(false);
   const [showAllOrders, setShowAllOrders] = useState(false);
+  const [expandedOrderId, setExpandedOrderId] = useState<string | null>(null);
 
-  // Form state
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<Omit<Address, "id">>({
     street: "",
     city: "",
     state: "",
@@ -68,132 +58,6 @@ const ProfilePage = () => {
     country: "",
   });
 
-  // User & Fetch logic
-  useEffect(() => {
-    const storedUser = localStorage.getItem("user");
-    if (storedUser) setUser(JSON.parse(storedUser));
-  }, []);
-
-  const fetchAddresses = async () => {
-    const token = localStorage.getItem("token");
-    if (!token) return;
-    try {
-      const response = await fetch(`${baseUrl}/user/addresses`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (response.ok) {
-        const data = await response.json();
-        setAddresses(data);
-      }
-    } catch (error) {
-      setAddresses([]);
-    }
-  };
-
-  const fetchOrders = async () => {
-    const token = localStorage.getItem("token");
-    if (!token) return setOrders([]);
-    try {
-      const response = await fetch(`${baseUrl}/orders`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (response.ok) {
-        const data = await response.json();
-        setOrders(Array.isArray(data) ? data : []);
-      } else {
-        setOrders([]);
-      }
-    } catch (error) {
-      setOrders([]);
-    }
-  };
-
-  useEffect(() => {
-    fetchAddresses();
-    fetchOrders();
-  }, []);
-
-  // Add address logic
-  const handleAddAddress = async () => {
-    const token = localStorage.getItem("token");
-    if (!token) {
-      toast.error("Please login to add address");
-      return;
-    }
-    if (
-      !formData.street ||
-      !formData.city ||
-      !formData.state ||
-      !formData.postalCode ||
-      !formData.country
-    ) {
-      toast.error("Please fill all fields");
-      return;
-    }
-    setIsLoading(true);
-    try {
-      const response = await fetch(`${baseUrl}/user/addresses`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify(formData),
-      });
-      if (response.ok) {
-        toast.success("Address added successfully!");
-        setIsAddModalOpen(false);
-        setFormData({ street: "", city: "", state: "", postalCode: "", country: "" });
-        fetchAddresses();
-      } else {
-        const error = await response.json();
-        toast.error(error.message || "Failed to add address");
-      }
-    } catch (error) {
-      toast.error("Error adding address");
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  // Update address logic
-  const handleUpdateAddress = async () => {
-    const token = localStorage.getItem("token");
-    if (!token || !editingAddress) return;
-    if (
-      !formData.street ||
-      !formData.city ||
-      !formData.state ||
-      !formData.postalCode ||
-      !formData.country
-    ) {
-      toast.error("Please fill all fields");
-      return;
-    }
-    setIsLoading(true);
-    try {
-      const response = await fetch(
-        `${baseUrl}/user/addresses/${editingAddress.id}`, {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-          body: JSON.stringify(formData),
-        }
-      );
-      if (response.ok) {
-        toast.success("Address updated successfully!");
-        setIsEditModalOpen(false);
-        setEditingAddress(null);
-        setFormData({ street: "", city: "", state: "", postalCode: "", country: "" });
-        fetchAddresses();
-      } else {
-        const error = await response.json();
-        toast.error(error.message || "Failed to update address");
-      }
-    } catch (error) {
-      toast.error("Error updating address");
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  // Open edit modal
   const openEditModal = (address: Address) => {
     setEditingAddress(address);
     setFormData({
@@ -205,37 +69,38 @@ const ProfilePage = () => {
     });
     setIsEditModalOpen(true);
   };
-  // Delete address logic
-  const handleDeleteAddress = async (id: string) => {
-    if (!window.confirm("Are you sure you want to delete this address?")) return;
-    const token = localStorage.getItem("token");
-    if (!token) return;
-    setIsLoading(true);
-    try {
-      const response = await fetch(`${baseUrl}/user/addresses/${id}`, {
-        method: "DELETE",
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (response.ok) {
-        toast.success("Address deleted!");
-        fetchAddresses();
-      } else {
-        const error = await response.json();
-        toast.error(error.message || "Failed to delete address");
-      }
-    } catch (error) {
-      toast.error("Error deleting address");
-    } finally {
-      setIsLoading(false);
-    }
-  };
-  // Modal form reset
+
   const closeModals = () => {
     setIsAddModalOpen(false);
     setIsEditModalOpen(false);
     setEditingAddress(null);
-    setFormData({ street: "", city: "", state: "", postalCode: "", country: "" });
+    setFormData({
+      street: "",
+      city: "",
+      state: "",
+      postalCode: "",
+      country: "",
+    });
   };
+
+  const handleSaveAddress = async () => {
+    if (isEditModalOpen && editingAddress) {
+      await updateAddress(editingAddress.id, formData);
+    } else {
+      await addAddress(formData);
+    }
+    if (!isAddressMutating) {
+      closeModals();
+    }
+  };
+
+  if (isLoading && !user) {
+    return (
+      <div className="min-h-screen bg-[#e8ecf0] flex items-center justify-center">
+        <p className="text-gray-600">Loading profile...</p>
+      </div>
+    );
+  }
 
   if (!user) {
     return (
@@ -244,10 +109,15 @@ const ProfilePage = () => {
       </div>
     );
   }
+
   const visibleAddresses =
     !showAllAddresses && addresses.length > 2 ? addresses.slice(0, 2) : addresses;
-  const visibleOrders =
-    !showAllOrders && orders.length > 2 ? orders.slice(0, 2) : orders;
+
+  const visibleOrders: Order[] =
+    !showAllOrders && orders.length > 3 ? orders.slice(0, 3) : orders;
+
+  const userPhoto =
+    typeof window !== "undefined" ? localStorage.getItem("photo") : null;
 
   return (
     <div className="min-h-screen bg-[#e8ecf0] px-4 py-8">
@@ -258,11 +128,24 @@ const ProfilePage = () => {
           initial="hidden"
           animate="show"
           className="bg-[#e8ecf0] rounded-3xl p-6 sm:p-8"
-          style={{ boxShadow: "12px 12px 24px #c5cdd5, -12px -12px 24px #ffffff" }}
+          style={{
+            boxShadow: "12px 12px 24px #c5cdd5, -12px -12px 24px #ffffff",
+          }}
         >
           <div className="flex flex-col sm:flex-row items-center gap-6">
-            <div className="rounded-full p-1" style={{ boxShadow: "8px 8px 16px #c5cdd5, -8px -8px 16px #ffffff" }}>
-              <Image src={localStorage.getItem("photo") || "/avatar.jpg"} alt={user.name} width={104} height={104} className="rounded-full object-cover"/>
+            <div
+              className="rounded-full p-1"
+              style={{
+                boxShadow: "8px 8px 16px #c5cdd5, -8px -8px 16px #ffffff",
+              }}
+            >
+              <Image
+                src={userPhoto || "/avatar.jpg"}
+                alt={user.name}
+                width={104}
+                height={104}
+                className="rounded-full object-cover"
+              />
             </div>
             <div className="text-center sm:text-left">
               <h1 className="text-3xl font-bold text-gray-900">{user.name}</h1>
@@ -275,6 +158,7 @@ const ProfilePage = () => {
             </div>
           </div>
         </motion.div>
+
         {/* Addresses */}
         <section className="mt-10">
           <div className="flex items-center justify-between mb-6">
@@ -285,13 +169,21 @@ const ProfilePage = () => {
               whileTap={tap}
               onClick={() => setIsAddModalOpen(true)}
               className="bg-[#e8ecf0] p-3 rounded-xl flex items-center gap-2 text-gray-900 font-semibold"
-              style={{ boxShadow: "6px 6px 12px #c5cdd5, -6px -6px 12px #ffffff" }}
+              style={{
+                boxShadow: "6px 6px 12px #c5cdd5, -6px -6px 12px #ffffff",
+              }}
             >
               <PlusIcon className="w-5 h-5" /> Add
             </motion.button>
           </div>
+
           {addresses.length === 0 ? (
-            <div className="bg-[#e8ecf0] rounded-2xl p-8 text-center" style={{ boxShadow: '8px 8px 16px #c5cdd5, -8px -8px 16px #ffffff' }}>
+            <div
+              className="bg-[#e8ecf0] rounded-2xl p-8 text-center"
+              style={{
+                boxShadow: "8px 8px 16px #c5cdd5, -8px -8px 16px #ffffff",
+              }}
+            >
               <p className="text-gray-600">No addresses saved yet</p>
             </div>
           ) : (
@@ -306,51 +198,61 @@ const ProfilePage = () => {
                       animate="show"
                       exit={{ opacity: 0, y: -8 }}
                       className="bg-[#e8ecf0] rounded-2xl p-5 relative group"
-                      style={{ boxShadow: "8px 8px 16px #c5cdd5, -8px -8px 16px #ffffff" }}
+                      style={{
+                        boxShadow: "8px 8px 16px #c5cdd5, -8px -8px 16px #ffffff",
+                      }}
                     >
                       <div className="absolute top-3 right-3 flex gap-2 z-10">
                         <motion.button
                           whileTap={tap}
                           onClick={() => openEditModal(address)}
                           className="bg-white w-10 h-10 rounded-xl flex items-center justify-center shadow-sm transition hover:bg-gray-100"
-                          style={{ boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}
+                          style={{ boxShadow: "0 2px 8px rgba(0,0,0,0.04)" }}
                           title="Edit address"
                         >
                           <PencilIcon className="w-5 h-5 text-gray-700" />
                         </motion.button>
                         <motion.button
                           whileTap={tap}
-                          onClick={() => handleDeleteAddress(address.id)}
+                          onClick={() => deleteAddress(address.id)}
                           className="bg-white w-10 h-10 rounded-xl flex items-center justify-center ring-2 ring-red-100 transition hover:bg-red-50"
-                          style={{ boxShadow: '0 4px 16px #ff3333' }}
+                          style={{ boxShadow: "0 4px 16px #ff3333" }}
                           title="Delete address"
-                          disabled={isLoading}
+                          disabled={isAddressMutating}
                         >
                           <TrashIcon className="w-5 h-5 text-red-500" />
                         </motion.button>
                       </div>
-                      <p className="font-semibold text-gray-900">{address.street}</p>
+                      <p className="font-semibold text-gray-900">
+                        {address.street}
+                      </p>
                       <p className="text-sm text-gray-600 mt-1">
                         {address.city}, {address.state} {address.postalCode}
                       </p>
-                      <p className="text-sm text-gray-600">{address.country}</p>
+                      <p className="text-sm text-gray-600">
+                        {address.country}
+                      </p>
                     </motion.div>
                   ))}
                 </AnimatePresence>
               </div>
+
               {addresses.length > 2 && (
                 <div className="text-center mt-6">
                   <button
                     onClick={() => setShowAllAddresses((val) => !val)}
                     className="text-blue-600 font-semibold text-sm hover:underline"
                   >
-                    {showAllAddresses ? "Show Less" : `View All (${addresses.length})`}
+                    {showAllAddresses
+                      ? "Show Less"
+                      : `View All (${addresses.length})`}
                   </button>
                 </div>
               )}
             </>
           )}
         </section>
+
         {/* Orders */}
         <section className="mt-10">
           <div className="flex items-center justify-between mb-6">
@@ -359,64 +261,158 @@ const ProfilePage = () => {
               Order History
             </h2>
           </div>
+
           {orders.length === 0 ? (
-            <div className="bg-[#e8ecf0] rounded-2xl p-8 text-center" style={{ boxShadow: '8px 8px 16px #c5cdd5, -8px -8px 16px #ffffff' }}>
+            <div
+              className="bg-[#e8ecf0] rounded-2xl p-8 text-center"
+              style={{
+                boxShadow: "8px 8px 16px #c5cdd5, -8px -8px 16px #ffffff",
+              }}
+            >
               <p className="text-gray-600">No orders found</p>
             </div>
           ) : (
             <>
               <div className="space-y-4">
                 <AnimatePresence initial={false}>
-                  {visibleOrders.map((order) => (
-                    <motion.div
-                      key={order.id}
-                      variants={cardVariants}
-                      initial="hidden"
-                      animate="show"
-                      exit={{ opacity: 0, y: -8 }}
-                      className="bg-[#e8ecf0] rounded-2xl p-5 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4"
-                      style={{ boxShadow: "8px 8px 16px #c5cdd5, -8px -8px 16px #ffffff" }}
-                    >
-                      <div>
-                        <p className="font-semibold text-gray-900">Order #{order.id}</p>
-                        <p className="text-sm text-gray-600 flex items-center gap-1 mt-1">
-                          <CalendarIcon className="w-4 h-4" />
-                          {new Date(order.createdAt).toLocaleDateString()}
-                        </p>
-                        <p className="text-sm text-gray-600">Payment: {order.paymentMethod}</p>
-                      </div>
-                      <div className="text-left sm:text-right">
-                        <p className="font-bold text-2xl text-gray-900 tabular-nums">
-                          ${order.totalAmount.toFixed(2)}
-                        </p>
-                        <motion.span
-                          whileTap={tap}
-                          className={`inline-block mt-2 px-3 py-1 rounded-full text-xs font-bold ${
-                            order.status === "delivered"
-                              ? "bg-white/40 backdrop-blur-xl text-green-700 border-2 border-green-500"
-                              : "bg-white/40 backdrop-blur-xl text-yellow-700 border-2 border-yellow-500"
-                          }`}
+                  {visibleOrders.map((order) => {
+                    const isExpanded = expandedOrderId === order.id;
+                    return (
+                      <motion.div
+                        key={order.id}
+                        variants={cardVariants}
+                        initial="hidden"
+                        animate="show"
+                        exit={{ opacity: 0, y: -8 }}
+                        className="bg-[#e8ecf0] rounded-2xl p-5 flex flex-col gap-4 cursor-pointer"
+                        style={{
+                          boxShadow:
+                            "8px 8px 16px #c5cdd5, -8px -8px 16px #ffffff",
+                        }}
+                        onClick={() => router.push(`/order/${order.id}`)}
+                      >
+                        {/* Compact info */}
+                        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                          <div>
+                            <p className="font-semibold text-gray-900">
+                              Order #{order.orderNumber || order.id}
+                            </p>
+                            <p className="text-sm text-gray-600 flex items-center gap-1 mt-1">
+                              <CalendarIcon className="w-4 h-4" />
+                              {new Date(order.createdAt).toLocaleDateString()}
+                            </p>
+                            <p className="text-sm text-gray-600">
+                              Payment: {order.paymentMethod}
+                            </p>
+                            <p className="text-sm text-gray-600">
+                              Items: {order.itemCount}
+                            </p>
+                          </div>
+                          <div className="text-left sm:text-right">
+                            <p className="font-bold text-2xl text-gray-900 tabular-nums">
+                              ₹{Number(order.totalAmount).toFixed(2)}
+                            </p>
+                            <motion.span
+                              whileTap={tap}
+                              className={`inline-block mt-2 px-3 py-1 rounded-full text-xs font-bold ${
+                                order.status === "delivered"
+                                  ? "bg-white/40 backdrop-blur-xl text-green-700 border-2 border-green-500"
+                                  : "bg-white/40 backdrop-blur-xl text-yellow-700 border-2 border-yellow-500"
+                              }`}
+                            >
+                              {order.status}
+                            </motion.span>
+                          </div>
+                        </div>
+
+                        {/* Expand/collapse button */}
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation(); // prevent navigation
+                            setExpandedOrderId((prev) =>
+                              prev === order.id ? null : order.id
+                            );
+                          }}
+                          className="text-blue-600 text-sm font-semibold self-start hover:underline"
                         >
-                          {order.status}
-                        </motion.span>
-                      </div>
-                    </motion.div>
-                  ))}
+                          {isExpanded ? "Hide details" : "Show details"}
+                        </button>
+
+                        {/* Expanded details */}
+                        <AnimatePresence>
+                          {isExpanded && (
+                            <motion.div
+                              initial={{ opacity: 0, height: 0 }}
+                              animate={{ opacity: 1, height: "auto" }}
+                              exit={{ opacity: 0, height: 0 }}
+                              className="overflow-hidden"
+                            >
+                              <div className="mt-2 space-y-3 text-sm text-gray-700">
+                                {order.selectedAddress && (
+                                  <div>
+                                    <p className="font-semibold text-gray-900">
+                                      Delivery Address
+                                    </p>
+                                    <p>{order.selectedAddress.street}</p>
+                                    <p>
+                                      {order.selectedAddress.city},{" "}
+                                      {order.selectedAddress.state}{" "}
+                                      {order.selectedAddress.postalCode}
+                                    </p>
+                                    <p>{order.selectedAddress.country}</p>
+                                  </div>
+                                )}
+
+                                {order.items && order.items.length > 0 && (
+                                  <div className="flex items-center gap-3">
+                                    <div className="w-12 h-12 rounded-lg bg-gray-200 overflow-hidden flex items-center justify-center">
+                                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                                      <img
+                                        src={
+                                          order.items[0].productImage ||
+                                          "/placeholder.png"
+                                        }
+                                        alt={order.items[0].productName}
+                                        className="w-full h-full object-cover"
+                                      />
+                                    </div>
+                                    <div className="flex-1">
+                                      <p className="font-semibold text-gray-900">
+                                        {order.items[0].productName}
+                                      </p>
+                                      <p className="text-xs text-gray-600">
+                                        Qty: {order.items[0].quantity}
+                                      </p>
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
+                      </motion.div>
+                    );
+                  })}
                 </AnimatePresence>
               </div>
-              {orders.length > 2 && (
+
+              {orders.length > 3 && (
                 <div className="text-center mt-6">
                   <button
-                    onClick={() => setShowAllOrders(val => !val)}
+                    onClick={() => setShowAllOrders((val) => !val)}
                     className="text-blue-600 font-semibold text-sm hover:underline"
                   >
-                    {showAllOrders ? "Show Less" : `View All (${orders.length})`}
+                    {showAllOrders
+                      ? "Show Less"
+                      : `View All (${orders.length})`}
                   </button>
                 </div>
               )}
             </>
           )}
         </section>
+
         {/* Add/Edit Address Modal */}
         <AnimatePresence>
           {(isAddModalOpen || isEditModalOpen) && (
@@ -431,9 +427,11 @@ const ProfilePage = () => {
                 initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0, scale: 0.95 }}
-                onClick={e => e.stopPropagation()}
+                onClick={(e) => e.stopPropagation()}
                 className="bg-[#e8ecf0] rounded-3xl p-6 w-full max-w-md relative"
-                style={{ boxShadow: "20px 20px 40px #c5cdd5, -20px -20px 40px #ffffff" }}
+                style={{
+                  boxShadow: "20px 20px 40px #c5cdd5, -20px -20px 40px #ffffff",
+                }}
               >
                 <button
                   onClick={closeModals}
@@ -449,50 +447,85 @@ const ProfilePage = () => {
                     type="text"
                     placeholder="Street Address"
                     value={formData.street}
-                    onChange={e => setFormData({ ...formData, street: e.target.value })}
+                    onChange={(e) =>
+                      setFormData({ ...formData, street: e.target.value })
+                    }
                     className="w-full px-4 py-3 rounded-xl bg-[#e8ecf0] text-gray-900 placeholder-gray-600"
-                    style={{ boxShadow: 'inset 4px 4px 8px #c5cdd5, inset -4px -4px 8px #ffffff' }}
+                    style={{
+                      boxShadow:
+                        "inset 4px 4px 8px #c5cdd5, inset -4px -4px 8px #ffffff",
+                    }}
                   />
                   <input
                     type="text"
                     placeholder="City"
                     value={formData.city}
-                    onChange={e => setFormData({ ...formData, city: e.target.value })}
+                    onChange={(e) =>
+                      setFormData({ ...formData, city: e.target.value })
+                    }
                     className="w-full px-4 py-3 rounded-xl bg-[#e8ecf0] text-gray-900 placeholder-gray-600"
-                    style={{ boxShadow: 'inset 4px 4px 8px #c5cdd5, inset -4px -4px 8px #ffffff' }}
+                    style={{
+                      boxShadow:
+                        "inset 4px 4px 8px #c5cdd5, inset -4px -4px 8px #ffffff",
+                    }}
                   />
                   <input
                     type="text"
                     placeholder="State"
                     value={formData.state}
-                    onChange={e => setFormData({ ...formData, state: e.target.value })}
+                    onChange={(e) =>
+                      setFormData({ ...formData, state: e.target.value })
+                    }
                     className="w-full px-4 py-3 rounded-xl bg-[#e8ecf0] text-gray-900 placeholder-gray-600"
-                    style={{ boxShadow: 'inset 4px 4px 8px #c5cdd5, inset -4px -4px 8px #ffffff' }}
+                    style={{
+                      boxShadow:
+                        "inset 4px 4px 8px #c5cdd5, inset -4px -4px 8px #ffffff",
+                    }}
                   />
                   <input
                     type="text"
                     placeholder="Postal Code"
                     value={formData.postalCode}
-                    onChange={e => setFormData({ ...formData, postalCode: e.target.value })}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        postalCode: e.target.value,
+                      })
+                    }
                     className="w-full px-4 py-3 rounded-xl bg-[#e8ecf0] text-gray-900 placeholder-gray-600"
-                    style={{ boxShadow: 'inset 4px 4px 8px #c5cdd5, inset -4px -4px 8px #ffffff' }}
+                    style={{
+                      boxShadow:
+                        "inset 4px 4px 8px #c5cdd5, inset -4px -4px 8px #ffffff",
+                    }}
                   />
                   <input
                     type="text"
                     placeholder="Country"
                     value={formData.country}
-                    onChange={e => setFormData({ ...formData, country: e.target.value })}
+                    onChange={(e) =>
+                      setFormData({ ...formData, country: e.target.value })
+                    }
                     className="w-full px-4 py-3 rounded-xl bg-[#e8ecf0] text-gray-900 placeholder-gray-600"
-                    style={{ boxShadow: 'inset 4px 4px 8px #c5cdd5, inset -4px -4px 8px #ffffff' }}
+                    style={{
+                      boxShadow:
+                        "inset 4px 4px 8px #c5cdd5, inset -4px -4px 8px #ffffff",
+                    }}
                   />
                   <motion.button
                     whileTap={tap}
-                    onClick={isEditModalOpen ? handleUpdateAddress : handleAddAddress}
-                    disabled={isLoading}
+                    onClick={handleSaveAddress}
+                    disabled={isAddressMutating}
                     className="w-full bg-gray-900 text-white py-4 rounded-2xl font-bold disabled:opacity-50"
-                    style={{ boxShadow: '8px 8px 16px #c5cdd5, -6px -6px 12px #ffffff' }}
+                    style={{
+                      boxShadow:
+                        "8px 8px 16px #c5cdd5, -6px -6px 12px #ffffff",
+                    }}
                   >
-                    {isLoading ? "Saving..." : isEditModalOpen ? "Update Address" : "Add Address"}
+                    {isAddressMutating
+                      ? "Saving..."
+                      : isEditModalOpen
+                      ? "Update Address"
+                      : "Add Address"}
                   </motion.button>
                 </div>
               </motion.div>

@@ -32,7 +32,8 @@ export interface CartItem {
 
   // ✅ Backend fields
   customizationImages: string[]; // now matches your Prisma model
-  customizationDetails: Record<string, ''> | null;
+    customizationDetails: Record<string, string> | null; 
+
 
   // ✅ Related data (from include in Prisma)
   product?: CartProductInfo | null;
@@ -62,5 +63,5 @@ export interface AddToCartPayload {
   customizationImages?: File[];
 
   // ✅ JSON object (will be stringified before upload)
-  customizationDetails?: Record<string, ''>;
+  customizationDetails?: Record<string, string>; 
 }

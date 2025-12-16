@@ -97,7 +97,13 @@ const Model = ({ url, designTextureUrl, defaultImageUrl }: { url: string; design
   return <primitive object={scene} />;
 };
 
-const ModelViewer = ({ modelUrl, designTextureUrl, defaultImageUrl }: any) => {
+interface ModelViewerProps {
+  modelUrl: string;
+  designTextureUrl: string | null;
+  defaultImageUrl: string | null;
+}
+
+const ModelViewer = ({ modelUrl, designTextureUrl, defaultImageUrl }: ModelViewerProps) => {
   return (
     <>
       <Canvas camera={{ position: [0, 0, 2.5], fov: 50 }} className="w-full h-full">

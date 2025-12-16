@@ -1,13 +1,6 @@
-// src/store/cartSlice.ts
 import { createSlice, createAsyncThunk, PayloadAction } from "@reduxjs/toolkit";
 import axios, { AxiosError } from "axios";
 import { CartState, CartItem, AddToCartPayload } from "./types";
-
-/**
- * NOTE:
- * - This file assumes you have `./types` exporting CartState, CartItem, AddToCartPayload.
- * - Adjust API_BASE_URL to match your env / runtime config if needed.
- */
 
 // -----------------------------
 // API CONFIG
@@ -21,7 +14,7 @@ const API_BASE_URL =
 const getAuthHeaders = () => {
   const token =
     typeof window !== "undefined" ? localStorage.getItem("token") : null;
-  if (!token) return {}; // safe: return empty object when unauthenticated
+  if (!token) return {}; 
   return {
     headers: {
       Authorization: `Bearer ${token}`,
@@ -43,7 +36,6 @@ const handleAxiosError = (error: unknown, defaultMessage: string): string => {
       axiosError.response?.data?.message || axiosError.message || defaultMessage
     );
   }
-  // Non-axios error
   try {
     return (error as Error).message || defaultMessage;
   } catch {
@@ -52,7 +44,7 @@ const handleAxiosError = (error: unknown, defaultMessage: string): string => {
 };
 
 // -----------------------------
-// LocalStorage helpers (guest cart)
+// LocalStorage helpers
 // -----------------------------
 const GUEST_CART_KEY = "guest_cart";
 
@@ -75,7 +67,6 @@ const saveCartToStorage = (cart: CartItem[]) => {
   }
 };
 
-// Helper to compare customization (simple deterministic compare)
 const sameCustomization = (
   a?: Record<string, unknown> | null,
   b?: Record<string, unknown> | null
@@ -88,10 +79,52 @@ const sameCustomization = (
 };
 
 // -----------------------------
-// Async thunks (server-side)
+// 🟢 DEFENSIVE MERGE FUNCTION (Keeps Images!)
+// -----------------------------
+const mergeServerItem = (items: CartItem[], newItem: CartItem) => {
+  const idx = items.findIndex((i) => i.id === newItem.id);
+  if (idx !== -1) {
+    const existingItem = items[idx];
+    const mergedItem = { ...existingItem };
+
+    // 1. Update basic fields
+    mergedItem.quantity = newItem.quantity;
+    
+    // 2. Update Customization
+    if (newItem.customizationDetails) {
+        mergedItem.customizationDetails = newItem.customizationDetails;
+    }
+    if (newItem.customizationImages && newItem.customizationImages.length > 0) {
+        mergedItem.customizationImages = newItem.customizationImages;
+    }
+
+    // 3. DEFENSIVE UPDATE for Relations
+    // Only overwrite 'variant' if the new one has images or price data
+    if (
+      newItem.variant && 
+      (newItem.variant.images?.length > 0 || newItem.variant.price)
+    ) {
+      mergedItem.variant = newItem.variant;
+    }
+
+    // Only overwrite 'product' if the new one has a title or images
+    if (
+      newItem.product && 
+      (newItem.product.title || newItem.product.images?.length > 0)
+    ) {
+      mergedItem.product = newItem.product;
+    }
+
+    items[idx] = mergedItem;
+  } else {
+    items.push(newItem);
+  }
+};
+
+// -----------------------------
+// Async thunks
 // -----------------------------
 
-// 1) Fetch cart items
 export const fetchCartItems = createAsyncThunk<
   CartItem[],
   void,
@@ -108,14 +141,12 @@ export const fetchCartItems = createAsyncThunk<
   }
 });
 
-// 2) Add item to server (handles multipart uploads)
 export const addItemToServer = createAsyncThunk<
   CartItem,
   AddToCartPayload,
   { rejectValue: string }
 >("cart/addItemToServer", async (payload, { rejectWithValue }) => {
   try {
-    // Ensure logged in
     const token =
       typeof window !== "undefined" ? localStorage.getItem("token") : null;
     if (!token) return rejectWithValue("Please log in first.");
@@ -140,7 +171,6 @@ export const addItemToServer = createAsyncThunk<
 
     if (Array.isArray(customizationImages)) {
       customizationImages.forEach((file) => {
-        // `file` should be an instance of File in browser
         formData.append("customizationImages", file as File);
       });
     }
@@ -151,7 +181,6 @@ export const addItemToServer = createAsyncThunk<
       {
         headers: {
           Authorization: `Bearer ${token}`,
-          // DO NOT set Content-Type here — axios sets the correct multipart boundary.
         },
       }
     );
@@ -164,14 +193,12 @@ export const addItemToServer = createAsyncThunk<
   }
 });
 
-// 3) Update item on server (payload `data` may be JSON; if you need to update images, change to multipart)
 export const updateItemOnServer = createAsyncThunk<
   CartItem,
   { id: string; data: Partial<AddToCartPayload> },
   { rejectValue: string }
 >("cart/updateItemOnServer", async ({ id, data }, { rejectWithValue }) => {
   try {
-    // Simple JSON patch/update
     const res = await axios.patch<CartItem>(
       `${API_BASE_URL}/cart/${id}`,
       data,
@@ -185,7 +212,6 @@ export const updateItemOnServer = createAsyncThunk<
   }
 });
 
-// 4) Delete item from server
 export const deleteItemFromServer = createAsyncThunk<
   string,
   string,
@@ -202,7 +228,7 @@ export const deleteItemFromServer = createAsyncThunk<
 });
 
 // -----------------------------
-// Slice initial state & helpers
+// Slice initial state
 // -----------------------------
 const initialState: CartState = {
   items: loadCartFromStorage(),
@@ -212,16 +238,6 @@ const initialState: CartState = {
   isAuthenticated: false,
 };
 
-// Utility to merge a server-returned item into state (replace or push)
-const mergeServerItem = (items: CartItem[], newItem: CartItem) => {
-  const idx = items.findIndex((i) => i.id === newItem.id);
-  if (idx !== -1) {
-    items[idx] = newItem;
-  } else {
-    items.push(newItem);
-  }
-};
-
 // -----------------------------
 // Slice
 // -----------------------------
@@ -229,10 +245,8 @@ export const cartSlice = createSlice({
   name: "cart",
   initialState,
   reducers: {
-    // Toggle authentication status (used to switch guest <> server mode)
     setAuthStatus: (state, action: PayloadAction<boolean>) => {
       state.isAuthenticated = action.payload;
-      // If switching to guest mode (false) keep guest storage in sync
       if (!action.payload) saveCartToStorage(state.items);
     },
     setSelected: (state, action: PayloadAction<CartItem[]>) => {
@@ -242,7 +256,6 @@ export const cartSlice = createSlice({
       state.selected = [];
     },
 
-    // Local-only actions for guest mode
     addItemLocal: (state, action: PayloadAction<CartItem>) => {
       const newItem = action.payload;
       const existing = state.items.find(
@@ -253,7 +266,6 @@ export const cartSlice = createSlice({
             item.customizationDetails,
             newItem.customizationDetails
           ) &&
-          // compare customizationImages arrays by JSON
           JSON.stringify(item.customizationImages || []) ===
             JSON.stringify(newItem.customizationImages || [])
       );
@@ -355,7 +367,6 @@ export const cartSlice = createSlice({
         (state, action: PayloadAction<string>) => {
           state.isLoading = false;
           state.items = state.items.filter((i) => i.id !== action.payload);
-          // sync guest storage just in case
           saveCartToStorage(state.items);
         }
       )
@@ -367,7 +378,7 @@ export const cartSlice = createSlice({
 });
 
 // -----------------------------
-// Exports
+// Action Exports
 // -----------------------------
 export const {
   addItemLocal,
@@ -375,20 +386,16 @@ export const {
   removeItemLocal,
   clearLocalCart,
   setAuthStatus,
+  setSelected,
+  clearSelected,
 } = cartSlice.actions;
 
 export default cartSlice.reducer;
 
 // -----------------------------
-// Selectors (example)
+// 🟢 RESTORED SELECTORS
 // -----------------------------
 export const selectCartItems = (state: { cart: CartState }) => state.cart.items;
-export const selectCartLoading = (state: { cart: CartState }) =>
-  state.cart.isLoading;
+export const selectCartLoading = (state: { cart: CartState }) => state.cart.isLoading;
 export const selectCartError = (state: { cart: CartState }) => state.cart.error;
-export const selectUniqueItemCount = (state: { cart: CartState }) =>
-  state.cart.items.length;
-export const {
-  setSelected,
-  clearSelected,
-} = cartSlice.actions;
+export const selectUniqueItemCount = (state: { cart: CartState }) => state.cart.items.length;

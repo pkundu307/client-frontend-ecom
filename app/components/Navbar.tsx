@@ -1,7 +1,7 @@
 "use client";
 import { GoogleLogin, GoogleOAuthProvider } from "@react-oauth/google";
 import { useState, useEffect } from "react";
-import { Search, ShoppingCart, User, Loader2, X } from "lucide-react";
+import { Search, ShoppingCart, User, Loader2, X, Bell } from "lucide-react";
 import { baseUrl } from "../utilities/baseUrl";
 import { useDispatch, useSelector } from "react-redux";
 import { RootState } from "../store/store";
@@ -332,79 +332,103 @@ export default function Navbar() {
               </div>
             </div>
             )}
-            {/* CART + PROFILE */}
-            <div className="flex items-center space-x-4">
-              <Link href="/cart" aria-label="Cart">
-                <motion.button
-                  whileTap={tapBounce}
-                  className="relative text-royal-gold p-3 rounded-xl bg-[#e8ecf0]"
-                  style={{ boxShadow: '6px 6px 12px #c5cdd5, -6px -6px 12px #ffffff' }}
-                >
-                  <ShoppingCart className="w-6 h-6" />
-                  {cartCount > 0 && (
-                    <motion.span
-                      initial={{ scale: 0.6, opacity: 0 }}
-                      animate={{ scale: 1, opacity: 1 }}
-                      transition={{ type: "spring", stiffness: 500, damping: 18 }}
-                      className="absolute -top-2 -right-2 bg-royal-gold text-white text-xs px-2 py-0.5 rounded-full font-bold"
-                      style={{ boxShadow: '2px 2px 4px #c5cdd5' }}
-                    >
-                      {cartCount}
-                    </motion.span>
-                  )}
-                </motion.button>
-              </Link>
-              <div className="relative">
-                <motion.button
-                  whileTap={tapBounce}
-                  onClick={() => setProfileDropdownOpen(!profileDropdownOpen)}
-                  className="text-royal-gold p-3 rounded-xl bg-[#e8ecf0]"
-                  style={{ boxShadow: '6px 6px 12px #c5cdd5, -6px -6px 12px #ffffff' }}
-                  aria-haspopup="menu"
-                  aria-expanded={profileDropdownOpen}
-                >
-                  <User className="w-6 h-6" />
-                </motion.button>
-                <AnimatePresence>
-                  {profileDropdownOpen && (
-                    <motion.div
-                      key="profile-dd"
-                      variants={dropdownVariants}
-                      initial="hidden"
-                      animate="show"
-                      exit="exit"
-                      className="absolute right-0 mt-3 w-56 bg-[#e8ecf0] rounded-2xl z-50 overflow-hidden"
-                      style={{ boxShadow: '12px 12px 24px #c5cdd5, -12px -12px 24px #ffffff' }}
-                    >
-                      {user.name ? (
-                        <>
-                          <div className="px-4 py-3 border-b border-gray-300/30 text-gray-900 font-semibold">
-                            Welcome, {user.name}
-                          </div>
-                          <motion.a whileTap={tapBounce} href="/profile" className="block px-4 py-3 hover:bg-gray-300/20 text-gray-800 transition-colors">Profile</motion.a>
-                          <motion.a whileTap={tapBounce} href="/orders" className="block px-4 py-3 hover:bg-gray-300/20 text-gray-800 transition-colors">My Orders</motion.a>
-                          <motion.button
-                            whileTap={tapBounce}
-                            onClick={handleLogout}
-                            className="block w-full text-left px-4 py-3 hover:bg-gray-300/20 text-gray-800 transition-colors"
-                          >
-                            Logout
-                          </motion.button>
-                        </>
-                      ) : (
-                        <motion.button
-                          whileTap={tapBounce}
-                          onClick={() => setIsModalOpen(true)}
-                          className="block w-full text-left px-4 py-3 text-gray-800 hover:bg-gray-300/20 transition-colors"
-                        >
-                          Login
-                        </motion.button>
-                      )}
-                    </motion.div>
-                  )}
-                </AnimatePresence>
+            {/* CART + PROFILE + NOTIFICATIONS */}
+<div className="flex items-center space-x-4">
+  {/* Cart */}
+  <Link href="/cart" aria-label="Cart">
+    <motion.button
+      whileTap={tapBounce}
+      className="relative text-royal-gold p-3 rounded-xl bg-[#e8ecf0]"
+      style={{ boxShadow: '6px 6px 12px #c5cdd5, -6px -6px 12px #ffffff' }}
+    >
+      <ShoppingCart className="w-6 h-6" />
+      {cartCount > 0 && (
+        <motion.span
+          initial={{ scale: 0.6, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          transition={{ type: "spring", stiffness: 500, damping: 18 }}
+          className="absolute -top-2 -right-2 bg-royal-gold text-white text-xs px-2 py-0.5 rounded-full font-bold"
+          style={{ boxShadow: '2px 2px 4px #c5cdd5' }}
+        >
+          {cartCount}
+        </motion.span>
+      )}
+    </motion.button>
+  </Link>
+
+  {/* Dummy Notification */}
+  <motion.button
+    whileTap={tapBounce}
+    onClick={() => alert("Dummy notification clicked!")}
+    className="relative text-royal-gold p-3 rounded-xl bg-[#e8ecf0]"
+    style={{ boxShadow: '6px 6px 12px #c5cdd5, -6px -6px 12px #ffffff' }}
+    aria-label="Notifications"
+  >
+    <Bell className="w-6 h-6" />
+    {/* Dummy badge */}
+    <motion.span
+      initial={{ scale: 0.6, opacity: 0 }}
+      animate={{ scale: 1, opacity: 1 }}
+      transition={{ type: "spring", stiffness: 500, damping: 18 }}
+      className="absolute -top-2 -right-2 bg-red-500 text-white text-xs px-2 py-0.5 rounded-full font-bold"
+      style={{ boxShadow: '2px 2px 4px #c5cdd5' }}
+    >
+      3
+    </motion.span>
+  </motion.button>
+
+  {/* Profile Dropdown */}
+  <div className="relative">
+    <motion.button
+      whileTap={tapBounce}
+      onClick={() => setProfileDropdownOpen(!profileDropdownOpen)}
+      className="text-royal-gold p-3 rounded-xl bg-[#e8ecf0]"
+      style={{ boxShadow: '6px 6px 12px #c5cdd5, -6px -6px 12px #ffffff' }}
+      aria-haspopup="menu"
+      aria-expanded={profileDropdownOpen}
+    >
+      <User className="w-6 h-6" />
+    </motion.button>
+    <AnimatePresence>
+      {profileDropdownOpen && (
+        <motion.div
+          key="profile-dd"
+          variants={dropdownVariants}
+          initial="hidden"
+          animate="show"
+          exit="exit"
+          className="absolute right-0 mt-3 w-56 bg-[#e8ecf0] rounded-2xl z-50 overflow-hidden"
+          style={{ boxShadow: '12px 12px 24px #c5cdd5, -12px -12px 24px #ffffff' }}
+        >
+          {user.name ? (
+            <>
+              <div className="px-4 py-3 border-b border-gray-300/30 text-gray-900 font-semibold">
+                Welcome, {user.name}
               </div>
-            </div>
+              <motion.a whileTap={tapBounce} href="/profile" className="block px-4 py-3 hover:bg-gray-300/20 text-gray-800 transition-colors">Profile</motion.a>
+              <motion.a whileTap={tapBounce} href="/orders" className="block px-4 py-3 hover:bg-gray-300/20 text-gray-800 transition-colors">My Orders</motion.a>
+              <motion.button
+                whileTap={tapBounce}
+                onClick={handleLogout}
+                className="block w-full text-left px-4 py-3 hover:bg-gray-300/20 text-gray-800 transition-colors"
+              >
+                Logout
+              </motion.button>
+            </>
+          ) : (
+            <motion.button
+              whileTap={tapBounce}
+              onClick={() => setIsModalOpen(true)}
+              className="block w-full text-left px-4 py-3 text-gray-800 hover:bg-gray-300/20 transition-colors"
+            >
+              Login
+            </motion.button>
+          )}
+        </motion.div>
+      )}
+    </AnimatePresence>
+  </div>
+</div>
           </div>
         </nav>
         {/* AUTH MODAL, MOBILE, MEGAMEU, ETC remain as in your original code: unchanged */}
