@@ -1,4 +1,5 @@
 "use client";
+
 import { useState, useEffect, useCallback } from "react";
 import { motion } from "framer-motion";
 import { use } from "react";
@@ -13,23 +14,7 @@ import {
 } from "@heroicons/react/24/outline";
 import { HeartIcon as HeartSolid, StarIcon as StarSolid } from "@heroicons/react/24/solid";
 import Image from "next/image";
-
-// --- Conceptual CSS Variables ---
-// Ensure these (or similar) are defined in your global stylesheet (e.g., globals.css)
-// :root {
-//   --royal-gold: #D4AF37; /* A rich gold */
-//   --royal-green: #2B543D; /* A deep, elegant green */
-//   --royal-green-light: #5C8D6B; /* A lighter green for subtle accents/borders */
-//   --foreground: #FFFFFF; /* White for text on dark backgrounds */
-//   --background: #1A3628; /* A very dark green for the overall background, complementing royal-green */
-//   --text-primary: var(--foreground);
-//   --text-secondary: rgba(255, 255, 255, 0.7); /* Lighter white for secondary text */
-//   --card-bg-opacity: rgba(43, 84, 61, 0.8); /* royal-green with opacity for backdrop effect */
-//   --card-border-color: var(--royal-green-light);
-//   --button-bg-light: rgba(255, 255, 255, 0.1); /* Light transparent button background */
-//   --button-text-light: var(--foreground);
-// }
-// ---------------------------------
+import { useRouter } from "next/navigation";
 
 // Types
 interface Product {
@@ -53,7 +38,6 @@ interface ProductResponse {
   lastPage: number;
 }
 
-// API function to fetch products by category
 const fetchProductsByCategory = async (
   categoryId: string,
   page = 1,
@@ -73,20 +57,78 @@ const fetchProductsByCategory = async (
   }
 };
 
-// Customizable Badge Component
-const CustomizableBadge = ({ className = "" }: { className?: string }) => {
+const cardVariants = {
+  hidden: { opacity: 0, y: 16 },
+  show: {
+    opacity: 1,
+    y: 0,
+    transition: { duration: 0.25, ease: "easeOut" },
+  },
+};
+
+// Neumorphic wrapper for cards
+const NeuCard = ({
+  children,
+  className = "",
+}: {
+  children: React.ReactNode;
+  className?: string;
+}) => {
   return (
-    <div 
-      className={`inline-flex items-center gap-1 bg-gradient-to-r from-purple-500 to-pink-500 text-white px-2 py-1 rounded-full text-xs font-semibold shadow-md ${className}`}
-      title="This product can be customized"
+    <div
+      className={`bg-[#e8ecf0] rounded-2xl ${className}`}
+      style={{
+        boxShadow: "inset 4px 4px 8px #c5cdd5, inset -4px -4px 8px #ffffff",
+      }}
     >
-      <SparklesIcon className="w-3 h-3" />
-      <span>Customizable</span>
+      {children}
     </div>
   );
 };
 
-// Product Card Component for Grid View
+const PrimaryButton = ({
+  children,
+  className = "",
+  ...props
+}: React.ButtonHTMLAttributes<HTMLButtonElement>) => (
+  <button
+    className={`w-full bg-gray-900 text-white py-2.5 rounded-2xl font-semibold text-sm md:text-base flex items-center justify-center gap-2 ${className}`}
+    style={{
+      boxShadow: "8px 8px 16px #c5cdd5, -6px -6px 12px #ffffff",
+    }}
+    {...props}
+  >
+    {children}
+  </button>
+);
+
+const SecondaryButton = ({
+  children,
+  className = "",
+  ...props
+}: React.ButtonHTMLAttributes<HTMLButtonElement>) => (
+  <button
+    className={`w-full bg-[#e8ecf0] text-gray-900 py-2.5 rounded-2xl font-semibold text-sm md:text-base flex items-center justify-center gap-2 ${className}`}
+    style={{
+      boxShadow: "6px 6px 12px #c5cdd5, -6px -6px 12px #ffffff",
+    }}
+    {...props}
+  >
+    {children}
+  </button>
+);
+
+// Customizable Badge – light style
+const CustomizableBadge = ({ className = "" }: { className?: string }) => {
+  return (
+    <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-[10px] font-semibold bg-blue-50 text-blue-700 ${className}`}>
+      <SparklesIcon className="w-3 h-3" />
+      Customizable
+    </span>
+  );
+};
+
+// Grid Card
 const ProductCardGrid = ({
   product,
   isWishlisted,
@@ -106,139 +148,142 @@ const ProductCardGrid = ({
       : 0;
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      whileHover={{ y: -5 }}
-      className="bg-[var(--royal-green)] rounded-xl shadow-lg overflow-hidden border border-[var(--card-border-color)] hover:shadow-xl transition-all duration-300"
-    >
-      {/* Image Container */}
-      <div className="relative group">
-        <Image
-          src={product.images[0] || "/placeholder-product.jpg"}
-          alt={product.title}
-          width={300}
-          height={300}
-          className="w-full h-64 object-cover"
-          onError={(e) => { (e.target as HTMLImageElement).src = "/placeholder-product.jpg"; }}
-        />
+    <motion.div variants={cardVariants} initial="hidden" animate="show">
+      <div
+        className="bg-[#e8ecf0] rounded-3xl p-3 flex flex-col h-full"
+        style={{
+          boxShadow: "16px 16px 32px #c5cdd5, -16px -16px 32px #ffffff",
+        }}
+      >
+        <div className="relative mb-3 rounded-2xl overflow-hidden bg-gray-200">
+          <div className="relative w-full h-48">
+            <Image
+              src={product.images[0] || "/placeholder-product.jpg"}
+              alt={product.title}
+              fill
+              className="object-cover"
+              onError={(e) => {
+                (e.target as HTMLImageElement).src = "/placeholder-product.jpg";
+              }}
+            />
+          </div>
 
-        {/* Top Badges Row */}
-        <div className="absolute top-2 left-2 flex flex-col gap-2 z-10">
-          {/* Discount Badge */}
-          {discountPercentage > 0 && (
-            <div className="bg-red-500 text-white px-2 py-1 rounded-lg text-sm font-semibold">
-              -{discountPercentage}%
-            </div>
-          )}
-          
-          {/* Customizable Badge - not needed here if also in info block */}
-          {product.isCustomizable && (
-            <CustomizableBadge />
-          )}
-        </div>
-
-        {/* Action Buttons */}
-        <div className="absolute top-2 right-2 flex flex-col gap-2 opacity-0 group-hover:opacity-100 transition-opacity z-10">
-          <button
-            onClick={() => onToggleWishlist(product.id)}
-            className="p-2 bg-[var(--button-bg-light)] rounded-full shadow-md text-[var(--button-text-light)] hover:bg-[var(--royal-green-light)]"
-            aria-label={isWishlisted ? "Remove from wishlist" : "Add to wishlist"}
-          >
-            {isWishlisted ? (
-              <HeartSolid className="w-5 h-5 text-red-500" />
-            ) : (
-              <HeartIcon className="w-5 h-5" />
+          {/* Top badges */}
+          <div className="absolute top-2 left-2 flex flex-col gap-1">
+            {discountPercentage > 0 && (
+              <span className="px-2 py-1 rounded-full bg-red-100 text-red-700 text-xs font-semibold">
+                -{discountPercentage}%
+              </span>
             )}
-          </button>
-          <button 
-            className="p-2 bg-[var(--button-bg-light)] rounded-full shadow-md text-[var(--button-text-light)] hover:bg-[var(--royal-green-light)]"
-            aria-label="View product details"
-          >
-            <EyeIcon className="w-5 h-5" />
-          </button>
-          {/* Customization Button - only show for customizable products */}
-          {product.isCustomizable && (
-            <button 
-              className="p-2 bg-[var(--button-bg-light)] rounded-full shadow-md text-purple-400 hover:bg-[var(--royal-green-light)]"
-              title="Customize this product"
-              aria-label="Customize product"
-            >
-              <WrenchScrewdriverIcon className="w-5 h-5" />
-            </button>
-          )}
-        </div>
+            {product.isCustomizable && <CustomizableBadge />}
+          </div>
 
-        {/* Quick Add to Cart */}
-        <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity">
-          <div className="flex gap-2">
-            <button className="flex-1 bg-[var(--royal-gold)] text-[var(--royal-green)] py-2 rounded-lg font-semibold hover:bg-[var(--royal-gold)]/90 transition-colors flex items-center justify-center gap-2">
-              <ShoppingCartIcon className="w-4 h-4" />
-              Add to Cart
+          {/* Actions */}
+          <div className="absolute top-2 right-2 flex flex-col gap-2">
+            <button
+              onClick={() => onToggleWishlist(product.id)}
+              className="rounded-full p-2 bg-[#e8ecf0]/80 text-gray-700"
+              style={{
+                boxShadow: "4px 4px 8px #c5cdd5, -4px -4px 8px #ffffff",
+              }}
+              aria-label={
+                isWishlisted ? "Remove from wishlist" : "Add to wishlist"
+              }
+            >
+              {isWishlisted ? (
+                <HeartSolid className="w-5 h-5 text-red-500" />
+              ) : (
+                <HeartIcon className="w-5 h-5" />
+              )}
+            </button>
+            <button
+              className="rounded-full p-2 bg-[#e8ecf0]/80 text-gray-700"
+              style={{
+                boxShadow: "4px 4px 8px #c5cdd5, -4px -4px 8px #ffffff",
+              }}
+              aria-label="View product details"
+            >
+              <EyeIcon className="w-5 h-5" />
             </button>
             {product.isCustomizable && (
-              <button className="bg-purple-600 text-white px-3 py-2 rounded-lg font-semibold hover:bg-purple-700 transition-colors" aria-label="Customize product">
-                <WrenchScrewdriverIcon className="w-4 h-4" />
+              <button
+                className="rounded-full p-2 bg-[#e8ecf0]/80 text-blue-600"
+                style={{
+                  boxShadow: "4px 4px 8px #c5cdd5, -4px -4px 8px #ffffff",
+                }}
+                aria-label="Customize product"
+              >
+                <WrenchScrewdriverIcon className="w-5 h-5" />
               </button>
             )}
           </div>
         </div>
-      </div>
 
-      {/* Product Info */}
-      <div className="p-4">
-        <div className="flex items-start justify-between mb-2">
-          <h3 className="font-semibold text-lg line-clamp-2 flex-1 text-[var(--text-primary)]">
-            {product.title}
-          </h3>
-          {product.isCustomizable && (
-            <SparklesIcon className="w-5 h-5 text-purple-400 ml-2 flex-shrink-0" title="Customizable" />
-          )}
-        </div>
-        
-        <p className="text-[var(--text-secondary)] text-sm mb-2 line-clamp-2">
-          {product.description}
-        </p>
-        <p className="text-sm text-[var(--royal-gold)] font-medium mb-2">
-          {product.businessName}
-        </p>
+        {/* Info */}
+        <div className="flex-1 flex flex-col">
+          <div className="flex items-start justify-between gap-2 mb-1">
+            <h3 className="font-semibold text-sm md:text-base text-gray-900 line-clamp-2">
+              {product.title}
+            </h3>
+            {product.isCustomizable && (
+              <SparklesIcon
+                className="w-4 h-4 text-blue-600 flex-shrink-0 mt-0.5"
+                title="Customizable"
+              />
+            )}
+          </div>
+          <p className="text-xs text-gray-600 line-clamp-2 mb-1">
+            {product.description}
+          </p>
+          <p className="text-xs font-medium text-gray-800 mb-2">
+            {product.businessName}
+          </p>
 
-        {/* Rating */}
-        <div className="flex items-center gap-1 mb-3">
-          {[1, 2, 3, 4, 5].map((star) => (
-            <StarSolid // Changed to StarSolid for filled stars
-              key={star}
-              className="w-4 h-4 text-yellow-400"
-            />
-          ))}
-          <span className="text-sm text-[var(--text-secondary)] ml-1">
-            ({product.numberOfReviews})
-          </span>
-        </div>
-
-        {/* Price */}
-        <div className="flex items-center gap-2">
-          <span className="text-xl font-bold text-[var(--royal-gold)]">
-            ${product.price}
-          </span>
-          {product.mrp !== "0" && parseFloat(product.mrp) > parseFloat(product.price) && (
-            <span className="text-sm text-[var(--text-secondary)] line-through">
-              ${product.mrp}
+          {/* Rating */}
+          <div className="flex items-center gap-1 mb-2">
+            {[1, 2, 3, 4, 5].map((star) => (
+              <StarSolid key={star} className="w-3.5 h-3.5 text-yellow-400" />
+            ))}
+            <span className="text-xs text-gray-500 ml-1">
+              ({product.numberOfReviews})
             </span>
-          )}
-        </div>
+          </div>
 
-        <div className="flex items-center justify-between mt-1">
-          <p className="text-xs text-[var(--text-secondary)]">
+          {/* Price */}
+          <div className="flex items-center gap-2 mb-1">
+            <span className="text-lg font-bold text-gray-900 tabular-nums">
+              ${product.price}
+            </span>
+            {product.mrp !== "0" &&
+              parseFloat(product.mrp) > parseFloat(product.price) && (
+                <span className="text-xs text-gray-500 line-through">
+                  ${product.mrp}
+                </span>
+              )}
+          </div>
+          <p className="text-[11px] text-gray-500 mb-3">
             {product.numberOfVariants} variants available
           </p>
+
+          {/* CTA */}
+          <div className="flex gap-2 mt-auto">
+            <SecondaryButton className="py-2 text-xs">
+              <ShoppingCartIcon className="w-4 h-4" />
+              Add to Cart
+            </SecondaryButton>
+            {product.isCustomizable && (
+              <PrimaryButton className="py-2 text-xs">
+                <WrenchScrewdriverIcon className="w-4 h-4" />
+              </PrimaryButton>
+            )}
+          </div>
         </div>
       </div>
     </motion.div>
   );
 };
 
-// Product Card Component for List View
+// List Card
 const ProductCardList = ({
   product,
   isWishlisted,
@@ -258,67 +303,69 @@ const ProductCardList = ({
       : 0;
 
   return (
-    <motion.div
-      initial={{ opacity: 0, x: -20 }}
-      animate={{ opacity: 1, x: 0 }}
-      className="bg-[var(--royal-green)] rounded-xl shadow-lg overflow-hidden border border-[var(--card-border-color)] hover:shadow-xl transition-all duration-300"
-    >
-      <div className="flex flex-col sm:flex-row">
+    <motion.div variants={cardVariants} initial="hidden" animate="show">
+      <div
+        className="bg-[#e8ecf0] rounded-3xl p-4 md:p-5 flex flex-col sm:flex-row gap-4"
+          style={{
+            boxShadow: "16px 16px 32px #c5cdd5, -16px -16px 32px #ffffff",
+          }}
+      >
         {/* Image */}
-        <div className="relative sm:w-64 h-48 sm:h-auto flex-shrink-0">
+        <div className="relative w-full sm:w-40 md:w-48 h-32 sm:h-32 md:h-40 rounded-2xl overflow-hidden bg-gray-200 flex-shrink-0">
           <Image
             src={product.images[0] || "/placeholder-product.jpg"}
             alt={product.title}
-            width={300}
-            height={200}
-            className="w-full h-full object-cover"
-            onError={(e) => { (e.target as HTMLImageElement).src = "/placeholder-product.jpg"; }}
+            fill
+            className="object-cover"
+            onError={(e) => {
+              (e.target as HTMLImageElement).src = "/placeholder-product.jpg";
+            }}
           />
-
-          {/* Top Badges Column */}
-          <div className="absolute top-2 left-2 flex flex-col gap-2 z-10">
-            {/* Discount Badge */}
-            {discountPercentage > 0 && (
-              <div className="bg-red-500 text-white px-2 py-1 rounded-lg text-sm font-semibold">
-                -{discountPercentage}%
-              </div>
-            )}
-            {/* Customizable Badge - not needed here if also in info block */}
-          </div>
+          {discountPercentage > 0 && (
+            <span className="absolute top-2 left-2 px-2 py-1 rounded-full bg-red-100 text-red-700 text-xs font-semibold">
+              -{discountPercentage}%
+            </span>
+          )}
         </div>
 
         {/* Content */}
-        <div className="flex-1 p-6">
-          <div className="flex justify-between items-start mb-4">
+        <div className="flex-1 flex flex-col">
+          <div className="flex justify-between gap-3 mb-2">
             <div className="flex-1">
-              <div className="flex items-center gap-2 mb-2">
-                <h3 className="font-semibold text-xl text-[var(--text-primary)]">{product.title}</h3>
+              <div className="flex items-center gap-2 mb-1">
+                <h3 className="font-semibold text-sm md:text-base text-gray-900">
+                  {product.title}
+                </h3>
                 {product.isCustomizable && (
-                  <SparklesIcon className="w-5 h-5 text-purple-400" title="Customizable" />
+                  <SparklesIcon
+                    className="w-4 h-4 text-blue-600"
+                    title="Customizable"
+                  />
                 )}
               </div>
-              
-              <p className="text-[var(--text-secondary)] mb-2 line-clamp-3">
+              <p className="text-xs md:text-sm text-gray-600 line-clamp-3 mb-1.5">
                 {product.description}
               </p>
-              <p className="text-sm text-[var(--royal-gold)] font-medium mb-2">
+              <p className="text-xs text-gray-800 font-medium mb-1">
                 {product.businessName}
               </p>
-              
-              {/* Customizable Badge - only if not in top badge section */}
               {product.isCustomizable && (
-                <div className="mb-2 hidden sm:block"> {/* Hide on small screens if already displayed */}
-                  <CustomizableBadge />
-                </div>
+                <CustomizableBadge className="mt-1 hidden sm:inline-flex" />
               )}
             </div>
 
-            {/* Action Buttons */}
-            <div className="flex gap-2 ml-4 flex-shrink-0">
+            {/* Actions */}
+            <div className="flex flex-col gap-2 flex-shrink-0">
               <button
                 onClick={() => onToggleWishlist(product.id)}
-                className="p-2 bg-[var(--button-bg-light)] rounded-full text-[var(--button-text-light)] hover:bg-[var(--royal-green-light)]"
-                aria-label={isWishlisted ? "Remove from wishlist" : "Add to wishlist"}
+                className="rounded-full p-2 bg-[#e8ecf0] text-gray-700"
+                style={{
+                  boxShadow:
+                    "4px 4px 8px #c5cdd5, -4px -4px 8px #ffffff",
+                }}
+                aria-label={
+                  isWishlisted ? "Remove from wishlist" : "Add to wishlist"
+                }
               >
                 {isWishlisted ? (
                   <HeartSolid className="w-5 h-5 text-red-500" />
@@ -326,16 +373,23 @@ const ProductCardList = ({
                   <HeartIcon className="w-5 h-5" />
                 )}
               </button>
-              <button 
-                className="p-2 bg-[var(--button-bg-light)] rounded-full text-[var(--button-text-light)] hover:bg-[var(--royal-green-light)]"
+              <button
+                className="rounded-full p-2 bg-[#e8ecf0] text-gray-700"
+                style={{
+                  boxShadow:
+                    "4px 4px 8px #c5cdd5, -4px -4px 8px #ffffff",
+                }}
                 aria-label="View product details"
               >
                 <EyeIcon className="w-5 h-5" />
               </button>
               {product.isCustomizable && (
-                <button 
-                  className="p-2 bg-[var(--button-bg-light)] rounded-full text-purple-400 hover:bg-[var(--royal-green-light)]"
-                  title="Customize this product"
+                <button
+                  className="rounded-full p-2 bg-[#e8ecf0] text-blue-600"
+                  style={{
+                    boxShadow:
+                      "4px 4px 8px #c5cdd5, -4px -4px 8px #ffffff",
+                  }}
                   aria-label="Customize product"
                 >
                   <WrenchScrewdriverIcon className="w-5 h-5" />
@@ -345,51 +399,46 @@ const ProductCardList = ({
           </div>
 
           {/* Rating */}
-          <div className="flex items-center gap-1 mb-4">
+          <div className="flex items-center gap-1 mb-3">
             {[1, 2, 3, 4, 5].map((star) => (
-              <StarSolid // Changed to StarSolid for filled stars
-                key={star}
-                className="w-4 h-4 text-yellow-400"
-              />
+              <StarSolid key={star} className="w-3.5 h-3.5 text-yellow-400" />
             ))}
-            <span className="text-sm text-[var(--text-secondary)] ml-1">
+            <span className="text-xs text-gray-500 ml-1">
               ({product.numberOfReviews})
             </span>
           </div>
 
-          {/* Price and Actions */}
-          <div className="flex items-center justify-between">
-            <div className="flex flex-col">
-              <div className="flex items-center gap-2">
-                <span className="text-2xl font-bold text-[var(--royal-gold)]">
+          {/* Price + meta + CTAs */}
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+            <div>
+              <div className="flex items-baseline gap-2">
+                <span className="text-lg md:text-xl font-bold text-gray-900 tabular-nums">
                   ${product.price}
                 </span>
-                {product.mrp !== "0" && parseFloat(product.mrp) > parseFloat(product.price) && (
-                  <span className="text-sm text-[var(--text-secondary)] line-through">
-                    ${product.mrp}
-                  </span>
-                )}
+                {product.mrp !== "0" &&
+                  parseFloat(product.mrp) > parseFloat(product.price) && (
+                    <span className="text-xs md:text-sm text-gray-500 line-through">
+                      ${product.mrp}
+                    </span>
+                  )}
               </div>
-              <div className="flex items-center gap-4 mt-1">
-                <p className="text-xs text-[var(--text-secondary)]">
+              <div className="flex items-center gap-3 mt-1">
+                <p className="text-[11px] md:text-xs text-gray-500">
                   {product.numberOfVariants} variants available
                 </p>
-                {/* <span className="text-xs text-purple-400 font-medium"> // Badge moved to top */}
-                  {/* Customizable */}
-                {/* </span> */}
               </div>
             </div>
 
-            <div className="flex gap-2 flex-shrink-0">
-              <button className="bg-[var(--royal-gold)] text-[var(--royal-green)] px-6 py-2 rounded-lg font-semibold hover:bg-[var(--royal-gold)]/90 transition-colors flex items-center gap-2">
+            <div className="flex gap-2 w-full md:w-auto">
+              <SecondaryButton className="md:px-5 py-2 text-xs md:text-sm">
                 <ShoppingCartIcon className="w-4 h-4" />
                 Add to Cart
-              </button>
+              </SecondaryButton>
               {product.isCustomizable && (
-                <button className="bg-purple-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-purple-700 transition-colors flex items-center gap-1" aria-label="Customize product">
+                <PrimaryButton className="md:px-4 py-2 text-xs md:text-sm">
                   <WrenchScrewdriverIcon className="w-4 h-4" />
-                  Customize
-                </button>
+                  <span className="hidden md:inline">Customize</span>
+                </PrimaryButton>
               )}
             </div>
           </div>
@@ -399,17 +448,16 @@ const ProductCardList = ({
   );
 };
 
-// Main Product Listing Component
+// Main listing
 const ProductListing = ({ params }: { params: Promise<{ categoryid: string }> }) => {
   const { categoryid } = use(params);
-  
+  const router = useRouter();
+
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
-  const [wishlistedItems, setWishlistedItems] = useState<Set<string>>(
-    new Set()
-  );
+  const [wishlistedItems, setWishlistedItems] = useState<Set<string>>(new Set());
   const [pagination, setPagination] = useState({
     page: 1,
     total: 0,
@@ -419,196 +467,244 @@ const ProductListing = ({ params }: { params: Promise<{ categoryid: string }> })
 
   const categoryId = categoryid;
 
-  const loadProducts = useCallback(async (page = 1) => {
-    try {
-      setLoading(true);
-      const response = await fetchProductsByCategory(categoryId, page);
-      setProducts(response.products);
-      setPagination({
-        page: response.page,
-        total: response.total,
-        lastPage: response.lastPage,
-        limit: response.limit,
-      });
-      setError(null);
-    } catch (err) {
-      setError(`Failed to load products. Please try again.${(err as Error).message}`);
-    } finally {
-      setLoading(false);
-    }
-  }, [categoryId]);
+  const loadProducts = useCallback(
+    async (page = 1) => {
+      try {
+        setLoading(true);
+        const response = await fetchProductsByCategory(categoryId, page);
+        setProducts(response.products);
+        setPagination({
+          page: response.page,
+          total: response.total,
+          lastPage: response.lastPage,
+          limit: response.limit,
+        });
+        setError(null);
+      } catch (err) {
+        setError(
+          `Failed to load products. Please try again. ${(err as Error).message}`
+        );
+      } finally {
+        setLoading(false);
+      }
+    },
+    [categoryId]
+  );
 
   useEffect(() => {
     loadProducts();
-  }, [loadProducts]); // Re-fetch when categoryId changes
+  }, [loadProducts]);
 
   const handleToggleWishlist = (productId: string) => {
     setWishlistedItems((prev) => {
-      const newSet = new Set(prev);
-      if (newSet.has(productId)) {
-        newSet.delete(productId);
+      const next = new Set(prev);
+      if (next.has(productId)) {
+        next.delete(productId);
       } else {
-        newSet.add(productId);
+        next.add(productId);
       }
-      return newSet;
+      return next;
     });
   };
 
   const handlePageChange = (newPage: number) => {
+    if (newPage < 1 || newPage > pagination.lastPage) return;
     loadProducts(newPage);
   };
 
-  // Count customizable products
-  const customizableCount = products.filter(p => p.isCustomizable).length;
+  const customizableCount = products.filter((p) => p.isCustomizable).length;
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[var(--background)] flex items-center justify-center text-[var(--foreground)]">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-[var(--royal-gold)]"></div>
+      <div className="min-h-screen bg-[#e8ecf0] flex items-center justify-center">
+        <div
+          className="w-20 h-20 rounded-full bg-[#e8ecf0]"
+          style={{
+            boxShadow:
+              "inset 6px 6px 12px #c5cdd5, inset -6px -6px 12px #ffffff",
+          }}
+        >
+          <div className="w-full h-full flex items-center justify-center">
+            <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin" />
+          </div>
+        </div>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="min-h-screen bg-[var(--background)] flex items-center justify-center text-[var(--foreground)]">
-        <div className="text-center">
-          <p className="text-red-400 text-lg mb-4">{error}</p>
-          <button
-            onClick={() => loadProducts()}
-            className="bg-[var(--royal-gold)] text-[var(--royal-green)] px-6 py-2 rounded-lg hover:bg-[var(--royal-gold)]/90"
-          >
+      <div className="min-h-screen bg-[#e8ecf0] flex items-center justify-center px-4">
+        <div
+          className="bg-[#e8ecf0] rounded-3xl p-6 max-w-md w-full text-center"
+          style={{
+            boxShadow: "16px 16px 32px #c5cdd5, -16px -16px 32px #ffffff",
+          }}
+        >
+          <p className="text-red-500 font-semibold mb-3 text-sm md:text-base">
+            {error}
+          </p>
+          <PrimaryButton onClick={() => loadProducts()}>
             Try Again
-          </button>
+          </PrimaryButton>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-[var(--background)] text-[var(--foreground)]">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Header */}
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 gap-4">
-          <div>
-            <h1 className="text-3xl font-bold text-[var(--royal-gold)]">Products</h1>
-            <div className="flex items-center gap-4 mt-1">
-              <p className="text-[var(--text-secondary)]">
-                {pagination.total} products found
-              </p>
-              {customizableCount > 0 && (
-                <div className="flex items-center gap-1 text-purple-400">
-                  <SparklesIcon className="w-4 h-4" />
-                  <span className="text-sm font-medium">
-                    {customizableCount} customizable
-                  </span>
-                </div>
-              )}
+    <div className="min-h-screen bg-[#e8ecf0] px-4 py-8">
+      <div className="max-w-6xl mx-auto">
+        {/* Back + header */}
+        <div className="flex items-center justify-between gap-3 mb-6">
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => router.back()}
+              className="rounded-full p-2 bg-[#e8ecf0] text-gray-700"
+              style={{
+                boxShadow: "6px 6px 12px #c5cdd5, -6px -6px 12px #ffffff",
+              }}
+              aria-label="Go back"
+            >
+              {/* Simple chevron left using heroicons if you have it; otherwise text */}
+              <span className="block w-4 h-4 border-l-2 border-b-2 border-gray-700 rotate-45 translate-x-[2px]" />
+            </button>
+            <div>
+              <h1 className="text-2xl md:text-3xl font-bold text-gray-900">
+                Products
+              </h1>
+              <div className="flex items-center gap-3 mt-1">
+                <p className="text-xs md:text-sm text-gray-600">
+                  {pagination.total} products found
+                </p>
+                {customizableCount > 0 && (
+                  <div className="flex items-center gap-1 text-blue-600 text-xs md:text-sm">
+                    <SparklesIcon className="w-4 h-4" />
+                    <span className="font-medium">
+                      {customizableCount} customizable
+                    </span>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
 
-          {/* View Toggle */}
-          <div className="flex items-center gap-2 bg-[var(--royal-green-light)] rounded-lg p-1 border border-[var(--royal-green)]">
+          {/* View toggle – neumorphic */}
+          <div
+            className="flex items-center gap-2 rounded-2xl px-1 py-1 bg-[#e8ecf0]"
+            style={{
+              boxShadow: "6px 6px 12px #c5cdd5, -6px -6px 12px #ffffff",
+            }}
+          >
             <button
               onClick={() => setViewMode("grid")}
-              className={`p-2 rounded-md transition-colors ${
+              className={`p-2 rounded-xl text-gray-700 flex items-center justify-center ${
                 viewMode === "grid"
-                  ? "bg-[var(--royal-gold)] text-[var(--royal-green)]"
-                  : "text-[var(--foreground)] hover:bg-white/10"
+                  ? "bg-gray-900 text-white"
+                  : "bg-[#e8ecf0]"
               }`}
-              aria-label="Switch to grid view"
             >
-              <Squares2X2Icon className="w-5 h-5" />
+              <Squares2X2Icon className="w-4 h-4" />
             </button>
             <button
               onClick={() => setViewMode("list")}
-              className={`p-2 rounded-md transition-colors ${
+              className={`p-2 rounded-xl text-gray-700 flex items-center justify-center ${
                 viewMode === "list"
-                  ? "bg-[var(--royal-gold)] text-[var(--royal-green)]"
-                  : "text-[var(--foreground)] hover:bg-white/10"
+                  ? "bg-gray-900 text-white"
+                  : "bg-[#e8ecf0]"
               }`}
-              aria-label="Switch to list view"
             >
-              <ListBulletIcon className="w-5 h-5" />
+              <ListBulletIcon className="w-4 h-4" />
             </button>
           </div>
         </div>
 
-        {/* Products Grid/List */}
-        {products.length > 0 ? (
-          viewMode === "grid" ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-              {products.map((product) => (
-                <ProductCardGrid
-                  key={product.id}
-                  product={product}
-                  isWishlisted={wishlistedItems.has(product.id)}
-                  onToggleWishlist={handleToggleWishlist}
-                />
-              ))}
-            </div>
+        {/* Card wrapper like Order Details */}
+        <motion.div
+          variants={cardVariants}
+          initial="hidden"
+          animate="show"
+          className="bg-[#e8ecf0] rounded-3xl p-5 md:p-7"
+          style={{
+            boxShadow: "16px 16px 32px #c5cdd5, -16px -16px 32px #ffffff",
+          }}
+        >
+          {products.length > 0 ? (
+            viewMode === "grid" ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-5">
+                {products.map((product) => (
+                  <ProductCardGrid
+                    key={product.id}
+                    product={product}
+                    isWishlisted={wishlistedItems.has(product.id)}
+                    onToggleWishlist={handleToggleWishlist}
+                  />
+                ))}
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {products.map((product) => (
+                  <ProductCardList
+                    key={product.id}
+                    product={product}
+                    isWishlisted={wishlistedItems.has(product.id)}
+                    onToggleWishlist={handleToggleWishlist}
+                  />
+                ))}
+              </div>
+            )
           ) : (
-            <div className="space-y-6">
-              {products.map((product) => (
-                <ProductCardList
-                  key={product.id}
-                  product={product}
-                  isWishlisted={wishlistedItems.has(product.id)}
-                  onToggleWishlist={handleToggleWishlist}
-                />
-              ))}
-            </div>
-          )
-        ) : (
-          <div className="text-center py-12">
-            <p className="text-[var(--text-secondary)] text-lg">
-              No products found in this category.
-            </p>
-          </div>
-        )}
-        
+            <NeuCard className="p-6 text-center">
+              <p className="text-gray-500 text-sm md:text-base">
+                No products found in this category.
+              </p>
+            </NeuCard>
+          )}
 
-        {/* Pagination */}
-        {pagination.lastPage > 1 && (
-          <div className="flex justify-center mt-12">
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => handlePageChange(pagination.page - 1)}
-                disabled={pagination.page === 1}
-                className="px-4 py-2 border border-[var(--royal-green-light)] bg-[var(--royal-green)] text-[var(--foreground)] rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-[var(--royal-green-light)] transition-colors"
-                aria-label="Previous page"
-              >
-                Previous
-              </button>
+          {/* Pagination */}
+          {pagination.lastPage > 1 && (
+            <div className="flex justify-center mt-8">
+              <div className="flex items-center gap-2">
+                <SecondaryButton
+                  className="w-auto px-4 py-2 text-xs md:text-sm"
+                  onClick={() => handlePageChange(pagination.page - 1)}
+                  disabled={pagination.page === 1}
+                >
+                  Previous
+                </SecondaryButton>
 
-              {Array.from({ length: pagination.lastPage }, (_, i) => i + 1).map(
-                (pageNum) => (
+                {Array.from(
+                  { length: pagination.lastPage },
+                  (_, i) => i + 1
+                ).map((pageNum) => (
                   <button
                     key={pageNum}
                     onClick={() => handlePageChange(pageNum)}
-                    className={`px-4 py-2 rounded-lg transition-colors ${
+                    className={`px-3 py-2 rounded-2xl text-xs md:text-sm font-medium ${
                       pageNum === pagination.page
-                        ? "bg-[var(--royal-gold)] text-[var(--royal-green)]"
-                        : "border border-[var(--royal-green-light)] bg-[var(--royal-green)] text-[var(--foreground)] hover:bg-[var(--royal-green-light)]"
+                        ? "bg-gray-900 text-white"
+                        : "bg-[#e8ecf0] text-gray-800"
                     }`}
-                    aria-label={`Page ${pageNum}`}
+                    style={{
+                      boxShadow:
+                        "4px 4px 8px #c5cdd5, -4px -4px 8px #ffffff",
+                    }}
                   >
                     {pageNum}
                   </button>
-                )
-              )}
+                ))}
 
-              <button
-                onClick={() => handlePageChange(pagination.page + 1)}
-                disabled={pagination.page === pagination.lastPage}
-                className="px-4 py-2 border border-[var(--royal-green-light)] bg-[var(--royal-green)] text-[var(--foreground)] rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-[var(--royal-green-light)] transition-colors"
-                aria-label="Next page"
-              >
-                Next
-              </button>
+                <SecondaryButton
+                  className="w-auto px-4 py-2 text-xs md:text-sm"
+                  onClick={() => handlePageChange(pagination.page + 1)}
+                  disabled={pagination.page === pagination.lastPage}
+                >
+                  Next
+                </SecondaryButton>
+              </div>
             </div>
-          </div>
-        )}
+          )}
+        </motion.div>
       </div>
     </div>
   );
