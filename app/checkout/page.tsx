@@ -25,8 +25,6 @@ const CheckoutPage: React.FC = () => {
     couponError,
     applyCoupon,
     subtotal,
-    // codFee,
-    // discount,
     total,
     slideRef,
     slideProgress,
@@ -42,9 +40,6 @@ const CheckoutPage: React.FC = () => {
       <div className="max-w-2xl mx-auto px-4 py-20 flex flex-col items-center">
         <span className="text-3xl mb-4 font-bold">No selected items</span>
         <p className="text-gray-500 mb-8">Please select items from your cart.</p>
-        {/* your existing button to /cart was using router; that now lives in hook logic.
-           If you still want this button, you can add router here or pass a goToCart
-           callback from the hook. */}
       </div>
     );
   }
@@ -59,7 +54,9 @@ const CheckoutPage: React.FC = () => {
         <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-6 py-10 px-3 md:px-10">
           {/* Section 1: Product Overview */}
           <section className="md:col-span-1 bg-gray-50 p-4 rounded-2xl shadow md:block hidden">
-            <h2 className="font-bold text-lg mb-4 text-blue-950">Order Items</h2>
+            <h2 className="font-bold text-lg mb-4 text-blue-950">
+              Order Items
+            </h2>
             <ul className="space-y-4">
               {items.map((item) => (
                 <li key={item.id} className="flex items-center gap-2">
@@ -88,7 +85,7 @@ const CheckoutPage: React.FC = () => {
           </section>
 
           {/* Section 2: Address selection */}
-          <section className="md:col-span-1 bg-white p-6 rounded-2xl shadow min-h-[340px] mb-6 md:mb-0 overflow-y-auto">
+          <section className="md:col-span-1 bg-white p-6 rounded-2xl shadow min-h-85 mb-6 md:mb-0 overflow-y-auto">
             <div className="flex justify-between items-center mb-4">
               <h1 className="text-2xl font-bold text-blue-950">
                 Delivery Address
@@ -125,10 +122,10 @@ const CheckoutPage: React.FC = () => {
                 {addresses.map((addr) => (
                   <label
                     key={addr.id}
-                    className={`block cursor-pointer bg-gray-50 rounded-xl px-5 py-4 border ${
+                    className={`block cursor-pointer rounded-xl px-5 py-4 border transition shadow-sm ${
                       selectedAddressId === addr.id
-                        ? "border-blue-700 ring-2 ring-blue-200"
-                        : "border-gray-200"
+                        ? "border-blue-700 ring-2 ring-blue-200 bg-blue-50"
+                        : "border-gray-200 bg-gray-50 hover:bg-gray-100"
                     }`}
                   >
                     <input
@@ -140,7 +137,9 @@ const CheckoutPage: React.FC = () => {
                       className="mr-4 accent-blue-700"
                     />
                     <div>
-                      <div className="font-bold text-black">{addr.street}</div>
+                      <div className="font-bold text-black">
+                        {addr.street}
+                      </div>
                       <div className="text-gray-600 text-sm">
                         {addr.city}, {addr.state} {addr.postalCode},{" "}
                         {addr.country}
@@ -190,11 +189,12 @@ const CheckoutPage: React.FC = () => {
                 Payment
               </h2>
               <div className="flex gap-3">
+                {/* COD */}
                 <label
-                  className={`flex items-center gap-2 cursor-pointer bg-gray-50 px-4 py-3 rounded-xl border ${
+                  className={`flex items-center gap-2 cursor-pointer px-4 py-3 rounded-xl border font-semibold transition ${
                     paymentMethod === "cod"
-                      ? "border-blue-700 ring-2 ring-blue-200"
-                      : "border-gray-200"
+                      ? "bg-blue-900 text-white border-blue-900 shadow-md"
+                      : "bg-gray-200 text-gray-900 border-gray-300 hover:bg-gray-300"
                   }`}
                 >
                   <input
@@ -203,15 +203,17 @@ const CheckoutPage: React.FC = () => {
                     value="cod"
                     checked={paymentMethod === "cod"}
                     onChange={() => setPaymentMethod("cod")}
-                    className="accent-blue-700"
+                    className="accent-blue-300"
                   />
                   Cash on Delivery
                 </label>
+
+                {/* Online */}
                 <label
-                  className={`flex items-center gap-2 cursor-pointer bg-gray-50 px-4 py-3 rounded-xl border ${
+                  className={`flex items-center gap-2 cursor-pointer px-4 py-3 rounded-xl border font-semibold transition ${
                     paymentMethod === "online"
-                      ? "border-blue-700 ring-2 ring-blue-200"
-                      : "border-gray-200"
+                      ? "bg-green-700 text-white border-green-700 shadow-md"
+                      : "bg-gray-200 text-gray-900 border-gray-300 hover:bg-gray-300"
                   }`}
                 >
                   <input
@@ -220,9 +222,9 @@ const CheckoutPage: React.FC = () => {
                     value="online"
                     checked={paymentMethod === "online"}
                     onChange={() => setPaymentMethod("online")}
-                    className="accent-blue-700"
+                    className="accent-green-500"
                   />
-                  Online
+                  Pay Online (Razorpay)
                 </label>
               </div>
             </div>
@@ -239,8 +241,6 @@ const CheckoutPage: React.FC = () => {
                   value={couponInput}
                   onChange={(e) => {
                     setCouponInput(e.target.value);
-                    // reset so user can re-apply if they change input
-                    // but not auto-apply
                   }}
                   className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-base"
                   disabled={couponApplied}
@@ -272,7 +272,7 @@ const CheckoutPage: React.FC = () => {
             <div className="mt-auto pt-4 pb-2">
               <div
                 ref={slideRef}
-                className="w-full h-14 bg-gray-200 rounded-full relative select-none touch-none"
+                className="w-full h-14 bg-gray-200 rounded-full relative select-none"
                 style={{
                   touchAction: "none",
                   userSelect: "none",
@@ -299,7 +299,11 @@ const CheckoutPage: React.FC = () => {
                 </div>
 
                 <div className="absolute inset-0 flex items-center justify-center pointer-events-none text-base font-bold text-gray-700 opacity-80">
-                  {slideProgress > 0.97 ? "Processing..." : "Slide to Pay"}
+                  {slideProgress > 0.97
+                    ? paymentMethod === "online"
+                      ? "Opening Razorpay..."
+                      : "Placing COD order..."
+                    : "Slide to Pay"}
                 </div>
               </div>
             </div>
@@ -308,7 +312,9 @@ const CheckoutPage: React.FC = () => {
 
         {/* Mobile product overview */}
         <div className="md:hidden mt-8 px-2">
-          <h2 className="font-bold text-lg mb-4 text-blue-950">Order Items</h2>
+          <h2 className="font-bold text-lg mb-4 text-blue-950">
+            Order Items
+          </h2>
           <div className="flex gap-2 overflow-x-scroll scrollbar-thin">
             {items.map((item) => (
               <div

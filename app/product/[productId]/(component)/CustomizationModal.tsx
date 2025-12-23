@@ -6,35 +6,43 @@ import {
   PencilSquareIcon, 
   ArrowUpTrayIcon 
 } from "@heroicons/react/24/outline";
+import { addItemToServer } from "@/app/store/cartSlice";
 import { Suspense, useState, useEffect, useRef } from "react";
 import { Canvas } from "@react-three/fiber";
 import * as THREE from "three";
 import { useGLTF, OrbitControls, Loader, useTexture } from "@react-three/drei";
 import dynamic from "next/dynamic";
-import axios from "axios";
+// import axios from "axios";
 import html2canvas from "html2canvas"; // Import html2canvas
 import DesignPng from "./DesignPng";
+import { useAppDispatch } from "@/app/store/hook";
 
 // --- Helper Functions ---
 
-const dataURLtoFile = (dataurl: string, filename: string): File | null => {
-  try {
-    const arr = dataurl.split(",");
-    if (arr.length < 2) return null;
-    const mimeMatch = arr[0].match(/:(.*?);/);
-    if (!mimeMatch) return null;
-    const mime = mimeMatch[1];
-    const bstr = atob(arr[1]);
-    let n = bstr.length;
-    const u8arr = new Uint8Array(n);
-    while (n--) u8arr[n] = bstr.charCodeAt(n);
-    return new File([u8arr], filename, { type: mime });
-  } catch (e) {
-    console.error("Error converting data URL to file:", e);
-    return null;
-  }
-};
-
+// const dataURLtoFile = (dataurl: string, filename: string): File | null => {
+//   try {
+//     const arr = dataurl.split(",");
+//     if (arr.length < 2) return null;
+//     const mimeMatch = arr[0].match(/:(.*?);/);
+//     if (!mimeMatch) return null;
+//     const mime = mimeMatch[1];
+//     const bstr = atob(arr[1]);
+//     let n = bstr.length;
+//     const u8arr = new Uint8Array(n);
+//     while (n--) u8arr[n] = bstr.charCodeAt(n);
+//     return new File([u8arr], filename, { type: mime });
+//   } catch (e) {
+//     console.error("Error converting data URL to file:", e);
+//     return null;
+//   }
+// };
+type StyleProp =
+  | "color"
+  | "backgroundColor"
+  | "borderColor"
+  | "outlineColor"
+  | "boxShadow"
+  | "textShadow";
 const isPngModel = (url: string | null) => {
   if (!url) return false;
   const clean = url.split("?")[0].toLowerCase();
@@ -143,6 +151,7 @@ const CustomizationModal = ({
   const captureRef = useRef<HTMLDivElement>(null);
 
   const pngModel = isPngModel(product.model3dUrl);
+  const dispatch = useAppDispatch();
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -152,80 +161,162 @@ const CustomizationModal = ({
       setAllImageSources([file]); 
     }
   };
+// helper to strip oklab in a subtree
+// const stripOklabColors = (root: HTMLElement) => {
+//   const changed: { el: HTMLElement; prop: "color" | "backgroundColor"; prev: string }[] = [];
 
-  const handleAddToCart = async () => {
-    if (!selectedVariant) {
-      alert("Please select a variant first.");
-      return;
-    }
-    if (isSubmitting) return;
-    setIsSubmitting(true);
+//   const walker = document.createTreeWalker(root, NodeFilter.SHOW_ELEMENT);
+//   let node = walker.currentNode as HTMLElement | null;
 
-    try {
-      const formData = new FormData();
-      formData.append("productId", product.id);
-      formData.append("variantId", selectedVariant.id);
-      formData.append("quantity", "1");
-      formData.append("customizationDetails", JSON.stringify({ instructions: customInstructions }));
+//   while (node) {
+//     const el = node as HTMLElement;
+//     const style = getComputedStyle(el);
 
-      let finalFile: File | null = null;
+//     if (style.color.includes("oklab(")) {
+//       changed.push({ el, prop: "color", prev: el.style.color });
+//       el.style.color = "#000000";
+//     }
+//     if (style.backgroundColor.includes("oklab(")) {
+//       changed.push({ el, prop: "backgroundColor", prev: el.style.backgroundColor });
+//       el.style.backgroundColor = "#ffffff";
+//     }
 
-      // --- LOGIC 1: PNG MODE (Snapshots the Drag-and-Drop Area) ---
-      if (pngModel && captureRef.current && designTextureUrl) {
-        
-        // Use html2canvas to capture the specific referenced div
-        const canvas = await html2canvas(captureRef.current, {
-          backgroundColor: null, // Keep transparency if any
-          scale: 4, // High resolution for printing
-          // useCORS: true, // Allow external images
-        });
+//     node = walker.nextNode() as HTMLElement | null;
+//   }
 
-        // Convert canvas to Blob -> File
-        const blob = await new Promise<Blob | null>(resolve => canvas.toBlob(resolve, 'image/png'));
-        
-        if (blob) {
-          finalFile = new File([blob], `design-${selectedVariant.sku}-${Date.now()}.png`, { type: "image/png" });
-          formData.append("customizationImages", finalFile);
+//   return () => {
+//     // restore
+//     changed.forEach(({ el, prop, prev }) => {
+//       el.style[prop] = prev;
+//     });
+//   };
+// };
+const sanitizeForHtml2Canvas = (root: HTMLElement) => {
+  const records: {
+    el: HTMLElement;
+    prev: Partial<Record<StyleProp, string>>;
+  }[] = [];
+
+  const PROPS: StyleProp[] = [
+    "color",
+    "backgroundColor",
+    "borderColor",
+    "outlineColor",
+    "boxShadow",
+    "textShadow",
+  ];
+
+  const walker = document.createTreeWalker(root, NodeFilter.SHOW_ELEMENT);
+  let node = walker.currentNode as HTMLElement | null;
+
+  while (node) {
+    const computed = getComputedStyle(node);
+    const prev: Partial<Record<StyleProp, string>> = {};
+    let mutated = false;
+
+    for (const prop of PROPS) {
+      const value = computed.getPropertyValue(prop);
+
+      if (
+        value &&
+        (value.includes("oklab(") || value.includes("oklch("))
+      ) {
+        prev[prop] = node.style[prop];
+
+        if (prop.includes("Shadow")) {
+          node.style[prop] = "none";
+        } else {
+          node.style[prop] = "#000000";
         }
 
-      } 
-      // --- LOGIC 2: 3D CANVAS MODE (Using Data URL) ---
-      else if (!pngModel && designTextureUrl && designTextureUrl.startsWith("data:")) {
-        // DesignCanvas usually updates state with a base64 Data URL
-        finalFile = dataURLtoFile(designTextureUrl, `design-${selectedVariant.sku}.png`);
-        if (finalFile) formData.append("customizationImages", finalFile);
+        mutated = true;
       }
-      // --- LOGIC 3: FALLBACK (Direct File Upload) ---
-      else {
-        // If no snapshot logic ran, send the original file
-        for (const src of allImageSources) {
-          if (src instanceof File) {
-            formData.append("customizationImages", src);
-          }
-        }
-      }
-
-      const token = typeof window !== "undefined" ? window.localStorage.getItem("token") : null;
-
-      await axios.post(
-        `${process.env.NEXT_PUBLIC_API_URL}/cart/add-item`,
-        formData,
-        { headers: token ? { Authorization: `Bearer ${token}` } : undefined }
-      );
-
-      alert("Item added to cart successfully!");
-      setAllImageSources([]);
-      setDesignTextureUrl(null);
-      setCustomInstructions("");
-      onClose();
-
-    } catch (error) {
-      console.error("Error adding to cart:", error);
-      alert("Failed to add item to cart.");
-    } finally {
-      setIsSubmitting(false);
     }
+
+    if (mutated) {
+      records.push({ el: node, prev });
+    }
+
+    node = walker.nextNode() as HTMLElement | null;
+  }
+
+  return () => {
+    records.forEach(({ el, prev }) => {
+      Object.assign(el.style, prev);
+    });
   };
+};
+
+const handleAddToCart = async () => {
+  if (!selectedVariant) {
+    alert("Please select a variant first.");
+    return;
+  }
+  if (isSubmitting) return;
+  setIsSubmitting(true);
+
+  try {
+    const customizationImages: File[] = [];
+
+    // 1) PNG MODEL (capture composed design)
+if (pngModel && captureRef.current && designTextureUrl) {
+  const root = captureRef.current;
+
+  const restore = sanitizeForHtml2Canvas(root);
+
+  const canvas = await html2canvas(root, {
+    backgroundColor: "#ffffff",
+    scale: 4,
+    useCORS: true,
+  });
+
+  restore();
+
+  const blob = await new Promise<Blob | null>((res) =>
+    canvas.toBlob(res, "image/png")
+  );
+
+  if (blob) {
+    customizationImages.push(
+      new File([blob], `design-${Date.now()}.png`, {
+        type: "image/png",
+      })
+    );
+  }
+}
+
+
+
+    // 2) Always also send the original full‑size upload (if any)
+    for (const src of allImageSources) {
+      if (src instanceof File) {
+        customizationImages.push(src);
+      }
+    }
+
+    // Dispatch thunk – it will build FormData and hit /cart/add-item
+    await dispatch(
+      addItemToServer({
+        productId: product.id,
+        variantId: selectedVariant.id,
+        quantity: 1,
+        customizationDetails: { instructions: customInstructions },
+        customizationImages,
+      })
+    ).unwrap();
+
+    alert("Item added to cart successfully!");
+    setAllImageSources([]);
+    setDesignTextureUrl(null);
+    setCustomInstructions("");
+    onClose();
+  } catch (error) {
+    console.error("Error adding to cart:", error);
+    alert("Failed to add item to cart.");
+  } finally {
+    setIsSubmitting(false);
+  }
+};
 
   return (
     <AnimatePresence>

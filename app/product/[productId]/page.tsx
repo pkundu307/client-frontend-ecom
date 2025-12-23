@@ -512,8 +512,13 @@ export default function ProductPage({ params }: ProductPageProps) {
     }
   }, [productId]);
 
-  const currentImages = selectedVariant?.images?.length ? selectedVariant.images : product?.images || [];
-  const currentPrice = selectedVariant?.price || "0";
+const currentImages = product
+  ? [
+      ...(product.images ?? []),
+      ...(selectedVariant?.images ?? []),
+    ]
+  : [];
+    const currentPrice = selectedVariant?.price || "0";
   const currentMrp = selectedVariant?.mrp || "0";
   const currentStock = selectedVariant?.stock || 0;
   
@@ -610,10 +615,9 @@ export default function ProductPage({ params }: ProductPageProps) {
     : product.category.name;
 
   return (
- <div className="min-h-screen bg-gradient-to-br from-gray-50 via-grey-500 to-gray-200">
+ <div className="min-h-screen bg-linear-to-br from-gray-50 via-grey-500 to-gray-200">
   <Toaster position="top-center" reverseOrder={false} />
   
- return (
   <div className="min-h-screen bg-[#e8ecf0]">
     <Toaster position="top-center" reverseOrder={false} />
     

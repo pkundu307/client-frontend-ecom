@@ -19,10 +19,40 @@ import {
   AlertTriangle,
 } from "lucide-react";
 
+
+interface StyleConfig {
+  // layout / container
+  backgroundColor?: string;
+  borderRadius?: number | string;
+  borderColor?: string;
+  padding?: string;
+
+  // typography
+  titleColor?: string;
+  subtitleColor?: string;
+  titleAlign?: "left" | "center" | "right";
+
+  // overlays & visuals
+  overlayGradient?: string;
+
+  // hero slider
+  autoplay?: boolean;
+  autoplaySpeed?: number;
+  showDots?: boolean;
+
+  // carousel
+  itemsToShow?: number;
+  showArrows?: boolean;
+
+  // branding
+  brandLogos?: string[];
+}
+
+
 const BASE_URL = "http://localhost:3001";
 
 // TYPES
-type JsonObject = { [key: string]: any };
+// type JsonObject = { [key: string]: any };
 type SectionTypeEnum =
   | "HERO_SLIDER"
   | "PRODUCT_CAROUSEL"
@@ -47,7 +77,7 @@ interface HomepageItem {
   imageUrl: string | null;
   linkType: LinkTypeEnum;
   linkValue: string | null;
-  styleConfig: JsonObject | null;
+  styleConfig: StyleConfig | null;
 }
 
 interface HomepageSection {
@@ -55,9 +85,10 @@ interface HomepageSection {
   title: string | null;
   subtitle: string | null;
   type: SectionTypeEnum;
-  styleConfig: JsonObject | null;
+  styleConfig: StyleConfig | null;
   items: HomepageItem[];
 }
+
 
 // LINK HELPER
 const generateLink = (item: HomepageItem): string => {
