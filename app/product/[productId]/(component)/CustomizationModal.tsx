@@ -17,32 +17,7 @@ import html2canvas from "html2canvas"; // Import html2canvas
 import DesignPng from "./DesignPng";
 import { useAppDispatch } from "@/app/store/hook";
 
-// --- Helper Functions ---
 
-// const dataURLtoFile = (dataurl: string, filename: string): File | null => {
-//   try {
-//     const arr = dataurl.split(",");
-//     if (arr.length < 2) return null;
-//     const mimeMatch = arr[0].match(/:(.*?);/);
-//     if (!mimeMatch) return null;
-//     const mime = mimeMatch[1];
-//     const bstr = atob(arr[1]);
-//     let n = bstr.length;
-//     const u8arr = new Uint8Array(n);
-//     while (n--) u8arr[n] = bstr.charCodeAt(n);
-//     return new File([u8arr], filename, { type: mime });
-//   } catch (e) {
-//     console.error("Error converting data URL to file:", e);
-//     return null;
-//   }
-// };
-type StyleProp =
-  | "color"
-  | "backgroundColor"
-  | "borderColor"
-  | "outlineColor"
-  | "boxShadow"
-  | "textShadow";
 const isPngModel = (url: string | null) => {
   if (!url) return false;
   const clean = url.split("?")[0].toLowerCase();
@@ -192,12 +167,22 @@ const CustomizationModal = ({
 //   };
 // };
 const sanitizeForHtml2Canvas = (root: HTMLElement) => {
+  // 1. Update type: Store specific string keys instead of full CSSStyleDeclaration
   const records: {
     el: HTMLElement;
-    prev: Partial<Record<StyleProp, string>>;
+    prev: Partial<Record<SafeStyleKey, string>>;
   }[] = [];
 
-  const PROPS: StyleProp[] = [
+  // restrict to the specific style keys we want to touch
+  type SafeStyleKey =
+    | "color"
+    | "backgroundColor"
+    | "borderColor"
+    | "outlineColor"
+    | "boxShadow"
+    | "textShadow";
+
+  const PROPS: SafeStyleKey[] = [
     "color",
     "backgroundColor",
     "borderColor",
@@ -211,24 +196,25 @@ const sanitizeForHtml2Canvas = (root: HTMLElement) => {
 
   while (node) {
     const computed = getComputedStyle(node);
-    const prev: Partial<Record<StyleProp, string>> = {};
+    
+    // 2. Update local type definition
+    const prev: Partial<Record<SafeStyleKey, string>> = {};
     let mutated = false;
 
     for (const prop of PROPS) {
-      const value = computed.getPropertyValue(prop);
+      const raw = computed[prop];
+      const value = String(raw || "");
 
-      if (
-        value &&
-        (value.includes("oklab(") || value.includes("oklch("))
-      ) {
+      if (value && (value.includes("oklab(") || value.includes("oklch("))) {
+        // 3. 'as any' is now removed. 
+        // node.style[prop] returns a string, which is now valid for prev[prop]
         prev[prop] = node.style[prop];
 
-        if (prop.includes("Shadow")) {
+        if (prop === "boxShadow" || prop === "textShadow") {
           node.style[prop] = "none";
         } else {
           node.style[prop] = "#000000";
         }
-
         mutated = true;
       }
     }
@@ -242,6 +228,7 @@ const sanitizeForHtml2Canvas = (root: HTMLElement) => {
 
   return () => {
     records.forEach(({ el, prev }) => {
+      // Object.assign works perfectly here to merge the Record back into style
       Object.assign(el.style, prev);
     });
   };

@@ -18,6 +18,7 @@ import {
   LoaderCircle,
   AlertTriangle,
 } from "lucide-react";
+import { baseUrl } from "../utilities/baseUrl";
 
 
 interface StyleConfig {
@@ -49,7 +50,7 @@ interface StyleConfig {
 }
 
 
-const BASE_URL = "http://localhost:3001";
+const BASE_URL = `${baseUrl}`;
 
 // TYPES
 // type JsonObject = { [key: string]: any };
