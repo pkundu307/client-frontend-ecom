@@ -14,7 +14,7 @@ export type Address = {
   state: string;
   postalCode: string;
   country: string;
-  contactNumber: string;
+  alternativePhoneNumber: string;
 };
 
 export type PaymentMethod = "cod" | "online" | "";
@@ -59,7 +59,7 @@ export const useCheckout = () => {
     state: "",
     postalCode: "",
     country: "India",
-    contactNumber: "",
+    alternativePhoneNumber: "",
   });
   const [savingAddress, setSavingAddress] = useState(false);
 
@@ -143,13 +143,13 @@ export const useCheckout = () => {
       !newAddress.city ||
       !newAddress.state ||
       !newAddress.postalCode ||
-      !newAddress.contactNumber
+      !newAddress.alternativePhoneNumber
     ) {
       alert("Please fill all address fields");
       return;
     }
 
-    if (!/^\d{10}$/.test(newAddress.contactNumber)) {
+    if (!/^\d{10}$/.test(newAddress.alternativePhoneNumber)) {
       alert("Please enter a valid 10-digit contact number");
       return;
     }
@@ -172,7 +172,7 @@ export const useCheckout = () => {
         state: "",
         postalCode: "",
         country: "India",
-        contactNumber: "",
+        alternativePhoneNumber: "",
       });
     } catch (err) {
       console.error("Failed to add address:", err);
@@ -222,7 +222,7 @@ export const useCheckout = () => {
       },
       prefill: {
         name: selectedAddr?.street || "",
-        contact: selectedAddr?.contactNumber || "",
+        contact: selectedAddr?.alternativePhoneNumber || "",
       },
       theme: {
         color: "#1e3a8a",

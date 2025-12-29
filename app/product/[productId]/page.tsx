@@ -33,6 +33,8 @@ import {
   ChevronRightIcon,
 } from "@heroicons/react/24/outline";
 import { HeartIcon as HeartSolid, StarIcon as StarSolid } from "@heroicons/react/24/solid";
+import { addToRecentlyViewed } from "@/app/utilities/recentlyViewed";
+import RecentlyViewed from "@/app/components/RecentlyViewed";
 // import { useDispatch } from "react-redux";
 
 const CustomizationModal = dynamic(
@@ -582,6 +584,31 @@ const currentImages = product
       setIsAddingToCart(false);
     }
   };
+useEffect(() => {
+    if (product && selectedVariant) {
+      // Get the first available image
+      const firstImage =
+        product.images?.[0] ||
+        selectedVariant.images?.[0] ||
+        "/placeholder-product.jpg";
+
+      // Clean HTML from description and limit length
+      const cleanDescription =
+        product.description
+          ?.replace(/<[^>]*>/g, "")
+          ?.trim()
+          ?.slice(0, 150) || "No description available";
+
+      const recentProduct = {
+        id: product.id,
+        title: product.title,
+        image: firstImage,
+        description: cleanDescription,
+      };
+
+      addToRecentlyViewed(recentProduct);
+    }
+  }, [product, selectedVariant]);
 
   if (loading) {
     return (
@@ -615,6 +642,7 @@ const currentImages = product
     : product.category.name;
 
   return (
+    <>
  <div className="min-h-screen bg-linear-to-br from-gray-50 via-grey-500 to-gray-200">
   <Toaster position="top-center" reverseOrder={false} />
   
@@ -1202,7 +1230,8 @@ const currentImages = product
     />
   )}
 </div>
-
+<RecentlyViewed/>
+</>
   );
 };
 

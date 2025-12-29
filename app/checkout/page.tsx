@@ -2,7 +2,33 @@
 
 import React from "react";
 import Image from "next/image";
+import { motion, AnimatePresence, Variants } from "framer-motion";
+import {
+  MapPinIcon,
+  PlusIcon,
+  XMarkIcon,
+  CreditCardIcon,
+  ShoppingBagIcon,
+  CheckCircleIcon,
+  ArrowRightIcon,
+} from "@heroicons/react/24/outline";
 import { useCheckout } from "./useCheckout";
+
+const cardVariants: Variants = {
+  hidden: { opacity: 0, y: 16, scale: 0.98 },
+  show: {
+    opacity: 1,
+    y: 0,
+    scale: 1,
+    transition: {
+      type: "spring",
+      stiffness: 260,
+      damping: 24,
+    },
+  },
+};
+
+const tap = { scale: 0.97 };
 
 const CheckoutPage: React.FC = () => {
   const {
@@ -37,9 +63,20 @@ const CheckoutPage: React.FC = () => {
 
   if (!items || items.length === 0) {
     return (
-      <div className="max-w-2xl mx-auto px-4 py-20 flex flex-col items-center">
-        <span className="text-3xl mb-4 font-bold">No selected items</span>
-        <p className="text-gray-500 mb-8">Please select items from your cart.</p>
+      <div className="min-h-screen bg-[#e8ecf0] flex items-center justify-center px-4">
+        <motion.div
+          variants={cardVariants}
+          initial="hidden"
+          animate="show"
+          className="bg-[#e8ecf0] rounded-3xl p-8 text-center"
+          style={{
+            boxShadow: "12px 12px 24px #c5cdd5, -12px -12px 24px #ffffff",
+          }}
+        >
+          <ShoppingBagIcon className="w-16 h-16 mx-auto mb-4 text-gray-400" />
+          <h3 className="text-2xl font-bold text-gray-900 mb-2">No Items in Checkout</h3>
+          <p className="text-gray-600">Please select items from your cart.</p>
+        </motion.div>
       </div>
     );
   }
@@ -49,461 +86,482 @@ const CheckoutPage: React.FC = () => {
   const COUPON_DISCOUNT = 50;
 
   return (
-    <>
-      <div className="min-h-screen w-full bg-gray-50">
-        <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-6 py-10 px-3 md:px-10">
-          {/* Section 1: Product Overview */}
-          <section className="md:col-span-1 bg-gray-50 p-4 rounded-2xl shadow md:block hidden">
-            <h2 className="font-bold text-lg mb-4 text-blue-950">
-              Order Items
-            </h2>
-            <ul className="space-y-4">
-              {items.map((item) => (
-                <li key={item.id} className="flex items-center gap-2">
-                  <div className="w-14 h-14 rounded-xl bg-gray-200 overflow-hidden flex items-center justify-center">
-                    <Image
-                      src={
-                        item.variant?.product?.images?.[0] || "/placeholder.png"
-                      }
-                      alt={item.variant?.product?.title || ""}
-                      width={56}
-                      height={56}
-                      className="object-cover"
-                    />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="truncate font-semibold text-gray-900">
-                      {item.variant?.product?.title}
-                    </div>
-                    <div className="text-xs text-gray-500">
-                      x{item.quantity}
-                    </div>
-                  </div>
-                </li>
-              ))}
-            </ul>
-          </section>
+    <div className="min-h-screen bg-[#e8ecf0] px-4 py-8">
+      <div className="max-w-6xl mx-auto">
+        {/* Page Header */}
+        <motion.div
+          variants={cardVariants}
+          initial="hidden"
+          animate="show"
+          className="bg-[#e8ecf0] rounded-3xl p-6 mb-8"
+          style={{
+            boxShadow: "12px 12px 24px #c5cdd5, -12px -12px 24px #ffffff",
+          }}
+        >
+          <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3">
+            <ShoppingBagIcon className="w-8 h-8 text-blue-600" />
+            Checkout
+          </h1>
+        </motion.div>
 
-          {/* Section 2: Address selection */}
-          <section className="md:col-span-1 bg-white p-6 rounded-2xl shadow min-h-85 mb-6 md:mb-0 overflow-y-auto">
-            <div className="flex justify-between items-center mb-4">
-              <h1 className="text-2xl font-bold text-blue-950">
-                Delivery Address
-              </h1>
-              <button
-                onClick={() => setShowAddressModal(true)}
-                className="text-blue-700 hover:text-blue-900 font-semibold text-sm flex items-center gap-1"
-              >
-                <svg
-                  className="w-5 h-5"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
+        <div className="grid lg:grid-cols-3 gap-8">
+          {/* Left Column: Addresses + Order Items */}
+          <div className="lg:col-span-2 space-y-8">
+            {/* Delivery Address Section */}
+            <motion.section
+              variants={cardVariants}
+              initial="hidden"
+              animate="show"
+              className="bg-[#e8ecf0] rounded-3xl p-6"
+              style={{
+                boxShadow: "12px 12px 24px #c5cdd5, -12px -12px 24px #ffffff",
+              }}
+            >
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-2xl font-bold flex items-center gap-2 text-gray-900">
+                  <MapPinIcon className="w-6 h-6 text-blue-600" />
+                  Delivery Address
+                </h2>
+                <motion.button
+                  whileTap={tap}
+                  onClick={() => setShowAddressModal(true)}
+                  className="bg-[#e8ecf0] p-3 rounded-xl flex items-center gap-2 text-gray-900 font-semibold"
+                  style={{
+                    boxShadow: "6px 6px 12px #c5cdd5, -6px -6px 12px #ffffff",
+                  }}
                 >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M12 4v16m8-8H4"
-                  />
-                </svg>
-                Add New
-              </button>
-            </div>
-
-            {loadingAddresses ? (
-              <div className="text-gray-500 py-4">Loading addresses...</div>
-            ) : addresses.length === 0 ? (
-              <div className="text-gray-500 py-4">
-                No saved addresses. Click &quot;Add New&quot; to add one.
+                  <PlusIcon className="w-5 h-5" /> Add
+                </motion.button>
               </div>
-            ) : (
-              <div className="space-y-3">
-                {addresses.map((addr) => (
-                  <label
-                    key={addr.id}
-                    className={`block cursor-pointer rounded-xl px-5 py-4 border transition shadow-sm ${
-                      selectedAddressId === addr.id
-                        ? "border-blue-700 ring-2 ring-blue-200 bg-blue-50"
-                        : "border-gray-200 bg-gray-50 hover:bg-gray-100"
-                    }`}
+
+              {loadingAddresses ? (
+                <div
+                  className="bg-[#e8ecf0] rounded-2xl p-8 text-center"
+                  style={{
+                    boxShadow: "inset 4px 4px 8px #c5cdd5, inset -4px -4px 8px #ffffff",
+                  }}
+                >
+                  <p className="text-gray-600">Loading addresses...</p>
+                </div>
+              ) : addresses.length === 0 ? (
+                <div
+                  className="bg-[#e8ecf0] rounded-2xl p-8 text-center"
+                  style={{
+                    boxShadow: "inset 4px 4px 8px #c5cdd5, inset -4px -4px 8px #ffffff",
+                  }}
+                >
+                  <p className="text-gray-600">{`No saved addresses. Click "Add" to add one.`}</p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {addresses.map((addr) => (
+                    <motion.label
+                      key={addr.id}
+                      whileTap={tap}
+                      className={`block cursor-pointer bg-[#e8ecf0] rounded-2xl p-5 transition-all ${
+                        selectedAddressId === addr.id
+                          ? "ring-2 ring-blue-600"
+                          : ""
+                      }`}
+                      style={{
+                        boxShadow:
+                          selectedAddressId === addr.id
+                            ? "inset 6px 6px 12px #c5cdd5, inset -6px -6px 12px #ffffff"
+                            : "8px 8px 16px #c5cdd5, -8px -8px 16px #ffffff",
+                      }}
+                    >
+                      <div className="flex items-start gap-4">
+                        <input
+                          type="radio"
+                          name="address"
+                          value={addr.id}
+                          checked={selectedAddressId === addr.id}
+                          onChange={() => setSelectedAddressId(addr.id)}
+                          className="mt-1 accent-blue-600 w-5 h-5"
+                        />
+                        <div className="flex-1">
+                          <p className="font-semibold text-gray-900">{addr.street}</p>
+                          <p className="text-sm text-gray-600 mt-1">
+                            {addr.city}, {addr.state} {addr.postalCode}
+                          </p>
+                          <p className="text-sm text-gray-600">{addr.country}</p>
+                          {addr.alternativePhoneNumber && (
+                            <p className="text-sm text-gray-600 mt-1">📞 {addr.alternativePhoneNumber}</p>
+                          )}
+                        </div>
+                        {selectedAddressId === addr.id && (
+                          <CheckCircleIcon className="w-6 h-6 text-blue-600 shrink-0" />
+                        )}
+                      </div>
+                    </motion.label>
+                  ))}
+                </div>
+              )}
+            </motion.section>
+
+            {/* Order Items Section */}
+            <motion.section
+              variants={cardVariants}
+              initial="hidden"
+              animate="show"
+              className="bg-[#e8ecf0] rounded-3xl p-6"
+              style={{
+                boxShadow: "12px 12px 24px #c5cdd5, -12px -12px 24px #ffffff",
+              }}
+            >
+              <h2 className="text-2xl font-bold mb-6 flex items-center gap-2 text-gray-900">
+                <ShoppingBagIcon className="w-6 h-6 text-blue-600" />
+                Order Items ({items.length})
+              </h2>
+              <div className="space-y-4 max-h-96 overflow-y-auto pr-2">
+                {items.map((item) => (
+                  <div
+                    key={item.id}
+                    className="bg-[#e8ecf0] rounded-2xl p-4 flex gap-4"
+                    style={{
+                      boxShadow: "inset 4px 4px 8px #c5cdd5, inset -4px -4px 8px #ffffff",
+                    }}
                   >
-                    <input
-                      type="radio"
-                      name="address"
-                      value={addr.id}
-                      checked={selectedAddressId === addr.id}
-                      onChange={() => setSelectedAddressId(addr.id)}
-                      className="mr-4 accent-blue-700"
-                    />
-                    <div>
-                      <div className="font-bold text-black">
-                        {addr.street}
-                      </div>
-                      <div className="text-gray-600 text-sm">
-                        {addr.city}, {addr.state} {addr.postalCode},{" "}
-                        {addr.country}
-                      </div>
-                      <div className="text-gray-600 text-sm mt-1">
-                        📞 {addr.contactNumber}
-                      </div>
+                    <div className="w-20 h-20 rounded-xl bg-gray-200 overflow-hidden flex items-center justify-center">
+                      <Image
+                        src={item.variant?.product?.images?.[0] || "/placeholder.png"}
+                        alt={item.variant?.product?.title || ""}
+                        width={80}
+                        height={80}
+                        className="object-cover"
+                      />
                     </div>
-                  </label>
+                    <div className="flex-1">
+                      <p className="font-semibold text-gray-900">
+                        {item.variant?.product?.title}
+                      </p>
+                      <p className="text-sm text-gray-600 mt-1">Quantity: {item.quantity}</p>
+                    </div>
+                  </div>
                 ))}
               </div>
-            )}
-          </section>
+            </motion.section>
+          </div>
 
-          {/* Section 3: Summary / Payment / Coupon / Slide to pay */}
-          <section className="md:col-span-1 flex flex-col gap-6 bg-white p-6 rounded-2xl shadow">
-            {/* Order Summary */}
-            <div className="mb-2">
-              <h2 className="text-xl font-bold mb-2 text-blue-950">
-                Order Summary
+          {/* Right Column: Payment + Summary */}
+          <div className="space-y-8">
+            {/* Payment Method */}
+            <motion.section
+              variants={cardVariants}
+              initial="hidden"
+              animate="show"
+              className="bg-[#e8ecf0] rounded-3xl p-6"
+              style={{
+                boxShadow: "12px 12px 24px #c5cdd5, -12px -12px 24px #ffffff",
+              }}
+            >
+              <h2 className="text-xl font-bold mb-4 flex items-center gap-2 text-gray-900">
+                <CreditCardIcon className="w-6 h-6 text-blue-600" />
+                Payment Method
               </h2>
-              <div className="flex justify-between py-1 text-gray-700">
-                <span>Subtotal</span>
-                <span>₹{subtotal.toFixed(2)}</span>
-              </div>
-              {paymentMethod === "cod" && subtotal < COD_THRESHOLD && (
-                <div className="flex justify-between py-1 text-gray-700">
-                  <span>COD fee</span>
-                  <span>+₹30</span>
-                </div>
-              )}
-              {couponApplied && (
-                <div className="flex justify-between py-1 text-green-700 font-semibold">
-                  <span>Coupon ({COUPON_CODE})</span>
-                  <span>-₹{COUPON_DISCOUNT}</span>
-                </div>
-              )}
-              <div className="flex justify-between py-2 mt-1 text-black text-lg font-semibold border-t border-gray-200">
-                <span>Total</span>
-                <span>₹{total.toFixed(2)}</span>
-              </div>
-            </div>
-
-            {/* Payment */}
-            <div className="mb-4">
-              <h2 className="text-base font-bold mb-1 text-blue-950">
-                Payment
-              </h2>
-              <div className="flex gap-3">
-                {/* COD */}
-                <label
-                  className={`flex items-center gap-2 cursor-pointer px-4 py-3 rounded-xl border font-semibold transition ${
-                    paymentMethod === "cod"
-                      ? "bg-blue-900 text-white border-blue-900 shadow-md"
-                      : "bg-gray-200 text-gray-900 border-gray-300 hover:bg-gray-300"
+              <div className="space-y-3">
+                <motion.label
+                  whileTap={tap}
+                  className={`block cursor-pointer bg-[#e8ecf0] rounded-2xl p-4 transition-all ${
+                    paymentMethod === "cod" ? "ring-2 ring-blue-600" : ""
                   }`}
+                  style={{
+                    boxShadow:
+                      paymentMethod === "cod"
+                        ? "inset 6px 6px 12px #c5cdd5, inset -6px -6px 12px #ffffff"
+                        : "6px 6px 12px #c5cdd5, -6px -6px 12px #ffffff",
+                  }}
                 >
-                  <input
-                    type="radio"
-                    name="payment"
-                    value="cod"
-                    checked={paymentMethod === "cod"}
-                    onChange={() => setPaymentMethod("cod")}
-                    className="accent-blue-300"
-                  />
-                  Cash on Delivery
-                </label>
+                  <div className="flex items-center gap-3">
+                    <input
+                      type="radio"
+                      name="payment"
+                      value="cod"
+                      checked={paymentMethod === "cod"}
+                      onChange={() => setPaymentMethod("cod")}
+                      className="accent-blue-600 w-5 h-5"
+                    />
+                    <span className="font-semibold text-gray-900">Cash on Delivery</span>
+                  </div>
+                </motion.label>
 
-                {/* Online */}
-                <label
-                  className={`flex items-center gap-2 cursor-pointer px-4 py-3 rounded-xl border font-semibold transition ${
-                    paymentMethod === "online"
-                      ? "bg-green-700 text-white border-green-700 shadow-md"
-                      : "bg-gray-200 text-gray-900 border-gray-300 hover:bg-gray-300"
+                <motion.label
+                  whileTap={tap}
+                  className={`block cursor-pointer bg-[#e8ecf0] rounded-2xl p-4 transition-all ${
+                    paymentMethod === "online" ? "ring-2 ring-green-600" : ""
                   }`}
+                  style={{
+                    boxShadow:
+                      paymentMethod === "online"
+                        ? "inset 6px 6px 12px #c5cdd5, inset -6px -6px 12px #ffffff"
+                        : "6px 6px 12px #c5cdd5, -6px -6px 12px #ffffff",
+                  }}
                 >
-                  <input
-                    type="radio"
-                    name="payment"
-                    value="online"
-                    checked={paymentMethod === "online"}
-                    onChange={() => setPaymentMethod("online")}
-                    className="accent-green-500"
-                  />
-                  Pay Online (Razorpay)
-                </label>
+                  <div className="flex items-center gap-3">
+                    <input
+                      type="radio"
+                      name="payment"
+                      value="online"
+                      checked={paymentMethod === "online"}
+                      onChange={() => setPaymentMethod("online")}
+                      className="accent-green-600 w-5 h-5"
+                    />
+                    <span className="font-semibold text-gray-900">Pay Online (Razorpay)</span>
+                  </div>
+                </motion.label>
               </div>
-            </div>
+            </motion.section>
 
-            {/* Coupon */}
-            <div>
-              <h2 className="text-base font-bold mb-1 text-blue-950">
-                Have a coupon?
-              </h2>
+            {/* Coupon Section */}
+            <motion.section
+              variants={cardVariants}
+              initial="hidden"
+              animate="show"
+              className="bg-[#e8ecf0] rounded-3xl p-6"
+              style={{
+                boxShadow: "12px 12px 24px #c5cdd5, -12px -12px 24px #ffffff",
+              }}
+            >
+              <h2 className="text-xl font-bold mb-4 text-gray-900">Have a Coupon?</h2>
               <div className="flex gap-2">
                 <input
                   type="text"
                   placeholder="Enter coupon code"
                   value={couponInput}
-                  onChange={(e) => {
-                    setCouponInput(e.target.value);
+                  onChange={(e) => setCouponInput(e.target.value)}
+                  disabled={couponApplied}
+                  className="flex-1 px-4 py-3 rounded-xl bg-[#e8ecf0] text-gray-900 placeholder-gray-600"
+                  style={{
+                    boxShadow: "inset 4px 4px 8px #c5cdd5, inset -4px -4px 8px #ffffff",
                   }}
-                  className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-base"
-                  disabled={couponApplied}
                 />
-                <button
-                  type="button"
-                  className={`px-4 py-2 rounded-lg font-semibold ${
-                    couponApplied
-                      ? "bg-green-200 text-green-800"
-                      : "bg-blue-900 text-white hover:bg-blue-700"
-                  }`}
-                  disabled={couponApplied}
+                <motion.button
+                  whileTap={tap}
                   onClick={applyCoupon}
+                  disabled={couponApplied}
+                  className={`px-6 py-3 rounded-xl font-semibold ${
+                    couponApplied
+                      ? "bg-green-100 text-green-800"
+                      : "bg-gray-900 text-white"
+                  }`}
+                  style={{
+                    boxShadow: "6px 6px 12px #c5cdd5, -6px -6px 12px #ffffff",
+                  }}
                 >
                   {couponApplied ? "Applied" : "Apply"}
-                </button>
+                </motion.button>
               </div>
               {couponError && (
                 <p className="mt-2 text-sm text-red-600">{couponError}</p>
               )}
               {couponApplied && (
-                <p className="mt-2 text-sm text-green-700">
-                  ₹50 discount applied!
-                </p>
+                <p className="mt-2 text-sm text-green-700">₹50 discount applied!</p>
               )}
-            </div>
+            </motion.section>
 
-            {/* Slide to Pay */}
-            <div className="mt-auto pt-4 pb-2">
-              <div
-                ref={slideRef}
-                className="w-full h-14 bg-gray-200 rounded-full relative select-none"
-                style={{
-                  touchAction: "none",
-                  userSelect: "none",
-                  background:
-                    isSliding && slideProgress > 0
-                      ? `linear-gradient(90deg, #1e3a8a ${(slideProgress * 100).toFixed(
-                          1
-                        )}%, #e5e7eb 0%)`
-                      : "#e5e7eb",
-                  transition: isSliding ? "none" : "background 200ms",
-                }}
-                onPointerDown={handleSlide}
-              >
+            {/* Order Summary */}
+            <motion.section
+              variants={cardVariants}
+              initial="hidden"
+              animate="show"
+              className="bg-[#e8ecf0] rounded-3xl p-6"
+              style={{
+                boxShadow: "12px 12px 24px #c5cdd5, -12px -12px 24px #ffffff",
+              }}
+            >
+              <h2 className="text-xl font-bold mb-4 text-gray-900">Order Summary</h2>
+              <div className="space-y-3">
+                <div className="flex justify-between text-gray-700">
+                  <span>Subtotal</span>
+                  <span className="font-semibold">₹{subtotal.toFixed(2)}</span>
+                </div>
+                {paymentMethod === "cod" && subtotal < COD_THRESHOLD && (
+                  <div className="flex justify-between text-gray-700">
+                    <span>COD Fee</span>
+                    <span className="font-semibold">+₹30</span>
+                  </div>
+                )}
+                {couponApplied && (
+                  <div className="flex justify-between text-green-700">
+                    <span>Coupon ({COUPON_CODE})</span>
+                    <span className="font-semibold">-₹{COUPON_DISCOUNT}</span>
+                  </div>
+                )}
                 <div
+                  className="h-px bg-gray-400"
                   style={{
-                    left: `calc(${slideProgress * 100}% - ${
-                      slideProgress * 48
-                    }px)`,
-                    transition: isSliding ? "none" : "left 0.3s",
+                    boxShadow: "0 1px 2px rgba(0,0,0,0.1)",
                   }}
-                  className="absolute z-10 top-1/2 -translate-y-1/2 w-12 h-12 bg-black text-white flex items-center justify-center rounded-full shadow-lg cursor-grab active:cursor-grabbing"
+                />
+                <div className="flex justify-between text-gray-900 text-xl font-bold">
+                  <span>Total</span>
+                  <span>₹{total.toFixed(2)}</span>
+                </div>
+              </div>
+
+              {/* Slide to Pay */}
+              <div className="mt-6">
+                <div
+                  ref={slideRef}
+                  className="w-full h-16 bg-[#e8ecf0] rounded-full relative select-none"
+                  style={{
+                    touchAction: "none",
+                    userSelect: "none",
+                    boxShadow: "inset 6px 6px 12px #c5cdd5, inset -6px -6px 12px #ffffff",
+                  }}
+                  onPointerDown={handleSlide}
                 >
-                  {slideProgress > 0.97 ? "✓" : "→"}
-                </div>
+                  <motion.div
+                    style={{
+                      left: `calc(${slideProgress * 100}% - ${slideProgress * 56}px)`,
+                      transition: isSliding ? "none" : "left 0.3s",
+                    }}
+                    className="absolute z-10 top-1/2 -translate-y-1/2 w-14 h-14 bg-gray-900 text-white flex items-center justify-center rounded-full shadow-lg cursor-grab active:cursor-grabbing"
+                  >
+                    {slideProgress > 0.97 ? "✓" : <ArrowRightIcon className="w-6 h-6" />}
+                  </motion.div>
 
-                <div className="absolute inset-0 flex items-center justify-center pointer-events-none text-base font-bold text-gray-700 opacity-80">
-                  {slideProgress > 0.97
-                    ? paymentMethod === "online"
-                      ? "Opening Razorpay..."
-                      : "Placing COD order..."
-                    : "Slide to Pay"}
+                  <div className="absolute inset-0 flex items-center justify-center pointer-events-none text-base font-bold text-gray-700">
+                    {slideProgress > 0.97
+                      ? paymentMethod === "online"
+                        ? "Opening Razorpay..."
+                        : "Placing COD order..."
+                      : "Slide to Pay"}
+                  </div>
                 </div>
               </div>
-            </div>
-          </section>
-        </div>
-
-        {/* Mobile product overview */}
-        <div className="md:hidden mt-8 px-2">
-          <h2 className="font-bold text-lg mb-4 text-blue-950">
-            Order Items
-          </h2>
-          <div className="flex gap-2 overflow-x-scroll scrollbar-thin">
-            {items.map((item) => (
-              <div
-                key={item.id}
-                className="w-32 shrink-0 bg-white rounded-lg shadow p-3 flex flex-col items-center gap-2"
-              >
-                <div className="w-16 h-16 bg-gray-200 rounded-xl flex items-center justify-center overflow-hidden">
-                  <Image
-                    src={
-                      item.variant?.product?.images?.[0] || "/placeholder.png"
-                    }
-                    alt={item.variant?.product?.title || ""}
-                    width={64}
-                    height={64}
-                    className="object-cover"
-                  />
-                </div>
-                <div className="text-xs font-semibold text-gray-900 truncate w-full text-center">
-                  {item.variant?.product?.title}
-                </div>
-                <span className="text-xs text-gray-600">
-                  x{item.quantity}
-                </span>
-              </div>
-            ))}
+            </motion.section>
           </div>
         </div>
       </div>
 
       {/* Add Address Modal */}
-      {showAddressModal && (
-        <div
-          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
-          onClick={() => setShowAddressModal(false)}
-        >
-          <div
-            className="bg-white rounded-2xl p-6 max-w-md w-full max-h-[90vh] overflow-y-auto"
-            onClick={(e) => e.stopPropagation()}
+      <AnimatePresence>
+        {showAddressModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/40 backdrop-blur-lg flex items-center justify-center z-50 p-4"
+            onClick={() => setShowAddressModal(false)}
           >
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-2xl font-bold text-blue-950">
-                Add New Address
-              </h2>
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              onClick={(e) => e.stopPropagation()}
+              className="bg-[#e8ecf0] rounded-3xl p-6 w-full max-w-md relative max-h-[90vh] overflow-y-auto"
+              style={{
+                boxShadow: "20px 20px 40px #c5cdd5, -20px -20px 40px #ffffff",
+              }}
+            >
               <button
                 onClick={() => setShowAddressModal(false)}
-                className="text-gray-500 hover:text-gray-700"
+                className="absolute top-4 right-4 text-gray-600 hover:text-gray-900"
               >
-                <svg
-                  className="w-6 h-6"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M6 18L18 6M6 6l12 12"
-                  />
-                </svg>
+                <XMarkIcon className="w-6 h-6" />
               </button>
-            </div>
-
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-1">
-                  Street Address
-                </label>
+              <h3 className="text-2xl font-bold text-gray-900 mb-6">Add New Address</h3>
+              <div className="space-y-4">
                 <input
                   type="text"
+                  required
+                  placeholder="Street Address"
                   value={newAddress.street}
-                  onChange={(e) =>
-                    setNewAddress({ ...newAddress, street: e.target.value })
-                  }
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2"
-                  placeholder="Enter street address"
+                  onChange={(e) => setNewAddress({ ...newAddress, street: e.target.value })}
+                  className="w-full px-4 py-3 rounded-xl bg-[#e8ecf0] text-gray-900 placeholder-gray-600"
+                  style={{
+                    boxShadow: "inset 4px 4px 8px #c5cdd5, inset -4px -4px 8px #ffffff",
+                  }}
                 />
-              </div>
-
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-1">
-                  Contact Number
-                </label>
                 <input
                   type="tel"
-                  value={newAddress.contactNumber}
+                  required
+                  placeholder="Alternate Phone Number"
+                  value={newAddress.alternativePhoneNumber}
                   onChange={(e) =>
                     setNewAddress({
                       ...newAddress,
-                      contactNumber: e.target.value
-                        .replace(/\D/g, "")
-                        .slice(0, 10),
+                      alternativePhoneNumber: e.target.value.replace(/\D/g, "").slice(0, 10),
                     })
                   }
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2"
-                  placeholder="10-digit mobile number"
+                  className="w-full px-4 py-3 rounded-xl bg-[#e8ecf0] text-gray-900 placeholder-gray-600"
+                  style={{
+                    boxShadow: "inset 4px 4px 8px #c5cdd5, inset -4px -4px 8px #ffffff",
+                  }}
                   maxLength={10}
                 />
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-1">
-                    City
-                  </label>
+                <div className="grid grid-cols-2 gap-3">
                   <input
                     type="text"
-                    value={newAddress.city}
-                    onChange={(e) =>
-                      setNewAddress({ ...newAddress, city: e.target.value })
-                    }
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2"
+                    required
                     placeholder="City"
+                    value={newAddress.city}
+                    onChange={(e) => setNewAddress({ ...newAddress, city: e.target.value })}
+                    className="w-full px-4 py-3 rounded-xl bg-[#e8ecf0] text-gray-900 placeholder-gray-600"
+                    style={{
+                      boxShadow: "inset 4px 4px 8px #c5cdd5, inset -4px -4px 8px #ffffff",
+                    }}
                   />
-                </div>
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-1">
-                    State
-                  </label>
                   <input
                     type="text"
-                    value={newAddress.state}
-                    onChange={(e) =>
-                      setNewAddress({ ...newAddress, state: e.target.value })
-                    }
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2"
                     placeholder="State"
+                    value={newAddress.state}
+                    required
+                    onChange={(e) => setNewAddress({ ...newAddress, state: e.target.value })}
+                    className="w-full px-4 py-3 rounded-xl bg-[#e8ecf0] text-gray-900 placeholder-gray-600"
+                    style={{
+                      boxShadow: "inset 4px 4px 8px #c5cdd5, inset -4px -4px 8px #ffffff",
+                    }}
                   />
                 </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-1">
-                    Postal Code
-                  </label>
+                <div className="grid grid-cols-2 gap-3">
                   <input
+                  required
                     type="text"
+                    placeholder="Postal Code"
                     value={newAddress.postalCode}
                     onChange={(e) =>
                       setNewAddress({
                         ...newAddress,
-                        postalCode: e.target.value
-                          .replace(/\D/g, "")
-                          .slice(0, 6),
+                        postalCode: e.target.value.replace(/\D/g, "").slice(0, 6),
                       })
                     }
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2"
-                    placeholder="PIN Code"
+                    className="w-full px-4 py-3 rounded-xl bg-[#e8ecf0] text-gray-900 placeholder-gray-600"
+                    style={{
+                      boxShadow: "inset 4px 4px 8px #c5cdd5, inset -4px -4px 8px #ffffff",
+                    }}
                     maxLength={6}
                   />
-                </div>
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-1">
-                    Country
-                  </label>
                   <input
                     type="text"
-                    value={newAddress.country}
-                    onChange={(e) =>
-                      setNewAddress({ ...newAddress, country: e.target.value })
-                    }
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2"
                     placeholder="Country"
+                    required
+                    value={newAddress.country}
+                    onChange={(e) => setNewAddress({ ...newAddress, country: e.target.value })}
+                    className="w-full px-4 py-3 rounded-xl bg-[#e8ecf0] text-gray-900 placeholder-gray-600"
+                    style={{
+                      boxShadow: "inset 4px 4px 8px #c5cdd5, inset -4px -4px 8px #ffffff",
+                    }}
                   />
                 </div>
-              </div>
-
-              <div className="flex gap-3 pt-4">
-                <button
-                  onClick={() => setShowAddressModal(false)}
-                  className="flex-1 bg-gray-200 text-gray-700 px-4 py-3 rounded-lg font-semibold hover:bg-gray-300 transition"
-                  disabled={savingAddress}
-                >
-                  Cancel
-                </button>
-                <button
+                <motion.button
+                  whileTap={tap}
                   onClick={handleAddAddress}
-                  className="flex-1 bg-blue-900 text-white px-4 py-3 rounded-lg font-semibold hover:bg-blue-700 transition disabled:opacity-50"
                   disabled={savingAddress}
+                  className="w-full bg-gray-900 text-white py-4 rounded-2xl font-bold disabled:opacity-50"
+                  style={{
+                    boxShadow: "8px 8px 16px #c5cdd5, -6px -6px 12px #ffffff",
+                  }}
                 >
                   {savingAddress ? "Saving..." : "Save Address"}
-                </button>
+                </motion.button>
               </div>
-            </div>
-          </div>
-        </div>
-      )}
-    </>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
   );
 };
 
