@@ -405,7 +405,7 @@ const TermsOfServicePage: React.FC = () => {
                 <ul className="list-disc list-inside text-sm text-gray-700 space-y-1 mb-3">
                   <li>You may close your account anytime through settings.</li>
                   <li>We reserve the right to suspend accounts for policy violations.</li>
-                  <li>Terms effective immediately upon posting on JottoSop.com.</li>
+                  <li>Terms effective immediately upon posting on jottoSop.in</li>
                 </ul>
                 <p className="text-xs text-gray-600">
                   Questions? Contact <span className="font-semibold text-blue-700">support@jottosop.com</span>

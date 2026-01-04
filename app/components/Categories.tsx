@@ -143,7 +143,7 @@ const MegaMenu: React.FC = () => {
                 {expandedCategory.children.map((l2Category) => (
                   <div key={l2Category.id}>
                     <Link
-                      href={`/category/${l2Category.id}`}
+                      href={`/category/${l2Category.slug}`}
                       className="block font-bold text-[var(--royal-gold)] text-sm mb-3 hover:underline"
                       onClick={() => setExpandedCategory(null)}
                     >
@@ -153,7 +153,7 @@ const MegaMenu: React.FC = () => {
                       {l2Category.children.map((l3Category) => (
                         <Link
                           key={l3Category.id}
-                          href={`/category/${l3Category.id}`}
+                          href={`/category/${l3Category.slug}`}
                           className="text-sm text-gray-400 hover:text-gray-100 transition-colors whitespace-nowrap"
                           onClick={() => setExpandedCategory(null)}
                         >

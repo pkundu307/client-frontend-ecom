@@ -180,7 +180,7 @@ const Footer = () => {
                 <div>
                   <p className="text-gray-400 text-sm">Email</p>
                   <a href="mailto:support@jotto.com" className="text-white hover:text-blue-400 transition-colors">
-                    support@jotto.com
+                    support@jotto.in
                   </a>
                 </div>
               </li>

@@ -71,7 +71,7 @@ const fetchProductsByCategory = async (
   limit = 10
 ): Promise<CategoryResponse> => {
   const response = await fetch(
-    `${process.env.NEXT_PUBLIC_API_URL}/products/featured/category/${categoryId}?page=${page}&limit=${limit}`
+    `${process.env.NEXT_PUBLIC_API_URL}/products/category-page/${categoryId}?page=${page}&limit=${limit}`
   );
 
   if (!response.ok) {
@@ -102,7 +102,7 @@ const cardVariants: Variants = {
 
 const CustomizableBadge = ({ className = "" }: { className?: string }) => (
   <span
-    className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-[10px] font-semibold bg-gradient-to-r from-blue-500 to-purple-500 text-white ${className}`}
+    className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-[10px] font-semibold bg-linear-to-r from-blue-500 to-purple-500 text-white ${className}`}
   >
     <SparklesIcon className="w-3 h-3" />
     Customizable
@@ -128,6 +128,7 @@ const ProductCardGrid = ({
             100
         )
       : 0;
+
 
   return (
     <motion.div
@@ -256,7 +257,7 @@ const ProductCardList = ({
           }}
         >
           {/* IMAGE */}
-          <div className="relative w-32 h-32 md:w-40 md:h-40 flex-shrink-0 rounded-2xl overflow-hidden bg-gray-200">
+          <div className="relative w-32 h-32 md:w-40 md:h-40 shrink-0 rounded-2xl overflow-hidden bg-gray-200">
             <Image
               src={product.images[0] || "/placeholder-product.jpg"}
               alt={product.title}
@@ -522,7 +523,7 @@ const ProductListing = ({
       return newSet;
     });
   };
-  
+
 
   // Get total product count
   const getTotalProducts = (): number => {

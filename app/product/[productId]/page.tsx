@@ -18,7 +18,6 @@ import {
   WrenchScrewdriverIcon,
   SparklesIcon,
   CheckCircleIcon,
-
 } from "@heroicons/react/24/outline";
 import { HeartIcon as HeartSolid, StarIcon as StarSolid } from "@heroicons/react/24/solid";
 
@@ -40,7 +39,7 @@ const CustomizationModal = dynamic(() => import("./(component)/CustomizationModa
 });
 
 // =============================================
-// MAIN COMPONENT
+// TYPES
 // =============================================
 interface ProductPageProps {
   params: Promise<{
@@ -48,6 +47,11 @@ interface ProductPageProps {
   }>;
 }
 
+
+
+// =============================================
+// MAIN COMPONENT
+// =============================================
 export default function ProductPage({ params }: ProductPageProps) {
   const resolvedParams = use(params instanceof Promise ? params : Promise.resolve(params));
   const { productId } = resolvedParams;
@@ -118,6 +122,75 @@ export default function ProductPage({ params }: ProductPageProps) {
     <div className="min-h-screen bg-[#e8ecf0]">
       <Toaster position="top-center" reverseOrder={false} />
 
+      {/* JSON-LD Schemas */}
+      {product && (
+        <>
+          <script
+            type="application/ld+json"
+            dangerouslySetInnerHTML={{
+              __html: JSON.stringify({
+                '@context': 'https://schema.org/',
+                '@type': 'Product',
+                name: product.title,
+                image: product.images,
+                description: product.description.replace(/<[^>]*>/g, ''),
+                sku: product.id,
+                brand: {
+                  '@type': 'Brand',
+                  name: product.business.name,
+                },
+                offers: {
+                  '@type': 'Offer',
+                  url: `${process.env.NEXT_PUBLIC_SITE_URL}/product/${product.id}`,
+                  priceCurrency: 'INR',
+                  price: selectedVariant?.price || product.variants[0]?.price || 0,
+                  availability:
+                    currentStock > 0
+                      ? 'https://schema.org/InStock'
+                      : 'https://schema.org/OutOfStock',
+                  itemCondition: 'https://schema.org/NewCondition',
+                },
+                aggregateRating: product.reviews.length > 0 ? {
+                  '@type': 'AggregateRating',
+                  ratingValue: 5,
+                  reviewCount: product.reviews.length,
+                } : undefined,
+              }),
+            }}
+          />
+
+          <script
+            type="application/ld+json"
+            dangerouslySetInnerHTML={{
+              __html: JSON.stringify({
+                '@context': 'https://schema.org',
+                '@type': 'BreadcrumbList',
+                itemListElement: [
+                  {
+                    '@type': 'ListItem',
+                    position: 1,
+                    name: 'Home',
+                    item: process.env.NEXT_PUBLIC_SITE_URL,
+                  },
+                  {
+                    '@type': 'ListItem',
+                    position: 2,
+                    name: breadcrumbPath,
+                    item: `${process.env.NEXT_PUBLIC_SITE_URL}/category/${product.categoryId}`,
+                  },
+                  {
+                    '@type': 'ListItem',
+                    position: 3,
+                    name: product.title,
+                    item: `${process.env.NEXT_PUBLIC_SITE_URL}/product/${product.id}`,
+                  },
+                ],
+              }),
+            }}
+          />
+        </>
+      )}
+
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Breadcrumb */}
         <motion.nav
@@ -132,7 +205,7 @@ export default function ProductPage({ params }: ProductPageProps) {
             <span className="hover:text-gray-700 transition-colors cursor-pointer">{breadcrumbPath}</span>
             <span className="text-gray-300">/</span>
             <span className="text-gray-900 font-medium">
-              {product.title.length > 13 ? product.title.slice(0, 20) : product.title}
+              {product.title.length > 20 ? `${product.title.slice(0, 20)}...` : product.title}
             </span>
           </div>
         </motion.nav>
@@ -156,7 +229,7 @@ export default function ProductPage({ params }: ProductPageProps) {
               {/* Title and Action Buttons */}
               <div className="flex items-start justify-between gap-3">
                 <h1 className="flex-1 text-2xl sm:text-3xl lg:text-4xl font-semibold text-gray-900 leading-tight break-words overflow-hidden">
-                  {product.title.length > 13 ? product.title.slice(0, 30) : product.title}
+                  {product.title.length > 30 ? `${product.title.slice(0, 30)}...` : product.title}
                 </h1>
 
                 {/* Action Buttons */}
@@ -395,7 +468,7 @@ export default function ProductPage({ params }: ProductPageProps) {
                   }}
                   onClick={handleAddToCart}
                   disabled={!canPurchase || isAddingToCart || !localStorage.getItem("token")}
-                  className={`flex-1 py-4 px-6 rounded-2xl font-bold transition-all duration-200 ease-out flex items-center justify-center gap-2 transform motion-safe:hover:scale-[1.03] motion-safe:active:scale-[0.97] ${
+                  className={`flex-1 py-4 px-6 rounded-2xl font-bold transition-all duration-200 ease-out flex items-center justify-center gap-2 ${
                     isAddingToCart
                       ? "bg-[#e8ecf0] cursor-wait text-gray-600"
                       : localStorage.getItem("token") && canPurchase
