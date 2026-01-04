@@ -9,11 +9,12 @@ import { setUser, logoutUser } from "../store/userSlice";
 import Link from "next/link";
 import toast from "react-hot-toast";
 import { selectUniqueItemCount } from "../store/cartSlice";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import MegaMenu from "./Categories";
 import { AppDispatch } from "../store/store";
 import Image from "next/image";
 import { motion, AnimatePresence, Variants } from "framer-motion";
+import axios, { AxiosError } from "axios";
 
 // --- Search Interfaces ---
 interface ProductSearchResult {
@@ -31,6 +32,17 @@ interface DisplayResult {
   subtext?: string;
   image?: string;
 }
+
+// --- Notification Interface ---
+interface Notification {
+  id: string;
+  isRead: boolean;
+}
+
+interface NotificationResponse {
+  notifications: Notification[];
+}
+
 function useDebounce<T>(value: T, delay: number): T {
   const [debouncedValue, setDebouncedValue] = useState<T>(value);
   useEffect(() => {
@@ -43,6 +55,7 @@ function useDebounce<T>(value: T, delay: number): T {
 export default function Navbar() {
   const cartCount = useSelector(selectUniqueItemCount);
   const pathname = usePathname();
+  const router = useRouter();
   const dispatch = useDispatch<AppDispatch>();
   const user = useSelector((state: RootState) => state.user);
 
@@ -58,6 +71,9 @@ export default function Navbar() {
   const [lastScrollY, setLastScrollY] = useState(0);
   const [isScrollingUp, setIsScrollingUp] = useState(false);
   const [lastScrollY2, setLastScrollY2] = useState(0);
+
+  // --- Notification Count State ---
+  const [notificationCount, setNotificationCount] = useState<number>(0);
 
   // --- Live Search State ---
   const [searchQuery, setSearchQuery] = useState("");
@@ -77,15 +93,17 @@ export default function Navbar() {
       }
       setLastScrollY2(currentScrollY);
     };
-    window.addEventListener('scroll', handleScroll, { passive: true });
-    return () => window.removeEventListener('scroll', handleScroll);
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => window.removeEventListener("scroll", handleScroll);
   }, [lastScrollY2]);
+
   useEffect(() => {
-    const checkScreenSize = () => setIsMobile(window.innerWidth < 768);
+    const checkScreenSize = () => setIsMobile(window.innerWidth < 1024);
     checkScreenSize();
     window.addEventListener("resize", checkScreenSize);
     return () => window.removeEventListener("resize", checkScreenSize);
   }, []);
+
   useEffect(() => {
     const handleScroll = () => {
       if (window.scrollY > lastScrollY) setShowSearchBar(false);
@@ -96,6 +114,44 @@ export default function Navbar() {
     return () => window.removeEventListener("scroll", handleScroll);
   }, [isMobile, lastScrollY]);
 
+  // --- Fetch Notification Count ---
+  useEffect(() => {
+    const fetchNotificationCount = async (): Promise<void> => {
+      const token = localStorage.getItem("token");
+      if (!token) {
+        setNotificationCount(0);
+        return;
+      }
+
+      try {
+        const response = await axios.get<NotificationResponse>(
+          `${process.env.NEXT_PUBLIC_API_URL || baseUrl}/notifications/customer`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
+        const unreadCount = response.data.notifications.filter((n) => !n.isRead).length;
+        setNotificationCount(unreadCount);
+      } catch (error) {
+        if (error instanceof AxiosError) {
+          console.error("Failed to fetch notification count:", error.message);
+        } else {
+          console.error("Failed to fetch notification count:", error);
+        }
+        setNotificationCount(0);
+      }
+    };
+
+    fetchNotificationCount();
+
+    // Poll for new notifications every 30 seconds
+    const interval = setInterval(fetchNotificationCount, 30000);
+
+    return () => clearInterval(interval);
+  }, [user.name]); // Re-fetch when user logs in/out
+
   // --- AUTH ---
   useEffect(() => {
     const storedToken = localStorage.getItem("token");
@@ -104,6 +160,7 @@ export default function Navbar() {
       dispatch(setUser(storedUser));
     }
   }, [dispatch]);
+
   const handleLoginSignup = async () => {
     if (!email || !password || (isSignUp && !name)) {
       toast.error("Please fill in all fields.", {
@@ -155,10 +212,12 @@ export default function Navbar() {
       });
     }
   };
+
   const handleGoogleLoginSuccess = async (credentialResponse: { credential?: string }) => {
     if (!credentialResponse?.credential) {
       toast.error("No credentials received from Google", {
-        duration: 3000, position: "top-right",
+        duration: 3000,
+        position: "top-right",
         style: { background: "#1f2937", color: "#fff", border: "1px solid #ef4444" },
         iconTheme: { primary: "#ef4444", secondary: "#fff" },
       });
@@ -204,18 +263,13 @@ export default function Navbar() {
       });
     }
   };
-  useEffect(() => {
-  const checkScreenSize = () => setIsMobile(window.innerWidth < 1024); // now includes tablets
-  checkScreenSize();
-  window.addEventListener("resize", checkScreenSize);
-  return () => window.removeEventListener("resize", checkScreenSize);
-}, []);
 
   const handleLogout = () => {
     dispatch(logoutUser());
     localStorage.removeItem("user");
     localStorage.removeItem("token");
     setProfileDropdownOpen(false);
+    setNotificationCount(0); // Reset notification count
     toast.success("👋 Logged out successfully! See you soon!", {
       duration: 3000,
       position: "top-right",
@@ -227,11 +281,17 @@ export default function Navbar() {
 
   // --- Live Search Logic ---
   useEffect(() => {
-    if (debouncedQuery.length < 2) { setSearchResults([]); setSearchLoading(false); return; }
+    if (debouncedQuery.length < 2) {
+      setSearchResults([]);
+      setSearchLoading(false);
+      return;
+    }
     setSearchLoading(true);
     (async () => {
       try {
-        const apiUrl = `${process.env.NEXT_PUBLIC_API_URL || baseUrl}/products/search?query=${encodeURIComponent(debouncedQuery)}`;
+        const apiUrl = `${process.env.NEXT_PUBLIC_API_URL || baseUrl}/products/search?query=${encodeURIComponent(
+          debouncedQuery
+        )}`;
         const response = await fetch(apiUrl);
         if (!response.ok) throw new Error("Search failed");
         const data: ProductSearchResult[] = await response.json();
@@ -253,199 +313,238 @@ export default function Navbar() {
   }, [debouncedQuery]);
 
   const tapBounce = { scale: 0.96 };
-const dropdownVariants: Variants = {
-  hidden: { opacity: 0, y: -6, scale: 0.98 },
-  show: {
-    opacity: 1,
-    y: 0,
-    scale: 1,
-    transition: {
-      type: "spring",
-      stiffness: 420,
-      damping: 32,
-      mass: 0.7,
+  const dropdownVariants: Variants = {
+    hidden: { opacity: 0, y: -6, scale: 0.98 },
+    show: {
+      opacity: 1,
+      y: 0,
+      scale: 1,
+      transition: {
+        type: "spring",
+        stiffness: 420,
+        damping: 32,
+        mass: 0.7,
+      },
     },
-  },
-  exit: {
-    opacity: 0,
-    y: -6,
-    scale: 0.98,
-    transition: { duration: 0.18 },
-  },
-};
+    exit: {
+      opacity: 0,
+      y: -6,
+      scale: 0.98,
+      transition: { duration: 0.18 },
+    },
+  };
 
+  // Handle notification click
+  const handleNotificationClick = () => {
+    router.push("/notifications");
+  };
 
   return (
     <>
       <GoogleOAuthProvider clientId="939883123761-up76q4mal36sd3quh558ssccr1cqc035.apps.googleusercontent.com">
-        <nav 
+        <nav
           className="py-4 px-6 z-23 sticky top-0 bg-[#e8ecf0]"
-          style={{ boxShadow: '0 4px 12px rgba(197, 205, 213, 0.5), 0 -2px 8px rgba(255, 255, 255, 0.8)' }}
+          style={{ boxShadow: "0 4px 12px rgba(197, 205, 213, 0.5), 0 -2px 8px rgba(255, 255, 255, 0.8)" }}
         >
           <div className="max-w-7xl mx-auto flex justify-between items-center">
             {/* LOGO */}
             <Link href="/" className="flex items-center gap-3">
-              <div className="rounded-2xl p-1" style={{ boxShadow: '6px 6px 12px #c5cdd5, -6px -6px 12px #ffffff' }}>
+              <div
+                className="rounded-2xl p-1"
+                style={{ boxShadow: "6px 6px 12px #c5cdd5, -6px -6px 12px #ffffff" }}
+              >
                 <Image src="/logo.png" alt="Jotto Logo" width={56} height={56} className="rounded-xl" />
               </div>
             </Link>
 
             {/* SEARCH FIELD w/ Live Dropdown */}
             {!isMobile && (
-            <div className="flex-1 mx-6 relative">
-              <div className="relative w-full max-w-xl">
-                <input
-                  type="text"
-                  value={searchQuery}
-                  onChange={e => setSearchQuery(e.target.value)}
-                  onFocus={() => setSearchFocused(true)}
-                  onBlur={() => setTimeout(() => setSearchFocused(false), 120)}
-                  placeholder="Search for products, brands..."
-                  className={`w-full pl-6 pr-14 py-3 rounded-2xl bg-[#e8ecf0] transition-all duration-300 focus:outline-none text-gray-900 ${ isScrollingUp ? 'placeholder-yellow-600' : 'placeholder-gray-700' }`}
-                  style={{ boxShadow: 'inset 4px 4px 8px #c5cdd5, inset -4px -4px 8px #ffffff' }}
-                />
-                {!searchLoading && searchQuery && (
-                  <motion.button
-                    initial={{ scale: 0 }} animate={{ scale: 1 }} whileTap={{ scale: 0.9 }}
-                    onClick={() => setSearchQuery("")}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 p-2 text-gray-500 hover:text-gray-900 rounded-full bg-[#e8ecf0]"
-                  ><X size={18} /></motion.button>
-                )}
-                {searchLoading && (
-                  <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 animate-spin text-gray-400" size={18} />
-                )}
-                <AnimatePresence>
-                  {searchFocused && searchQuery.length > 1 && (
-                    <motion.div
-                      initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }}
-                      className="absolute left-0 right-0 mt-2 bg-[#e8ecf0] rounded-2xl shadow-lg border border-gray-200 z-20"
-                      style={{ boxShadow: '12px 12px 24px #c5cdd5, -12px -12px 24px #ffffff' }}
+              <div className="flex-1 mx-6 relative">
+                <div className="relative w-full max-w-xl">
+                  <input
+                    type="text"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    onFocus={() => setSearchFocused(true)}
+                    onBlur={() => setTimeout(() => setSearchFocused(false), 120)}
+                    placeholder="Search for products, brands..."
+                    className={`w-full pl-6 pr-14 py-3 rounded-2xl bg-[#e8ecf0] transition-all duration-300 focus:outline-none text-gray-900 ${
+                      isScrollingUp ? "placeholder-yellow-600" : "placeholder-gray-700"
+                    }`}
+                    style={{ boxShadow: "inset 4px 4px 8px #c5cdd5, inset -4px -4px 8px #ffffff" }}
+                  />
+                  {!searchLoading && searchQuery && (
+                    <motion.button
+                      initial={{ scale: 0 }}
+                      animate={{ scale: 1 }}
+                      whileTap={{ scale: 0.9 }}
+                      onClick={() => setSearchQuery("")}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 p-2 text-gray-500 hover:text-gray-900 rounded-full bg-[#e8ecf0]"
                     >
-                      {searchResults.length ? searchResults.map((item) => (
-                        <Link href={`/product/${item.id}`} key={item.id} onClick={() => setSearchFocused(false)}>
-                          <div className="flex items-center gap-3 px-4 py-3 hover:bg-gray-100 transition">
-                            {item.image && (
-                              <div className="w-10 h-10 rounded-xl overflow-hidden bg-white flex-shrink-0 border border-gray-100">
-                                <Image width={40} height={40} src={item.image} alt={item.text} className="w-full h-full object-cover" />
+                      <X size={18} />
+                    </motion.button>
+                  )}
+                  {searchLoading && (
+                    <Loader2
+                      className="absolute right-3 top-1/2 -translate-y-1/2 animate-spin text-gray-400"
+                      size={18}
+                    />
+                  )}
+                  <AnimatePresence>
+                    {searchFocused && searchQuery.length > 1 && (
+                      <motion.div
+                        initial={{ opacity: 0, y: -8 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -8 }}
+                        className="absolute left-0 right-0 mt-2 bg-[#e8ecf0] rounded-2xl shadow-lg border border-gray-200 z-20"
+                        style={{ boxShadow: "12px 12px 24px #c5cdd5, -12px -12px 24px #ffffff" }}
+                      >
+                        {searchResults.length ? (
+                          searchResults.map((item) => (
+                            <Link href={`/product/${item.id}`} key={item.id} onClick={() => setSearchFocused(false)}>
+                              <div className="flex items-center gap-3 px-4 py-3 hover:bg-gray-100 transition">
+                                {item.image && (
+                                  <div className="w-10 h-10 rounded-xl overflow-hidden bg-white flex-shrink-0 border border-gray-100">
+                                    <Image
+                                      width={40}
+                                      height={40}
+                                      src={item.image}
+                                      alt={item.text}
+                                      className="w-full h-full object-cover"
+                                    />
+                                  </div>
+                                )}
+                                <div>
+                                  <span className="text-gray-900 font-semibold text-sm">{item.text}</span>
+                                  <div className="text-gray-500 text-xs">{item.subtext}</div>
+                                </div>
                               </div>
-                            )}
-                            <div>
-                              <span className="text-gray-900 font-semibold text-sm">{item.text}</span>
-                              <div className="text-gray-500 text-xs">{item.subtext}</div>
-                            </div>
+                            </Link>
+                          ))
+                        ) : (
+                          <div className="py-6 text-center text-gray-500 font-medium">No results found.</div>
+                        )}
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+              </div>
+            )}
+
+            {/* CART + PROFILE + NOTIFICATIONS */}
+            <div className="flex items-center space-x-4">
+              {/* Cart */}
+              <Link href="/cart" aria-label="Cart">
+                <motion.button
+                  whileTap={tapBounce}
+                  className="relative text-royal-gold p-3 rounded-xl bg-[#e8ecf0]"
+                  style={{ boxShadow: "6px 6px 12px #c5cdd5, -6px -6px 12px #ffffff" }}
+                >
+                  <ShoppingCart className="w-6 h-6" />
+                  {cartCount > 0 && (
+                    <motion.span
+                      initial={{ scale: 0.6, opacity: 0 }}
+                      animate={{ scale: 1, opacity: 1 }}
+                      transition={{ type: "spring", stiffness: 500, damping: 18 }}
+                      className="absolute -top-2 -right-2 bg-royal-gold text-white text-xs px-2 py-0.5 rounded-full font-bold"
+                      style={{ boxShadow: "2px 2px 4px #c5cdd5" }}
+                    >
+                      {cartCount}
+                    </motion.span>
+                  )}
+                </motion.button>
+              </Link>
+
+              {/* Notification */}
+              <motion.button
+                whileTap={tapBounce}
+                onClick={handleNotificationClick}
+                className="relative text-royal-gold p-3 rounded-xl bg-[#e8ecf0]"
+                style={{ boxShadow: "6px 6px 12px #c5cdd5, -6px -6px 12px #ffffff" }}
+                aria-label="Notifications"
+              >
+                <Bell className="w-6 h-6" />
+                {notificationCount > 0 && (
+                  <motion.span
+                    initial={{ scale: 0.6, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    transition={{ type: "spring", stiffness: 500, damping: 18 }}
+                    className="absolute -top-2 -right-2 bg-red-500 text-white text-xs px-2 py-0.5 rounded-full font-bold"
+                    style={{ boxShadow: "2px 2px 4px #c5cdd5" }}
+                  >
+                    {notificationCount > 9 ? "9+" : notificationCount}
+                  </motion.span>
+                )}
+              </motion.button>
+
+              {/* Profile Dropdown */}
+              <div className="relative">
+                <motion.button
+                  whileTap={tapBounce}
+                  onClick={() => setProfileDropdownOpen(!profileDropdownOpen)}
+                  className="text-royal-gold p-3 rounded-xl bg-[#e8ecf0]"
+                  style={{ boxShadow: "6px 6px 12px #c5cdd5, -6px -6px 12px #ffffff" }}
+                  aria-haspopup="menu"
+                  aria-expanded={profileDropdownOpen}
+                >
+                  <User className="w-6 h-6" />
+                </motion.button>
+                <AnimatePresence>
+                  {profileDropdownOpen && (
+                    <motion.div
+                      key="profile-dd"
+                      variants={dropdownVariants}
+                      initial="hidden"
+                      animate="show"
+                      exit="exit"
+                      className="absolute right-0 mt-3 w-56 bg-[#e8ecf0] rounded-2xl z-50 overflow-hidden"
+                      style={{ boxShadow: "12px 12px 24px #c5cdd5, -12px -12px 24px #ffffff" }}
+                    >
+                      {user.name ? (
+                        <>
+                          <div className="px-4 py-3 border-b border-gray-300/30 text-gray-900 font-semibold">
+                            Welcome, {user.name}
                           </div>
-                        </Link>
-                      )) : (
-                        <div className="py-6 text-center text-gray-500 font-medium">No results found.</div>
+                          <motion.a
+                            whileTap={tapBounce}
+                            href="/profile"
+                            className="block px-4 py-3 hover:bg-gray-300/20 text-gray-800 transition-colors"
+                          >
+                            Profile
+                          </motion.a>
+                          <motion.a
+                            whileTap={tapBounce}
+                            href="/orders"
+                            className="block px-4 py-3 hover:bg-gray-300/20 text-gray-800 transition-colors"
+                          >
+                            My Orders
+                          </motion.a>
+                          <motion.button
+                            whileTap={tapBounce}
+                            onClick={handleLogout}
+                            className="block w-full text-left px-4 py-3 hover:bg-gray-300/20 text-gray-800 transition-colors"
+                          >
+                            Logout
+                          </motion.button>
+                        </>
+                      ) : (
+                        <motion.button
+                          whileTap={tapBounce}
+                          onClick={() => setIsModalOpen(true)}
+                          className="block w-full text-left px-4 py-3 text-gray-800 hover:bg-gray-300/20 transition-colors"
+                        >
+                          Login
+                        </motion.button>
                       )}
                     </motion.div>
                   )}
                 </AnimatePresence>
               </div>
             </div>
-            )}
-            {/* CART + PROFILE + NOTIFICATIONS */}
-<div className="flex items-center space-x-4">
-  {/* Cart */}
-  <Link href="/cart" aria-label="Cart">
-    <motion.button
-      whileTap={tapBounce}
-      className="relative text-royal-gold p-3 rounded-xl bg-[#e8ecf0]"
-      style={{ boxShadow: '6px 6px 12px #c5cdd5, -6px -6px 12px #ffffff' }}
-    >
-      <ShoppingCart className="w-6 h-6" />
-      {cartCount > 0 && (
-        <motion.span
-          initial={{ scale: 0.6, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          transition={{ type: "spring", stiffness: 500, damping: 18 }}
-          className="absolute -top-2 -right-2 bg-royal-gold text-white text-xs px-2 py-0.5 rounded-full font-bold"
-          style={{ boxShadow: '2px 2px 4px #c5cdd5' }}
-        >
-          {cartCount}
-        </motion.span>
-      )}
-    </motion.button>
-  </Link>
-
-  {/* Dummy Notification */}
-  <motion.button
-    whileTap={tapBounce}
-
-    className="relative text-royal-gold p-3 rounded-xl bg-[#e8ecf0]"
-    style={{ boxShadow: '6px 6px 12px #c5cdd5, -6px -6px 12px #ffffff' }}
-    aria-label="Notifications"
-  >
-    <Link href="/notifications" aria-label="Notifications">
-    <Bell className="w-6 h-6" />
-    </Link>
-    {/* Dummy badge */}
-    <motion.span
-      initial={{ scale: 0.6, opacity: 0 }}
-      animate={{ scale: 1, opacity: 1 }}
-      transition={{ type: "spring", stiffness: 500, damping: 18 }}
-      className="absolute -top-2 -right-2 bg-red-500 text-white text-xs px-2 py-0.5 rounded-full font-bold"
-      style={{ boxShadow: '2px 2px 4px #c5cdd5' }}
-    >
-      3
-    </motion.span>
-  </motion.button>
-
-  {/* Profile Dropdown */}
-  <div className="relative">
-    <motion.button
-      whileTap={tapBounce}
-      onClick={() => setProfileDropdownOpen(!profileDropdownOpen)}
-      className="text-royal-gold p-3 rounded-xl bg-[#e8ecf0]"
-      style={{ boxShadow: '6px 6px 12px #c5cdd5, -6px -6px 12px #ffffff' }}
-      aria-haspopup="menu"
-      aria-expanded={profileDropdownOpen}
-    >
-      <User className="w-6 h-6" />
-    </motion.button>
-    <AnimatePresence>
-      {profileDropdownOpen && (
-        <motion.div
-          key="profile-dd"
-          variants={dropdownVariants}
-          initial="hidden"
-          animate="show"
-          exit="exit"
-          className="absolute right-0 mt-3 w-56 bg-[#e8ecf0] rounded-2xl z-50 overflow-hidden"
-          style={{ boxShadow: '12px 12px 24px #c5cdd5, -12px -12px 24px #ffffff' }}
-        >
-          {user.name ? (
-            <>
-              <div className="px-4 py-3 border-b border-gray-300/30 text-gray-900 font-semibold">
-                Welcome, {user.name}
-              </div>
-              <motion.a whileTap={tapBounce} href="/profile" className="block px-4 py-3 hover:bg-gray-300/20 text-gray-800 transition-colors">Profile</motion.a>
-              <motion.a whileTap={tapBounce} href="/orders" className="block px-4 py-3 hover:bg-gray-300/20 text-gray-800 transition-colors">My Orders</motion.a>
-              <motion.button
-                whileTap={tapBounce}
-                onClick={handleLogout}
-                className="block w-full text-left px-4 py-3 hover:bg-gray-300/20 text-gray-800 transition-colors"
-              >
-                Logout
-              </motion.button>
-            </>
-          ) : (
-            <motion.button
-              whileTap={tapBounce}
-              onClick={() => setIsModalOpen(true)}
-              className="block w-full text-left px-4 py-3 text-gray-800 hover:bg-gray-300/20 transition-colors"
-            >
-              Login
-            </motion.button>
-          )}
-        </motion.div>
-      )}
-    </AnimatePresence>
-  </div>
-</div>
           </div>
         </nav>
-        {/* AUTH MODAL, MOBILE, MEGAMEU, ETC remain as in your original code: unchanged */}
+
+        {/* AUTH MODAL */}
         <AnimatePresence>
           {isModalOpen && (
             <motion.div
@@ -462,15 +561,17 @@ const dropdownVariants: Variants = {
                 exit={{ opacity: 0, y: 18, scale: 0.98 }}
                 transition={{ type: "spring", stiffness: 420, damping: 32, mass: 0.8 }}
                 className="relative bg-[#e8ecf0] p-8 rounded-3xl w-96 max-w-[90vw]"
-                style={{ boxShadow: '20px 20px 40px #c5cdd5, -20px -20px 40px #ffffff' }}
+                style={{ boxShadow: "20px 20px 40px #c5cdd5, -20px -20px 40px #ffffff" }}
               >
                 <motion.button
                   whileTap={tapBounce}
                   className="absolute -top-3 -right-3 text-gray-700 bg-[#e8ecf0] rounded-full w-10 h-10 flex items-center justify-center transition-all duration-200 font-bold text-xl"
-                  style={{ boxShadow: '6px 6px 12px #c5cdd5, -6px -6px 12px #ffffff' }}
+                  style={{ boxShadow: "6px 6px 12px #c5cdd5, -6px -6px 12px #ffffff" }}
                   onClick={() => setIsModalOpen(false)}
                   aria-label="Close"
-                >✖</motion.button>
+                >
+                  ✖
+                </motion.button>
                 <h2 className="text-3xl font-bold text-center mb-8 text-gray-900">
                   {isSignUp ? "Join Jotto" : "Welcome Back"}
                 </h2>
@@ -480,7 +581,7 @@ const dropdownVariants: Variants = {
                       type="text"
                       placeholder="Full Name"
                       className="w-full px-5 py-3 rounded-2xl bg-[#e8ecf0] text-gray-900 placeholder-gray-600 transition-all duration-300 focus:outline-none"
-                      style={{ boxShadow: 'inset 4px 4px 8px #c5cdd5, inset -4px -4px 8px #ffffff' }}
+                      style={{ boxShadow: "inset 4px 4px 8px #c5cdd5, inset -4px -4px 8px #ffffff" }}
                       value={name}
                       onChange={(e) => setName(e.target.value)}
                     />
@@ -491,7 +592,7 @@ const dropdownVariants: Variants = {
                     type="email"
                     placeholder="Email Address"
                     className="w-full px-5 py-3 rounded-2xl bg-[#e8ecf0] text-gray-900 placeholder-gray-600 transition-all duration-300 focus:outline-none"
-                    style={{ boxShadow: 'inset 4px 4px 8px #c5cdd5, inset -4px -4px 8px #ffffff' }}
+                    style={{ boxShadow: "inset 4px 4px 8px #c5cdd5, inset -4px -4px 8px #ffffff" }}
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                   />
@@ -501,7 +602,7 @@ const dropdownVariants: Variants = {
                     type="password"
                     placeholder="Password"
                     className="w-full px-5 py-3 rounded-2xl bg-[#e8ecf0] text-gray-900 placeholder-gray-600 transition-all duration-300 focus:outline-none"
-                    style={{ boxShadow: 'inset 4px 4px 8px #c5cdd5, inset -4px -4px 8px #ffffff' }}
+                    style={{ boxShadow: "inset 4px 4px 8px #c5cdd5, inset -4px -4px 8px #ffffff" }}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                   />
@@ -509,26 +610,28 @@ const dropdownVariants: Variants = {
                 <motion.button
                   whileTap={tapBounce}
                   className="w-full bg-[#e8ecf0] py-4 rounded-2xl font-bold text-lg mb-6 text-gray-900 transition-all duration-300"
-                  style={{ boxShadow: '8px 8px 16px #c5cdd5, -8px -8px 16px #ffffff' }}
+                  style={{ boxShadow: "8px 8px 16px #c5cdd5, -8px -8px 16px #ffffff" }}
                   onClick={handleLoginSignup}
                 >
                   {isSignUp ? "Create Account" : "Sign In"}
                 </motion.button>
-                {/* Divider */}
                 <div className="relative mb-6">
                   <div className="absolute inset-0 flex items-center">
                     <div className="w-full border-t border-gray-400/30" />
                   </div>
                   <div className="relative flex justify-center text-sm">
-                    <span className="px-4 py-1 rounded-full bg-[#e8ecf0] text-gray-700 font-semibold"
-                      style={{ boxShadow: 'inset 2px 2px 4px #c5cdd5, inset -2px -2px 4px #ffffff' }}>
+                    <span
+                      className="px-4 py-1 rounded-full bg-[#e8ecf0] text-gray-700 font-semibold"
+                      style={{ boxShadow: "inset 2px 2px 4px #c5cdd5, inset -2px -2px 4px #ffffff" }}
+                    >
                       or
                     </span>
                   </div>
                 </div>
-                {/* GOOGLE LOGIN */}
-                <div className="w-full rounded-2xl overflow-hidden"
-                  style={{ boxShadow: '4px 4px 8px #c5cdd5, -4px -4px 8px #ffffff' }}>
+                <div
+                  className="w-full rounded-2xl overflow-hidden"
+                  style={{ boxShadow: "4px 4px 8px #c5cdd5, -4px -4px 8px #ffffff" }}
+                >
                   <GoogleLogin
                     onSuccess={handleGoogleLoginSuccess}
                     onError={() => console.log("Google Login Failed")}
@@ -538,7 +641,6 @@ const dropdownVariants: Variants = {
                     text={isSignUp ? "signup_with" : "signin_with"}
                   />
                 </div>
-                {/* TOGGLE SIGNIN/SIGNUP */}
                 <p className="text-center text-sm mt-6 text-gray-700">
                   {isSignUp ? "Already have an account?" : "Don't have an account?"}{" "}
                   <button
@@ -552,7 +654,9 @@ const dropdownVariants: Variants = {
             </motion.div>
           )}
         </AnimatePresence>
+
         <MegaMenu />
+
         {isMobile && showSearchBar && !pathname.includes("/search") && (
           <Link href="/search">
             <motion.div
@@ -560,7 +664,7 @@ const dropdownVariants: Variants = {
               transition={{ type: "spring", stiffness: 500, damping: 30 }}
               className="fixed bottom-4 left-4 right-4 bg-[#e8ecf0] py-3 px-3 z-[9999] rounded-full"
               style={{
-                boxShadow: '8px 8px 16px #c5cdd5, -8px -8px 16px #ffffff'
+                boxShadow: "8px 8px 16px #c5cdd5, -8px -8px 16px #ffffff",
               }}
             >
               <div className="relative w-full">
@@ -568,7 +672,7 @@ const dropdownVariants: Variants = {
                   type="text"
                   placeholder="Search premium 3D products..."
                   className="w-full pl-6 pr-14 py-3 rounded-full bg-[#e8ecf0] placeholder:text-gray-600 text-gray-900 focus:outline-none"
-                  style={{ boxShadow: 'inset 3px 3px 6px #c5cdd5, inset -3px -3px 6px #ffffff' }}
+                  style={{ boxShadow: "inset 3px 3px 6px #c5cdd5, inset -3px -3px 6px #ffffff" }}
                   value={mobileSearchTerm}
                   onChange={(e) => setMobileSearchTerm(e.target.value)}
                   readOnly
@@ -577,7 +681,7 @@ const dropdownVariants: Variants = {
                   whileTap={tapBounce}
                   type="button"
                   className="absolute right-2 top-1/2 -translate-y-1/2 h-10 w-10 rounded-full bg-[#e8ecf0] flex items-center justify-center transition-all duration-200"
-                  style={{ boxShadow: '4px 4px 8px #c5cdd5, -4px -4px 8px #ffffff' }}
+                  style={{ boxShadow: "4px 4px 8px #c5cdd5, -4px -4px 8px #ffffff" }}
                 >
                   <Search className="text-gray-700 w-5 h-5" />
                 </motion.button>
