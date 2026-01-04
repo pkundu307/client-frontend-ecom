@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import { RootState, AppDispatch } from "../store/store";
 import {
@@ -48,7 +48,8 @@ const RoyalCart = () => {
   
   // Safe Accessor for Redux State
   const cartState = useSelector((state: RootState) => state.cart);
-  const cartItems = cartState?.items || [];
+    const cartItems = useMemo(() => cartState?.items || [], [cartState?.items]);
+
   const isAuthenticated = cartState?.isAuthenticated || false;
 
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
@@ -62,11 +63,11 @@ const RoyalCart = () => {
   }, [cartItems]);
 
   // 2. 🟢 AUTO-SELECT FIX: Select all items when they load if nothing is selected
-  useEffect(() => {
-    if (cartItems.length > 0 && selectedIds.length === 0) {
-      setSelectedIds(cartItems.map((item) => item.id));
-    }
-  }, [cartItems.length]); // Dependencies: run when cart items count changes
+useEffect(() => {
+  if (cartItems.length > 0 && selectedIds.length === 0) {
+    setSelectedIds(cartItems.map((item) => item.id));
+  }
+}, [cartItems, selectedIds.length]); 
 
   // 3. Indeterminate checkbox visual logic
   useEffect(() => {
@@ -262,7 +263,7 @@ const RoyalCart = () => {
                               >
                                 <MinusIcon className="w-4 h-4 text-gray-700" />
                               </motion.button>
-                              <span className="px-6 py-2 font-bold text-gray-900 min-w-[60px] text-center text-lg">
+                              <span className="px-6 py-2 font-bold text-gray-900 min-w-15 text-center text-lg">
                                 {item.quantity}
                               </span>
                               <motion.button

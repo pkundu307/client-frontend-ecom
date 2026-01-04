@@ -101,11 +101,11 @@ const generateLink = (item: HomepageItem): string => {
 
   switch (item.linkType) {
     case "CATEGORY":
-      return `/category/${item.linkValue}`;
+      return `${item.linkValue}`;
     case "PRODUCT":
-      return `/product/${item.linkValue}`;
+      return `${item.linkValue}`;
     case "BRAND":
-      return `/brand/${item.linkValue}`;
+      return `${item.linkValue}`;
     case "SEARCH":
       return `/search?q=${encodeURIComponent(item.linkValue)}`;
     case "EXTERNAL_URL":

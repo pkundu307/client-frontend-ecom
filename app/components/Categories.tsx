@@ -21,6 +21,7 @@ const apiCall = async (endpoint: string) => {
 interface CategoryNode {
   id: number;
   name: string;
+  slug: string;
   parentId: number | null;
   children: CategoryNode[];
 }
@@ -32,7 +33,7 @@ const CACHE_EXPIRATION_DAYS = 2; // 2 days
 // --- Mega Menu Component ---
 const MegaMenu: React.FC = () => {
   const [categories, setCategories] = useState<CategoryNode[]>([]);
-  const [hoveredCategory, setHoveredCategory] = useState<CategoryNode | null>(null);
+  const [expandedCategory, setExpandedCategory] = useState<CategoryNode | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -81,14 +82,15 @@ const MegaMenu: React.FC = () => {
     fetchCategories();
   }, []);
 
-  // --- Hover Handlers ---
-  const handleMouseEnter = (category: CategoryNode) => {
+  // --- Click Handler (Toggle expansion instead of navigation) ---
+  const handleCategoryClick = (category: CategoryNode) => {
     if (category.children && category.children.length > 0) {
-      setHoveredCategory(category);
+      setExpandedCategory(prev => prev?.id === category.id ? null : category);
     }
   };
 
-  const handleMouseLeave = () => setHoveredCategory(null);
+  // --- Close menu when clicking outside ---
+  const handleMouseLeave = () => setExpandedCategory(null);
 
   // --- UI ---
   if (loading) return <MegaMenuSkeleton />;
@@ -105,23 +107,23 @@ const MegaMenu: React.FC = () => {
           {categories.map((l1Category) => (
             <div
               key={l1Category.id}
-              onMouseEnter={() => handleMouseEnter(l1Category)}
+              onMouseEnter={() => handleCategoryClick(l1Category)}
               className="py-4 flex-shrink-0"
             >
-              <Link
-                href={`/category/${l1Category.id}`}
+              <button
+                onClick={() => handleCategoryClick(l1Category)}
                 className={`px-4 text-sm font-semibold tracking-wide uppercase transition-colors duration-200 whitespace-nowrap ${
-                  hoveredCategory?.id === l1Category.id
+                  expandedCategory?.id === l1Category.id
                     ? 'text-grey-200 hover:text-purple-600'
                     : 'text-white hover:text-purple-600'
                 }`}
               >
                 {l1Category.name}
-              </Link>
+              </button>
               {/* Active hover indicator */}
               <div
                 className={`h-0.5 mt-3 transition-all duration-300 mx-auto ${
-                  hoveredCategory?.id === l1Category.id
+                  expandedCategory?.id === l1Category.id
                     ? 'bg-purple-600 w-full'
                     : 'bg-transparent w-0'
                 }`}
@@ -132,17 +134,18 @@ const MegaMenu: React.FC = () => {
       </div>
 
       {/* Mega Menu Dropdown */}
-      {hoveredCategory && (
+      {expandedCategory && (
         <div className="absolute top-full left-0 w-full bg-black/95 backdrop-blur-sm shadow-lg border-t border-gray-700 z-30 transition-all duration-300">
           <div className="w-full overflow-x-auto">
             <div className="px-8 py-4">
               {/* L2/L3 Categories */}
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-x-8 gap-y-6">
-                {hoveredCategory.children.map((l2Category) => (
+                {expandedCategory.children.map((l2Category) => (
                   <div key={l2Category.id}>
                     <Link
                       href={`/category/${l2Category.id}`}
                       className="block font-bold text-[var(--royal-gold)] text-sm mb-3 hover:underline"
+                      onClick={() => setExpandedCategory(null)}
                     >
                       {l2Category.name}
                     </Link>
@@ -152,6 +155,7 @@ const MegaMenu: React.FC = () => {
                           key={l3Category.id}
                           href={`/category/${l3Category.id}`}
                           className="text-sm text-gray-400 hover:text-gray-100 transition-colors whitespace-nowrap"
+                          onClick={() => setExpandedCategory(null)}
                         >
                           {l3Category.name}
                         </Link>

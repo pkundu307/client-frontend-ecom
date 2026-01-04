@@ -128,7 +128,7 @@ export default function Navbar() {
       const data = await response.json();
       if (!response.ok) throw new Error(data.message || "Authentication failed");
       toast.success(
-        isSignUp ? "🎉 Account created successfully! Welcome to RoyalGreens!" : "✨ Welcome back! Login successful!",
+        isSignUp ? "🎉 Account created successfully! Welcome to Jottosop!" : "✨ Welcome back! Login successful!",
         {
           duration: 4000,
           position: "top-right",
@@ -176,7 +176,7 @@ export default function Navbar() {
       });
       const data = await response.json();
       if (!response.ok) throw new Error(data.message || "Google login failed");
-      toast.success("🎉 Google login successful! Welcome to RoyalGreens!", {
+      toast.success("🎉 Google login successful! Welcome to Jottosop!", {
         duration: 4000,
         position: "top-right",
         style: { background: "#065f46", color: "#fff", border: "1px solid #d4af37" },
@@ -222,6 +222,7 @@ export default function Navbar() {
       style: { background: "#065f46", color: "#fff", border: "1px solid #d4af37" },
       iconTheme: { primary: "#10b981", secondary: "#fff" },
     });
+    window.location.href = "/";
   };
 
   // --- Live Search Logic ---
@@ -278,7 +279,7 @@ const dropdownVariants: Variants = {
     <>
       <GoogleOAuthProvider clientId="939883123761-up76q4mal36sd3quh558ssccr1cqc035.apps.googleusercontent.com">
         <nav 
-          className="py-4 px-6 z-20 sticky top-0 bg-[#e8ecf0]"
+          className="py-4 px-6 z-23 sticky top-0 bg-[#e8ecf0]"
           style={{ boxShadow: '0 4px 12px rgba(197, 205, 213, 0.5), 0 -2px 8px rgba(255, 255, 255, 0.8)' }}
         >
           <div className="max-w-7xl mx-auto flex justify-between items-center">
@@ -370,12 +371,14 @@ const dropdownVariants: Variants = {
   {/* Dummy Notification */}
   <motion.button
     whileTap={tapBounce}
-    onClick={() => alert("Dummy notification clicked!")}
+
     className="relative text-royal-gold p-3 rounded-xl bg-[#e8ecf0]"
     style={{ boxShadow: '6px 6px 12px #c5cdd5, -6px -6px 12px #ffffff' }}
     aria-label="Notifications"
   >
+    <Link href="/notifications" aria-label="Notifications">
     <Bell className="w-6 h-6" />
+    </Link>
     {/* Dummy badge */}
     <motion.span
       initial={{ scale: 0.6, opacity: 0 }}

@@ -1,4 +1,3 @@
-// app/profile/page.tsx
 "use client";
 
 import React, { useState } from "react";
@@ -14,8 +13,9 @@ import {
   XMarkIcon,
   ShoppingBagIcon,
   CalendarIcon,
+  HeartIcon,
 } from "@heroicons/react/24/outline";
-import { useProfileData, Address, Order} from "./hooks/useProfileData";
+import { useProfileData, Address, Order } from "./hooks/useProfileData";
 
 const cardVariants: Variants = {
   hidden: { opacity: 0, y: 16, scale: 0.98 },
@@ -24,13 +24,12 @@ const cardVariants: Variants = {
     y: 0,
     scale: 1,
     transition: {
-      type: "spring",   // valid AnimationGeneratorType
+      type: "spring",
       stiffness: 260,
       damping: 24,
     },
   },
 };
-
 
 const tap = { scale: 0.97 };
 
@@ -164,6 +163,112 @@ const ProfilePage: React.FC = () => {
           </div>
         </motion.div>
 
+        {/* Quick Actions Grid */}
+        <section className="mt-10">
+          <h2 className="text-2xl font-bold mb-6 text-gray-900">Quick Actions</h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {/* Wishlist Card */}
+            <motion.div
+              variants={cardVariants}
+              initial="hidden"
+              animate="show"
+              whileHover={{ scale: 1.02 }}
+              whileTap={tap}
+              onClick={() => router.push("/wishlist")}
+              className="bg-[#e8ecf0] rounded-2xl p-6 cursor-pointer group"
+              style={{
+                boxShadow: "8px 8px 16px #c5cdd5, -8px -8px 16px #ffffff",
+              }}
+            >
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="w-12 h-12 rounded-xl bg-red-100 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
+                    <HeartIcon className="w-6 h-6 text-red-500" />
+                  </div>
+                  <h3 className="text-lg font-bold text-gray-900">My Wishlist</h3>
+                  <p className="text-sm text-gray-600 mt-1">View saved items</p>
+                </div>
+                <svg
+                  className="w-6 h-6 text-gray-400 group-hover:translate-x-1 transition-transform"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                </svg>
+              </div>
+            </motion.div>
+
+            {/* Orders Card */}
+            <motion.div
+              variants={cardVariants}
+              initial="hidden"
+              animate="show"
+              whileHover={{ scale: 1.02 }}
+              whileTap={tap}
+              onClick={() => router.push("/orders")}
+              className="bg-[#e8ecf0] rounded-2xl p-6 cursor-pointer group"
+              style={{
+                boxShadow: "8px 8px 16px #c5cdd5, -8px -8px 16px #ffffff",
+              }}
+            >
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="w-12 h-12 rounded-xl bg-blue-100 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
+                    <ShoppingBagIcon className="w-6 h-6 text-blue-500" />
+                  </div>
+                  <h3 className="text-lg font-bold text-gray-900">All Orders</h3>
+                  <p className="text-sm text-gray-600 mt-1">
+                    {orders.length} {orders.length === 1 ? "order" : "orders"}
+                  </p>
+                </div>
+                <svg
+                  className="w-6 h-6 text-gray-400 group-hover:translate-x-1 transition-transform"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                </svg>
+              </div>
+            </motion.div>
+
+            {/* Addresses Card */}
+            <motion.div
+              variants={cardVariants}
+              initial="hidden"
+              animate="show"
+              whileHover={{ scale: 1.02 }}
+              whileTap={tap}
+              onClick={() => setIsAddModalOpen(true)}
+              className="bg-[#e8ecf0] rounded-2xl p-6 cursor-pointer group"
+              style={{
+                boxShadow: "8px 8px 16px #c5cdd5, -8px -8px 16px #ffffff",
+              }}
+            >
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="w-12 h-12 rounded-xl bg-green-100 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
+                    <MapPinIcon className="w-6 h-6 text-green-500" />
+                  </div>
+                  <h3 className="text-lg font-bold text-gray-900">Add Address</h3>
+                  <p className="text-sm text-gray-600 mt-1">
+                    {addresses.length} {addresses.length === 1 ? "address" : "addresses"} saved
+                  </p>
+                </div>
+                <svg
+                  className="w-6 h-6 text-gray-400 group-hover:translate-x-1 transition-transform"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                </svg>
+              </div>
+            </motion.div>
+          </div>
+        </section>
+
         {/* Addresses */}
         <section className="mt-10">
           <div className="flex items-center justify-between mb-6">
@@ -228,15 +333,11 @@ const ProfilePage: React.FC = () => {
                           <TrashIcon className="w-5 h-5 text-red-500" />
                         </motion.button>
                       </div>
-                      <p className="font-semibold text-gray-900">
-                        {address.street}
-                      </p>
+                      <p className="font-semibold text-gray-900">{address.street}</p>
                       <p className="text-sm text-gray-600 mt-1">
                         {address.city}, {address.state} {address.postalCode}
                       </p>
-                      <p className="text-sm text-gray-600">
-                        {address.country}
-                      </p>
+                      <p className="text-sm text-gray-600">{address.country}</p>
                     </motion.div>
                   ))}
                 </AnimatePresence>
@@ -248,9 +349,7 @@ const ProfilePage: React.FC = () => {
                     onClick={() => setShowAllAddresses((val) => !val)}
                     className="text-blue-600 font-semibold text-sm hover:underline"
                   >
-                    {showAllAddresses
-                      ? "Show Less"
-                      : `View All (${addresses.length})`}
+                    {showAllAddresses ? "Show Less" : `View All (${addresses.length})`}
                   </button>
                 </div>
               )}
@@ -291,8 +390,7 @@ const ProfilePage: React.FC = () => {
                         exit={{ opacity: 0, y: -8 }}
                         className="bg-[#e8ecf0] rounded-2xl p-5 flex flex-col gap-4 cursor-pointer"
                         style={{
-                          boxShadow:
-                            "8px 8px 16px #c5cdd5, -8px -8px 16px #ffffff",
+                          boxShadow: "8px 8px 16px #c5cdd5, -8px -8px 16px #ffffff",
                         }}
                         onClick={() => router.push(`/order/${order.id}`)}
                       >
@@ -306,12 +404,8 @@ const ProfilePage: React.FC = () => {
                               <CalendarIcon className="w-4 h-4" />
                               {new Date(order.createdAt).toLocaleDateString()}
                             </p>
-                            <p className="text-sm text-gray-600">
-                              Payment: {order.paymentMethod}
-                            </p>
-                            <p className="text-sm text-gray-600">
-                              Items: {order.itemCount}
-                            </p>
+                            <p className="text-sm text-gray-600">Payment: {order.paymentMethod}</p>
+                            <p className="text-sm text-gray-600">Items: {order.itemCount}</p>
                           </div>
                           <div className="text-left sm:text-right">
                             <p className="font-bold text-2xl text-gray-900 tabular-nums">
@@ -334,10 +428,8 @@ const ProfilePage: React.FC = () => {
                         <button
                           type="button"
                           onClick={(e) => {
-                            e.stopPropagation(); // prevent navigation
-                            setExpandedOrderId((prev) =>
-                              prev === order.id ? null : order.id
-                            );
+                            e.stopPropagation();
+                            setExpandedOrderId((prev) => (prev === order.id ? null : order.id));
                           }}
                           className="text-blue-600 text-sm font-semibold self-start hover:underline"
                         >
@@ -356,13 +448,10 @@ const ProfilePage: React.FC = () => {
                               <div className="mt-2 space-y-3 text-sm text-gray-700">
                                 {order.selectedAddress && (
                                   <div>
-                                    <p className="font-semibold text-gray-900">
-                                      Delivery Address
-                                    </p>
+                                    <p className="font-semibold text-gray-900">Delivery Address</p>
                                     <p>{order.selectedAddress.street}</p>
                                     <p>
-                                      {order.selectedAddress.city},{" "}
-                                      {order.selectedAddress.state}{" "}
+                                      {order.selectedAddress.city}, {order.selectedAddress.state}{" "}
                                       {order.selectedAddress.postalCode}
                                     </p>
                                     <p>{order.selectedAddress.country}</p>
@@ -374,10 +463,7 @@ const ProfilePage: React.FC = () => {
                                     <div className="w-12 h-12 rounded-lg bg-gray-200 overflow-hidden flex items-center justify-center">
                                       {/* eslint-disable-next-line @next/next/no-img-element */}
                                       <img
-                                        src={
-                                          order.items[0].productImage ||
-                                          "/placeholder.png"
-                                        }
+                                        src={order.items[0].productImage || "/placeholder.png"}
                                         alt={order.items[0].productName}
                                         className="w-full h-full object-cover"
                                       />
@@ -408,9 +494,7 @@ const ProfilePage: React.FC = () => {
                     onClick={() => setShowAllOrders((val) => !val)}
                     className="text-blue-600 font-semibold text-sm hover:underline"
                   >
-                    {showAllOrders
-                      ? "Show Less"
-                      : `View All (${orders.length})`}
+                    {showAllOrders ? "Show Less" : `View All (${orders.length})`}
                   </button>
                 </div>
               )}
@@ -452,39 +536,30 @@ const ProfilePage: React.FC = () => {
                     type="text"
                     placeholder="Street Address"
                     value={formData.street}
-                    onChange={(e) =>
-                      setFormData({ ...formData, street: e.target.value })
-                    }
+                    onChange={(e) => setFormData({ ...formData, street: e.target.value })}
                     className="w-full px-4 py-3 rounded-xl bg-[#e8ecf0] text-gray-900 placeholder-gray-600"
                     style={{
-                      boxShadow:
-                        "inset 4px 4px 8px #c5cdd5, inset -4px -4px 8px #ffffff",
+                      boxShadow: "inset 4px 4px 8px #c5cdd5, inset -4px -4px 8px #ffffff",
                     }}
                   />
                   <input
                     type="text"
                     placeholder="City"
                     value={formData.city}
-                    onChange={(e) =>
-                      setFormData({ ...formData, city: e.target.value })
-                    }
+                    onChange={(e) => setFormData({ ...formData, city: e.target.value })}
                     className="w-full px-4 py-3 rounded-xl bg-[#e8ecf0] text-gray-900 placeholder-gray-600"
                     style={{
-                      boxShadow:
-                        "inset 4px 4px 8px #c5cdd5, inset -4px -4px 8px #ffffff",
+                      boxShadow: "inset 4px 4px 8px #c5cdd5, inset -4px -4px 8px #ffffff",
                     }}
                   />
                   <input
                     type="text"
                     placeholder="State"
                     value={formData.state}
-                    onChange={(e) =>
-                      setFormData({ ...formData, state: e.target.value })
-                    }
+                    onChange={(e) => setFormData({ ...formData, state: e.target.value })}
                     className="w-full px-4 py-3 rounded-xl bg-[#e8ecf0] text-gray-900 placeholder-gray-600"
                     style={{
-                      boxShadow:
-                        "inset 4px 4px 8px #c5cdd5, inset -4px -4px 8px #ffffff",
+                      boxShadow: "inset 4px 4px 8px #c5cdd5, inset -4px -4px 8px #ffffff",
                     }}
                   />
                   <input
@@ -499,21 +574,17 @@ const ProfilePage: React.FC = () => {
                     }
                     className="w-full px-4 py-3 rounded-xl bg-[#e8ecf0] text-gray-900 placeholder-gray-600"
                     style={{
-                      boxShadow:
-                        "inset 4px 4px 8px #c5cdd5, inset -4px -4px 8px #ffffff",
+                      boxShadow: "inset 4px 4px 8px #c5cdd5, inset -4px -4px 8px #ffffff",
                     }}
                   />
                   <input
                     type="text"
                     placeholder="Country"
                     value={formData.country}
-                    onChange={(e) =>
-                      setFormData({ ...formData, country: e.target.value })
-                    }
+                    onChange={(e) => setFormData({ ...formData, country: e.target.value })}
                     className="w-full px-4 py-3 rounded-xl bg-[#e8ecf0] text-gray-900 placeholder-gray-600"
                     style={{
-                      boxShadow:
-                        "inset 4px 4px 8px #c5cdd5, inset -4px -4px 8px #ffffff",
+                      boxShadow: "inset 4px 4px 8px #c5cdd5, inset -4px -4px 8px #ffffff",
                     }}
                   />
                   <motion.button
@@ -522,15 +593,10 @@ const ProfilePage: React.FC = () => {
                     disabled={isAddressMutating}
                     className="w-full bg-gray-900 text-white py-4 rounded-2xl font-bold disabled:opacity-50"
                     style={{
-                      boxShadow:
-                        "8px 8px 16px #c5cdd5, -6px -6px 12px #ffffff",
+                      boxShadow: "8px 8px 16px #c5cdd5, -6px -6px 12px #ffffff",
                     }}
                   >
-                    {isAddressMutating
-                      ? "Saving..."
-                      : isEditModalOpen
-                      ? "Update Address"
-                      : "Add Address"}
+                    {isAddressMutating ? "Saving..." : isEditModalOpen ? "Update Address" : "Add Address"}
                   </motion.button>
                 </div>
               </motion.div>
