@@ -14,7 +14,7 @@ export type Address = {
   state: string;
   postalCode: string;
   country: string;
-  alternativePhoneNumber: string;
+  alternativePhoneNumber: string | null;
 };
 
 export type PaymentMethod = "cod" | "online" | "";
@@ -29,6 +29,22 @@ type RazorpayHandlerResponse = {
   razorpay_payment_id: string;
   razorpay_signature: string;
 };
+
+interface OrderItem {
+  productName: string;
+  imageUrl: string;
+  quantity: number;
+  price: string;
+}
+
+interface OrderData {
+  id: string;
+  orderNumber: string;
+  createdAt: string;
+  totalAmount: string;
+  selectedAddress: Address;
+  items: OrderItem[];
+}
 
 declare global {
   interface Window {
@@ -69,8 +85,13 @@ export const useCheckout = () => {
 
   const [slideProgress, setSlideProgress] = useState(0);
   const [isSliding, setIsSliding] = useState(false);
+  const [isPlacingOrder, setIsPlacingOrder] = useState(false);
   const slideRef = useRef<HTMLDivElement | null>(null);
   const progressRef = useRef(0);
+
+  // Order Success Modal
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [orderData, setOrderData] = useState<OrderData | null>(null);
 
   // Mount + load Razorpay script
   useEffect(() => {
@@ -85,16 +106,20 @@ export const useCheckout = () => {
   useEffect(() => {
     if (!mounted) return;
     if (!selectedItems || selectedItems.length === 0) {
-      router.replace("/cart");
+      // Don't redirect if success modal is showing
+      if (!showSuccessModal) {
+        router.replace("/cart");
+      }
       return;
     }
     setItems(selectedItems.map((item) => ({ ...item })));
-  }, [mounted, selectedItems, router]);
+  }, [mounted, selectedItems, router, showSuccessModal]);
 
   // fetch addresses
   useEffect(() => {
     if (!mounted) return;
     void fetchAddresses();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mounted]);
 
   const fetchAddresses = async () => {
@@ -182,7 +207,10 @@ export const useCheckout = () => {
     }
   };
 
-  // ---- RAZORPAY FLOW WITH /payment/initiate AND /payment/verify ----
+  const showOrderSuccess = (data: OrderData) => {
+    setOrderData(data);
+    setShowSuccessModal(true);
+  };
 
   const initializeRazorpay = async (orderId: string) => {
     const selectedAddr = addresses.find((a) => a.id === selectedAddressId);
@@ -191,7 +219,7 @@ export const useCheckout = () => {
       key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
       amount: total * 100,
       currency: "INR",
-      name: "Your Store Name",
+      name: "Jottosop",
       description: "Order Payment",
       order_id: orderId,
       handler: async (response: RazorpayHandlerResponse) => {
@@ -207,17 +235,21 @@ export const useCheckout = () => {
             { headers: { Authorization: `Bearer ${token}` } }
           );
 
-          // on success, backend returns orderId (razorpay_order_id or internal)
-          const verifiedOrderId =
-            verifyRes.data?.orderId || response.razorpay_order_id;
+          const data = verifyRes.data?.order;
 
-          dispatch(clearSelected());
           setSlideProgress(0);
-          router.push(`/order-success?orderId=${verifiedOrderId}`);
+          setIsPlacingOrder(false);
+          
+          // Clear cart first
+          dispatch(clearSelected());
+          
+          // Then show success modal
+          showOrderSuccess(data);
         } catch (err) {
           console.error("Payment verification failed:", err);
           alert("Payment verification failed. Please contact support.");
           setSlideProgress(0);
+          setIsPlacingOrder(false);
         }
       },
       prefill: {
@@ -230,7 +262,7 @@ export const useCheckout = () => {
       modal: {
         ondismiss: function () {
           setSlideProgress(0);
-          alert("Payment cancelled");
+          setIsPlacingOrder(false);
         },
       },
     };
@@ -240,6 +272,8 @@ export const useCheckout = () => {
   };
 
   const handlePlaceOrder = async () => {
+    if (isPlacingOrder) return;
+
     if (items.length === 0) {
       alert("Please select at least one item to place the order.");
       return;
@@ -253,12 +287,15 @@ export const useCheckout = () => {
       return;
     }
 
+    setIsPlacingOrder(true);
+
     try {
       const token = localStorage.getItem("token");
       const selectedAddr = addresses.find((a) => a.id === selectedAddressId);
 
       if (!selectedAddr) {
         alert("Selected address not found.");
+        setIsPlacingOrder(false);
         return;
       }
 
@@ -283,13 +320,20 @@ export const useCheckout = () => {
           { headers: { Authorization: `Bearer ${token}` } }
         );
 
-        dispatch(clearSelected());
+        const data = res.data;
+
         setSlideProgress(0);
-        router.push(`/order-success?orderId=${res.data.id}`);
+        setIsPlacingOrder(false);
+        
+        // Clear cart first
+        dispatch(clearSelected());
+        
+        // Then show success modal
+        showOrderSuccess(data);
         return;
       }
 
-      // ONLINE FLOW: hit /payment/initiate with CreatePaymentInitiationDto shape
+      // ONLINE FLOW
       const payload = {
         items: items.map((item) => ({
           variantId: item.variant?.id ?? "",
@@ -305,28 +349,26 @@ export const useCheckout = () => {
       );
 
       const razorpayOrder = initiateRes.data.razorpayOrder;
-      const backendPriceDetails = initiateRes.data.priceDetails;
-
-      console.log("Price details from backend:", backendPriceDetails);
 
       await initializeRazorpay(razorpayOrder.id);
     } catch (err) {
       console.error("Order/payment initiation failed:", err);
       alert("Failed to initiate payment. Please try again.");
       setSlideProgress(0);
+      setIsPlacingOrder(false);
     }
   };
 
   const handleSlide = (e: React.PointerEvent<HTMLDivElement>) => {
     e.preventDefault();
-    if (slideProgress > 0.97) return;
+    if (slideProgress > 0.97 || isPlacingOrder) return;
 
     setIsSliding(true);
     const track = slideRef.current;
     if (!track) return;
 
     const startX = e.clientX;
-    const trackWidth = track.offsetWidth - 48;
+    const trackWidth = track.offsetWidth - 56;
 
     const onPointerMove = (moveEvent: PointerEvent) => {
       const currentX = moveEvent.clientX;
@@ -343,7 +385,7 @@ export const useCheckout = () => {
 
       if (progressRef.current > 0.97) {
         setSlideProgress(1);
-        setTimeout(handlePlaceOrder, 100);
+        setTimeout(() => void handlePlaceOrder(), 100);
       } else {
         setSlideProgress(0);
         progressRef.current = 0;
@@ -352,6 +394,12 @@ export const useCheckout = () => {
 
     window.addEventListener("pointermove", onPointerMove);
     window.addEventListener("pointerup", onPointerUp);
+  };
+
+  const handleSuccessOk = () => {
+    setShowSuccessModal(false);
+    setOrderData(null);
+    router.push("/");
   };
 
   return {
@@ -381,6 +429,11 @@ export const useCheckout = () => {
     slideRef,
     slideProgress,
     isSliding,
+    isPlacingOrder,
     handleSlide,
+    handlePlaceOrder,
+    showSuccessModal,
+    orderData,
+    handleSuccessOk,
   };
 };

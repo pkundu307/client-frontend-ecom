@@ -37,15 +37,16 @@ const RecentlyViewed = () => {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: index * 0.1 }}
+              className="h-full"
             >
-              <Link href={`/product/${product.id}`}>
+              <Link href={`/product/${product.id}`} className="block h-full">
                 <div
-                  className="bg-[#e8ecf0] rounded-xl overflow-hidden hover:shadow-lg transition-shadow"
+                  className="bg-[#e8ecf0] rounded-xl overflow-hidden hover:shadow-lg transition-shadow h-full flex flex-col"
                   style={{
                     boxShadow: "6px 6px 12px #c5cdd5, -6px -6px 12px #ffffff",
                   }}
                 >
-                  <div className="relative aspect-square">
+                  <div className="relative aspect-square flex-shrink-0">
                     <Image
                       src={product.image}
                       alt={product.title}
@@ -53,11 +54,11 @@ const RecentlyViewed = () => {
                       className="object-cover"
                     />
                   </div>
-                  <div className="p-3">
-                    <h3 className="font-semibold text-sm text-gray-900 line-clamp-2">
+                  <div className="p-3 flex flex-col flex-1">
+                    <h3 className="font-semibold text-sm text-gray-900 line-clamp-2 min-h-[2.5rem]">
                       {product.title}
                     </h3>
-                    <p className="text-xs text-gray-600 mt-1 line-clamp-2">
+                    <p className="text-xs text-gray-600 mt-1 line-clamp-2 min-h-[2rem]">
                       {product.description}
                     </p>
                   </div>

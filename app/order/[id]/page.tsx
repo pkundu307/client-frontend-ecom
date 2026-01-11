@@ -2,15 +2,17 @@
 
 import React, { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { motion, Variants } from "framer-motion";
+import { motion, Variants, AnimatePresence } from "framer-motion";
 import {
   ArrowLeftIcon,
   CalendarIcon,
   MapPinIcon,
   CreditCardIcon,
   ShoppingBagIcon,
+  XMarkIcon,
+  ExclamationTriangleIcon,
 } from "@heroicons/react/24/outline";
-// adjust this import path to where your baseUrl actually is
+import axios from "axios";
 import { baseUrl } from "../../utilities/baseUrl";
 
 type OrderItem = {
@@ -52,13 +54,21 @@ const cardVariants: Variants = {
     y: 0,
     scale: 1,
     transition: {
-      type: "spring",   // valid AnimationGeneratorType
+      type: "spring",
       stiffness: 260,
       damping: 24,
     },
   },
 };
 
+const CANCELLATION_REASONS = [
+  "Ordered by mistake",
+  "Found a better price elsewhere",
+  "Changed my mind",
+  "Delivery time too long",
+  "Wrong product selected",
+  "Other (specify below)",
+];
 
 const OrderDetailPage: React.FC = () => {
   const router = useRouter();
@@ -68,6 +78,13 @@ const OrderDetailPage: React.FC = () => {
   const [order, setOrder] = useState<OrderDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // Cancel modal state
+  const [showCancelModal, setShowCancelModal] = useState(false);
+  const [selectedReason, setSelectedReason] = useState("");
+  const [customReason, setCustomReason] = useState("");
+  const [cancelling, setCancelling] = useState(false);
+  const [cancelError, setCancelError] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchOrder = async () => {
@@ -80,7 +97,6 @@ const OrderDetailPage: React.FC = () => {
       }
 
       try {
-        // you can also use /orders/my-orders/:id if that is your endpoint
         const res = await fetch(`${baseUrl}/orders/my-orders/${orderId}`, {
           headers: { Authorization: `Bearer ${token}` },
         });
@@ -103,6 +119,75 @@ const OrderDetailPage: React.FC = () => {
 
     if (orderId) fetchOrder();
   }, [orderId]);
+
+  // Check if order can be cancelled
+  const canCancelOrder = () => {
+    if (!order) return false;
+    
+    const cancellableStatuses = ["pending", "processing"];
+    const orderStatus = order.status.toLowerCase();
+    
+    // Check if order is in cancellable status
+    if (!cancellableStatuses.includes(orderStatus)) return false;
+    
+    // For processing status, check if any item is customizable
+    if (orderStatus === "processing") {
+      // You can add logic here to check if items are customizable
+      // For now, we'll allow cancellation of processing orders
+      // Add your customizable product check logic here if needed
+      return true;
+    }
+    
+    return true;
+  };
+
+  const handleCancelOrder = async () => {
+    if (!order) return;
+
+    const finalReason =
+      selectedReason === "Other (specify below)"
+        ? customReason.trim()
+        : selectedReason;
+
+    if (!finalReason) {
+      setCancelError("Please select or enter a cancellation reason.");
+      return;
+    }
+
+    setCancelling(true);
+    setCancelError(null);
+
+    try {
+      const token = localStorage.getItem("token");
+      await axios.post(
+        `${baseUrl}/orders/${order.id}/cancel`,
+        { reason: finalReason },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      // Refresh order data
+      const res = await fetch(`${baseUrl}/orders/my-orders/${orderId}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const updatedOrder: OrderDetail = await res.json();
+      setOrder(updatedOrder);
+
+      setShowCancelModal(false);
+      setSelectedReason("");
+      setCustomReason("");
+      
+      // Show success message
+      alert("Order cancelled successfully!");
+    } catch (err: unknown) {
+      const errorMessage =
+        axios.isAxiosError(err) && err.response?.data?.message
+          ? err.response.data.message
+          : "Failed to cancel order. Please try again.";
+      setCancelError(errorMessage);
+    } finally {
+      setCancelling(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -191,9 +276,7 @@ const OrderDetailPage: React.FC = () => {
               {order.estimatedDeliveryDate && (
                 <p className="text-xs text-gray-600 mt-2">
                   Est. delivery:{" "}
-                  {new Date(
-                    order.estimatedDeliveryDate
-                  ).toLocaleDateString()}
+                  {new Date(order.estimatedDeliveryDate).toLocaleDateString()}
                 </p>
               )}
             </div>
@@ -244,6 +327,8 @@ const OrderDetailPage: React.FC = () => {
                 className={`inline-block mt-2 px-3 py-1 rounded-full text-xs font-bold ${
                   order.status === "delivered"
                     ? "bg-green-100 text-green-700"
+                    : order.status === "cancelled"
+                    ? "bg-red-100 text-red-700"
                     : "bg-yellow-100 text-yellow-700"
                 }`}
               >
@@ -271,7 +356,7 @@ const OrderDetailPage: React.FC = () => {
                         "inset 4px 4px 8px #c5cdd5, inset -4px -4px 8px #ffffff",
                     }}
                   >
-                    <div className="w-16 h-16 rounded-xl bg-gray-200 overflow-hidden flex itemsCenter justify-center">
+                    <div className="w-16 h-16 rounded-xl bg-gray-200 overflow-hidden flex items-center justify-center">
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img
                         src={item.productImage || "/placeholder.png"}
@@ -333,12 +418,27 @@ const OrderDetailPage: React.FC = () => {
               </div>
 
               <div className="flex flex-col gap-3">
+                {/* Cancel Order Button */}
+                {canCancelOrder() && (
+                  <motion.button
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    onClick={() => setShowCancelModal(true)}
+                    className="w-full bg-red-600 text-white py-3 rounded-2xl font-semibold flex items-center justify-center gap-2"
+                    style={{
+                      boxShadow: "8px 8px 16px #c5cdd5, -6px -6px 12px #ffffff",
+                    }}
+                  >
+                    <ExclamationTriangleIcon className="w-5 h-5" />
+                    Cancel Order
+                  </motion.button>
+                )}
+
                 <button
                   onClick={() => router.push("/profile")}
                   className="w-full bg-gray-900 text-white py-3 rounded-2xl font-semibold"
                   style={{
-                    boxShadow:
-                      "8px 8px 16px #c5cdd5, -6px -6px 12px #ffffff",
+                    boxShadow: "8px 8px 16px #c5cdd5, -6px -6px 12px #ffffff",
                   }}
                 >
                   Back to Orders
@@ -347,8 +447,7 @@ const OrderDetailPage: React.FC = () => {
                   onClick={() => router.push("/")}
                   className="w-full bg-[#e8ecf0] text-gray-900 py-3 rounded-2xl font-semibold"
                   style={{
-                    boxShadow:
-                      "6px 6px 12px #c5cdd5, -6px -6px 12px #ffffff",
+                    boxShadow: "6px 6px 12px #c5cdd5, -6px -6px 12px #ffffff",
                   }}
                 >
                   Continue Shopping
@@ -358,6 +457,148 @@ const OrderDetailPage: React.FC = () => {
           </div>
         </motion.div>
       </div>
+
+      {/* Cancel Order Modal */}
+      <AnimatePresence>
+        {showCancelModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/60 backdrop-blur-lg flex items-center justify-center z-80 p-4"
+            onClick={() => {
+              if (!cancelling) {
+                setShowCancelModal(false);
+                setCancelError(null);
+              }
+            }}
+          >
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              onClick={(e) => e.stopPropagation()}
+              className="bg-[#e8ecf0] rounded-3xl p-6 sm:p-8 w-full max-w-md relative max-h-[90vh] overflow-y-auto"
+              style={{
+                boxShadow: "20px 20px 40px #c5cdd5, -20px -20px 40px #ffffff",
+              }}
+            >
+              <button
+                onClick={() => {
+                  if (!cancelling) {
+                    setShowCancelModal(false);
+                    setCancelError(null);
+                  }
+                }}
+                disabled={cancelling}
+                className="absolute top-4 right-4 text-gray-600 hover:text-gray-900 disabled:opacity-50"
+              >
+                <XMarkIcon className="w-6 h-6" />
+              </button>
+
+              <div className="flex items-center gap-3 mb-6">
+                <div className="bg-red-100 rounded-full p-3">
+                  <ExclamationTriangleIcon className="w-8 h-8 text-red-600" />
+                </div>
+                <div>
+                  <h3 className="text-2xl font-bold text-gray-900">
+                    Cancel Order
+                  </h3>
+                  <p className="text-sm text-gray-600">
+                    Order #{order.orderNumber}
+                  </p>
+                </div>
+              </div>
+
+              <p className="text-gray-700 mb-6">
+                Please select a reason for cancelling your order:
+              </p>
+
+              <div className="space-y-3 mb-6">
+                {CANCELLATION_REASONS.map((reason) => (
+                  <motion.label
+                    key={reason}
+                    whileTap={{ scale: 0.98 }}
+                    className={`block cursor-pointer bg-[#e8ecf0] rounded-xl p-4 transition-all ${
+                      selectedReason === reason ? "ring-2 ring-red-600" : ""
+                    }`}
+                    style={{
+                      boxShadow:
+                        selectedReason === reason
+                          ? "inset 6px 6px 12px #c5cdd5, inset -6px -6px 12px #ffffff"
+                          : "6px 6px 12px #c5cdd5, -6px -6px 12px #ffffff",
+                    }}
+                  >
+                    <div className="flex items-center gap-3">
+                      <input
+                        type="radio"
+                        name="reason"
+                        value={reason}
+                        checked={selectedReason === reason}
+                        onChange={(e) => setSelectedReason(e.target.value)}
+                        className="accent-red-600 w-5 h-5"
+                        disabled={cancelling}
+                      />
+                      <span className="text-gray-900 font-medium text-sm">
+                        {reason}
+                      </span>
+                    </div>
+                  </motion.label>
+                ))}
+              </div>
+
+              {selectedReason === "Other (specify below)" && (
+                <textarea
+                  placeholder="Please specify your reason..."
+                  value={customReason}
+                  onChange={(e) => setCustomReason(e.target.value)}
+                  disabled={cancelling}
+                  maxLength={255}
+                  className="w-full px-4 py-3 rounded-xl bg-[#e8ecf0] text-gray-900 placeholder-gray-600 mb-6 min-h-[100px] resize-none"
+                  style={{
+                    boxShadow:
+                      "inset 4px 4px 8px #c5cdd5, inset -4px -4px 8px #ffffff",
+                  }}
+                />
+              )}
+
+              {cancelError && (
+                <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-xl">
+                  <p className="text-sm text-red-600">{cancelError}</p>
+                </div>
+              )}
+
+              <div className="flex gap-3">
+                <button
+                  onClick={() => {
+                    setShowCancelModal(false);
+                    setCancelError(null);
+                    setSelectedReason("");
+                    setCustomReason("");
+                  }}
+                  disabled={cancelling}
+                  className="flex-1 bg-[#e8ecf0] text-gray-900 py-3 rounded-xl font-semibold disabled:opacity-50"
+                  style={{
+                    boxShadow: "6px 6px 12px #c5cdd5, -6px -6px 12px #ffffff",
+                  }}
+                >
+                  Keep Order
+                </button>
+                <button
+                  onClick={handleCancelOrder}
+                  disabled={cancelling || !selectedReason}
+                  className="flex-1 bg-red-600 text-white py-3 rounded-xl font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+                  style={{
+                    boxShadow: "8px 8px 16px #c5cdd5, -6px -6px 12px #ffffff",
+                  }}
+                >
+                  {cancelling ? "Cancelling..." : "Confirm Cancel"}
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };

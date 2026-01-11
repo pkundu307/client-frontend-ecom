@@ -533,6 +533,7 @@ export default function ProductPage({ params }: ProductPageProps) {
                     scale: canPurchase ? 0.98 : 1,
                     y: canPurchase ? 1 : 0,
                   }}
+                  onClick={()=>{handleAddToCart(); window.location.href="/cart";}}
                   disabled={!canPurchase}
                   className={`flex-1 py-4 px-6 rounded-2xl font-bold flex items-center justify-center gap-2 transition-all ${
                     canPurchase ? "bg-orange-500 text-white" : "bg-[#e8ecf0] text-gray-500 cursor-not-allowed"
@@ -549,7 +550,7 @@ export default function ProductPage({ params }: ProductPageProps) {
                   }
                 >
                   <CreditCardIcon className="w-5 h-5" />
-                  Buy Now
+                   {localStorage.getItem("token") ? "Buy Now" : "Login to Buy"}
                 </motion.button>
               </div>
 
