@@ -9,6 +9,7 @@ import { getRecentlyViewed } from "../utilities/recentlyViewed";
 
 interface RecentlyViewedProduct {
   id: string;
+  slug: string;
   title: string;
   image: string;
   description: string;
@@ -39,7 +40,7 @@ const RecentlyViewed = () => {
               transition={{ delay: index * 0.1 }}
               className="h-full"
             >
-              <Link href={`/product/${product.id}`} className="block h-full">
+              <Link href={`/product/${product.slug}`} className="block h-full">
                 <div
                   className="bg-[#e8ecf0] rounded-xl overflow-hidden hover:shadow-lg transition-shadow h-full flex flex-col"
                   style={{

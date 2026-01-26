@@ -401,10 +401,10 @@ export default function Navbar() {
                       >
                         {searchResults.length ? (
                           searchResults.map((item) => (
-                            <Link href={`/product/${item.id}`} key={item.id} onClick={() => setSearchFocused(false)}>
+                            <Link href={`/product/${item.slug}`} key={item.id} onClick={() => setSearchFocused(false)}>
                               <div className="flex items-center gap-3 px-4 py-3 hover:bg-gray-100 transition">
                                 {item.image && (
-                                  <div className="w-10 h-10 rounded-xl overflow-hidden bg-white flex-shrink-0 border border-gray-100">
+                                  <div className="w-10 h-10 rounded-xl overflow-hidden bg-white shrink-0 border border-gray-100">
                                     <Image
                                       width={40}
                                       height={40}
@@ -552,7 +552,7 @@ export default function Navbar() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-black/40 backdrop-blur-lg flex justify-center items-center z-[9999]"
+              className="fixed inset-0 bg-black/40 backdrop-blur-lg flex justify-center items-center z-9999"
             >
               <motion.div
                 key="auth-card"
@@ -662,7 +662,7 @@ export default function Navbar() {
             <motion.div
               whileHover={{ y: -2 }}
               transition={{ type: "spring", stiffness: 500, damping: 30 }}
-              className="fixed bottom-4 left-4 right-4 bg-[#e8ecf0] py-3 px-3 z-[9999] rounded-full"
+              className="fixed bottom-4 left-4 right-4 bg-[#e8ecf0] py-3 px-3 z-9999 rounded-full"
               style={{
                 boxShadow: "8px 8px 16px #c5cdd5, -8px -8px 16px #ffffff",
               }}

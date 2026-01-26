@@ -249,7 +249,7 @@ const ProductCardList = ({
       whileHover={{ x: 4 }}
       transition={{ duration: 0.3 }}
     >
-      <Link href={`/product/${product.id}`} className="block">
+      <Link href={`/product/${product.slug}`} className="block">
         <div
           className="bg-[#e8ecf0] rounded-3xl p-4 flex gap-4 hover:shadow-xl transition-shadow duration-300"
           style={{

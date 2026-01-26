@@ -2,16 +2,16 @@ import { Metadata } from 'next';
 
 interface ProductPageProps {
   params: Promise<{
-    productId: string;
+    productSlug: string;
   }>;
 }
 
 export async function generateMetadata({ params }: ProductPageProps): Promise<Metadata> {
   const resolvedParams = await params;
-  const { productId } = resolvedParams;
+  const { productSlug } = resolvedParams;
 
   try {
-    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/products/${productId}`, {
+    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/products/${productSlug}`, {
       next: { revalidate: 3600 }, // Cache for 1 hour
     });
 
@@ -45,7 +45,7 @@ export async function generateMetadata({ params }: ProductPageProps): Promise<Me
         images: [product.images?.[0] || '/og-image.png'],
       },
       alternates: {
-        canonical: `${process.env.NEXT_PUBLIC_SITE_URL}/product/${productId}`,
+        canonical: `${process.env.NEXT_PUBLIC_SITE_URL}/product/${productSlug}`,
       },
       other: {
         'product:price:amount': product.variants?.[0]?.price || '0',

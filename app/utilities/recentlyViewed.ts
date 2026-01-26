@@ -5,6 +5,7 @@ interface RecentlyViewedProduct {
   title: string;
   image: string;
   description: string;
+  slug: string;
 }
 
 const STORAGE_KEY = "recentlyViewed";

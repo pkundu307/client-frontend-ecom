@@ -248,6 +248,7 @@ export const useProductDetails = (productId: string) => {
         id: product.id,
         title: product.title,
         image: firstImage,
+        slug: product.slug,
         description: cleanDescription,
       };
 

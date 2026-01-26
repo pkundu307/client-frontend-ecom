@@ -126,7 +126,7 @@ export default function SearchPage() {
             className="flex items-center gap-3 bg-[#e8ecf0] rounded-2xl px-5 py-4 mb-6"
             style={{ boxShadow: 'inset 4px 4px 10px #c5cdd5, inset -4px -4px 10px #ffffff' }}
           >
-            <Search size={22} className="text-gray-500 flex-shrink-0" />
+            <Search size={22} className="text-gray-500 shrink-0" />
             <input
               type="text"
               value={query}
@@ -174,7 +174,7 @@ export default function SearchPage() {
                 style={{ boxShadow: '10px 10px 20px #c5cdd5, -10px -10px 20px #ffffff' }}
               >
                 {results.map((item, index) => (
-                  <Link href={`/product/${item.id}`} key={item.id}>
+                  <Link href={`/product/${item.slug}`} key={item.id}>
                     <motion.div
                       initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }}
                       transition={{ delay: index * 0.05 }}
@@ -182,7 +182,7 @@ export default function SearchPage() {
                     >
                       {item.image && (
                         <div
-                          className="w-12 h-12 rounded-xl overflow-hidden mr-3 bg-white flex-shrink-0"
+                          className="w-12 h-12 rounded-xl overflow-hidden mr-3 bg-white shrink-0"
                           style={{ boxShadow: '3px 3px 6px #c5cdd5, -3px -3px 6px #ffffff' }}
                         >
                           <Image width={48} height={48} src={item.image} alt={item.text}
