@@ -4,8 +4,8 @@ import Image from "next/image";
 import Link from "next/link";
 import { 
   Facebook, 
-  Instagram, 
-  Twitter, 
+  // Instagram, 
+  // Twitter, 
   Linkedin, 
   Mail, 
   Phone, 
@@ -16,7 +16,8 @@ import {
 //   Shield,
 //   CreditCard
 } from "lucide-react";
-
+                // { icon: Instagram, href: "#", color: "hover:bg-pink-600" },
+                // { icon: Twitter, href: "#", color: "hover:bg-blue-400" },
 const Footer = () => {
   return (
     <footer className="bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 text-gray-300">
@@ -115,10 +116,8 @@ const Footer = () => {
             </p>
             <div className="flex gap-3">
               {[
-                { icon: Facebook, href: "#", color: "hover:bg-blue-600" },
-                { icon: Instagram, href: "#", color: "hover:bg-pink-600" },
-                { icon: Twitter, href: "#", color: "hover:bg-blue-400" },
-                { icon: Linkedin, href: "#", color: "hover:bg-blue-700" }
+                { icon: Facebook, href: "https://www.facebook.com/people/Jottosop/61587495520706", color: "hover:bg-blue-600" },
+                { icon: Linkedin, href: "https://www.linkedin.com/company/112094205/", color: "hover:bg-blue-700" }
               ].map((social, idx) => (
                 <motion.a
                   key={idx}
@@ -213,7 +212,7 @@ const Footer = () => {
         <div className="max-w-7xl mx-auto px-6 py-6">
           <div className="flex flex-col md:flex-row justify-between items-center gap-4">
             <p className="text-gray-400 text-sm">
-              © 2025 Jotto. All rights reserved. | Customize. Visualize. Purchase.
+              © 2026 Jottosop. All rights reserved. | Customize. Visualize. Purchase.
             </p>
             <div className="flex gap-6 text-sm">
               <Link href="/privacy" className="text-gray-400 hover:text-white transition-colors">

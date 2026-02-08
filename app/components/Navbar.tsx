@@ -223,10 +223,7 @@ export default function Navbar() {
       });
       return;
     }
-    const loadingToast = toast.loading("Signing in with Google...", {
-      position: "top-right",
-      style: { background: "#1f2937", color: "#fff", border: "1px solid #d4af37" },
-    });
+    const loadingToast = toast.loading("Signing in with Google...");
     try {
       const response = await fetch(`${baseUrl}/auth/google-login`, {
         method: "POST",
@@ -235,13 +232,7 @@ export default function Navbar() {
       });
       const data = await response.json();
       if (!response.ok) throw new Error(data.message || "Google login failed");
-      toast.success("🎉 Google login successful! Welcome to Jottosop!", {
-        duration: 4000,
-        position: "top-right",
-        style: { background: "#065f46", color: "#fff", border: "1px solid #d4af37" },
-        iconTheme: { primary: "#10b981", secondary: "#fff" },
-        id: loadingToast,
-      });
+      toast.success(`🎉 Welcome back, ${data.name}! Login successful!`)
       localStorage.setItem("token", data.token);
       localStorage.setItem("user", JSON.stringify({ name: data.name, role: data.role }));
       dispatch(setUser({ name: data.name, role: data.role }));
@@ -270,12 +261,7 @@ export default function Navbar() {
     localStorage.removeItem("token");
     setProfileDropdownOpen(false);
     setNotificationCount(0); // Reset notification count
-    toast.success("👋 Logged out successfully! See you soon!", {
-      duration: 3000,
-      position: "top-right",
-      style: { background: "#065f46", color: "#fff", border: "1px solid #d4af37" },
-      iconTheme: { primary: "#10b981", secondary: "#fff" },
-    });
+    toast.success(`👋 You have been logged out. See you again soon!`);
     window.location.href = "/";
   };
 

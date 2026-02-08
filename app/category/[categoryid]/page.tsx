@@ -138,7 +138,7 @@ const ProductCardGrid = ({
       whileHover={{ y: -8 }}
       transition={{ duration: 0.3 }}
     >
-      <Link href={`/product/${product.id}`} className="block h-full">
+      <Link href={`/product/${product.slug}`} className="block h-full">
         <div
           className="bg-[#e8ecf0] rounded-3xl p-4 flex flex-col h-full hover:shadow-xl transition-shadow duration-300"
           style={{
@@ -176,11 +176,14 @@ const ProductCardGrid = ({
                 }}
                 className="rounded-full p-2 bg-white/90 backdrop-blur-sm hover:bg-white transition-colors shadow-lg"
               >
-                {isWishlisted ? (
-                  <HeartSolid className="w-5 h-5 text-red-500" />
-                ) : (
-                  <HeartIcon className="w-5 h-5 text-gray-700" />
-                )}
+                {isWishlisted &&
+                // (
+                //   <HeartSolid className="w-5 h-5 text-red-500" />
+                // ) : (
+                //   <HeartIcon className="w-5 h-5 text-gray-700" />
+                // )
+                (<></>)
+                }
               </button>
             </div>
           </div>

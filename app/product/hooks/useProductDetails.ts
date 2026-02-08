@@ -27,6 +27,19 @@ export interface AttributeValue {
   attributeOption: AttributeOption;
   attribute: Attribute;
 }
+export interface Review {
+  id: string;
+  customerUserId: string;
+  rating: number;
+  comment: string | null;
+  title?: string | null;
+  createdAt: string;
+  images: string[];
+  customerUser: {
+    name: string;
+    picture: string | null;
+  };
+}
 
 export interface Variant {
   id: string;
