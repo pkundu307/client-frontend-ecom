@@ -374,7 +374,7 @@ const TermsOfServicePage: React.FC = () => {
                   We’re committed to resolving issues quickly and fairly:
                 </p>
                 <ul className="list-disc list-inside text-sm text-gray-700 space-y-1 mb-3">
-                  <li>Email support: support@jottosop.com (24-hour response)</li>
+                  <li>Email support: conact@jottosop.com (24-hour response)</li>
                   <li>Live chat: Available 10AM-7PM IST</li>
                   <li>Order issues must be reported within 7 days of delivery</li>
                 </ul>
@@ -408,7 +408,7 @@ const TermsOfServicePage: React.FC = () => {
                   <li>Terms effective immediately upon posting on jottoSop.in</li>
                 </ul>
                 <p className="text-xs text-gray-600">
-                  Questions? Contact <span className="font-semibold text-blue-700">support@jottosop.com</span>
+                  Questions? Contact <span className="font-semibold text-blue-700">conact@jottosop.com</span>
                 </p>
               </section>
             </div>
