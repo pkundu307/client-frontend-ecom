@@ -14,6 +14,7 @@ import {
   ShoppingBagIcon,
   CalendarIcon,
   HeartIcon,
+  ChatBubbleLeftRightIcon,
 } from "@heroicons/react/24/outline";
 import { useProfileData, Address, Order } from "./hooks/useProfileData";
 
@@ -165,8 +166,8 @@ const ProfilePage: React.FC = () => {
 
         {/* Quick Actions Grid */}
         <section className="mt-10">
-          <h2 className="text-2xl font-bold mb-6 text-gray-900">Quick Actions</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             {/* Wishlist Card */}
             <motion.div
               variants={cardVariants}
@@ -187,6 +188,36 @@ const ProfilePage: React.FC = () => {
                   </div>
                   <h3 className="text-lg font-bold text-gray-900">My Wishlist</h3>
                   <p className="text-sm text-gray-600 mt-1">View saved items</p>
+                </div>
+                <svg
+                  className="w-6 h-6 text-gray-400 group-hover:translate-x-1 transition-transform"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                </svg>
+              </div>
+            </motion.div>
+                  <motion.div
+              variants={cardVariants}
+              initial="hidden"
+              animate="show"
+              whileHover={{ scale: 1.02 }}
+              whileTap={tap}
+              onClick={() => router.push("/profile/tickets")}
+              className="bg-[#e8ecf0] rounded-2xl p-6 cursor-pointer group"
+              style={{
+                boxShadow: "8px 8px 16px #c5cdd5, -8px -8px 16px #ffffff",
+              }}
+            >
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="w-12 h-12 rounded-xl bg-yellow-100 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
+                    <ChatBubbleLeftRightIcon className="w-6 h-6 text-green-500" />
+                  </div>
+                  <h3 className="text-lg font-bold text-gray-900">My Tickets</h3>
+                  <p className="text-sm text-gray-600 mt-1">View support tickets</p>
                 </div>
                 <svg
                   className="w-6 h-6 text-gray-400 group-hover:translate-x-1 transition-transform"
@@ -222,6 +253,7 @@ const ProfilePage: React.FC = () => {
                     {orders.length} {orders.length === 1 ? "order" : "orders"}
                   </p>
                 </div>
+                
                 <svg
                   className="w-6 h-6 text-gray-400 group-hover:translate-x-1 transition-transform"
                   fill="none"

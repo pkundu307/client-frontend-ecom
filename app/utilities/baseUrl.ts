@@ -1,1 +1,1 @@
-export const baseUrl: string = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+export const baseUrl: string = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';

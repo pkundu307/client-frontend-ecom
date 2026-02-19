@@ -28,6 +28,7 @@ type OrderItem = {
   variantSku: string;
   productId: string;
   hasReview?: boolean;
+  businessId?: string;
 };
 
 type Address = {
@@ -50,6 +51,17 @@ type OrderDetail = {
   selectedAddress: Address | null;
   items: OrderItem[];
   itemCount: number;
+};
+
+// ✅ Add Ticket type
+type Ticket = {
+  id: string;
+  title: string;
+  status: string;
+  createdAt: string;
+  _count: {
+    messages: number;
+  };
 };
 
 const cardVariants: Variants = {
@@ -103,6 +115,91 @@ const OrderDetailPage: React.FC = () => {
   const [submittingReview, setSubmittingReview] = useState(false);
   const [reviewError, setReviewError] = useState<string | null>(null);
 
+  // ✅ Fixed: Use proper Ticket[] type instead of any[]
+  const [showComplaintModal, setShowComplaintModal] = useState(false);
+  const [existingTickets, setExistingTickets] = useState<Ticket[]>([]);
+  const [loadingTickets, setLoadingTickets] = useState(false);
+  const [complaintTitle, setComplaintTitle] = useState("");
+  const [complaintDescription, setComplaintDescription] = useState("");
+  const [complaintPriority, setComplaintPriority] = useState<"LOW" | "MEDIUM" | "HIGH">("MEDIUM");
+  const [submittingComplaint, setSubmittingComplaint] = useState(false);
+  const [complaintError, setComplaintError] = useState<string | null>(null);
+
+  // Add this function to fetch tickets
+  const fetchOrderTickets = async () => {
+    if (!orderId) return;
+
+    setLoadingTickets(true);
+    try {
+      const token = localStorage.getItem("token");
+      const response = await axios.get<Ticket[]>(
+        `${baseUrl}/customer/tickets/order/${orderId}`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      setExistingTickets(response.data);
+    } catch (err) {
+      console.error("Failed to fetch tickets:", err);
+    } finally {
+      setLoadingTickets(false);
+    }
+  };
+
+  // Function to open complaint modal
+  const openComplaintModal = async () => {
+    setShowComplaintModal(true);
+    setComplaintError(null);
+    await fetchOrderTickets();
+  };
+
+  // ✅ Fixed line 110: Remove any type
+  const handleSubmitComplaint = async () => {
+    if (!complaintTitle.trim() || !complaintDescription.trim()) {
+      setComplaintError("Please fill in both title and description");
+      return;
+    }
+
+    if (!order?.items[0]?.businessId) {
+      setComplaintError("Business information not found");
+      return;
+    }
+
+    setSubmittingComplaint(true);
+    setComplaintError(null);
+
+    try {
+      const token = localStorage.getItem("token");
+      await axios.post(
+        `${baseUrl}/customer/tickets`,
+        {
+          title: complaintTitle,
+          description: complaintDescription,
+          businessId: order.items[0].businessId,
+          orderId: orderId,
+          priority: complaintPriority,
+        },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      alert("Complaint submitted successfully!");
+      setShowComplaintModal(false);
+      setComplaintTitle("");
+      setComplaintDescription("");
+      setComplaintPriority("MEDIUM");
+
+      await fetchOrderTickets();
+    } catch (err) {
+      console.error("Failed to submit complaint:", err);
+      const errorMessage =
+        err instanceof Error
+          ? err.message
+          : (err as { response?: { data?: { message?: string } } })?.response?.data?.message ||
+            "Failed to submit complaint";
+      setComplaintError(errorMessage);
+    } finally {
+      setSubmittingComplaint(false);
+    }
+  };
+
   useEffect(() => {
     const fetchOrder = async () => {
       const token =
@@ -150,6 +247,7 @@ const OrderDetailPage: React.FC = () => {
     return order.status.toLowerCase() === "delivered";
   };
 
+  // ✅ Fixed line 180: Remove any type
   const handleCancelOrder = async () => {
     if (!order) return;
 
@@ -185,11 +283,13 @@ const OrderDetailPage: React.FC = () => {
       setCustomReason("");
 
       alert("Order cancelled successfully!");
-    } catch (err: unknown) {
+    } catch (err) {
+      console.error("Failed to cancel order:", err);
       const errorMessage =
-        axios.isAxiosError(err) && err.response?.data?.message
-          ? err.response.data.message
-          : "Failed to cancel order. Please try again.";
+        err instanceof Error
+          ? err.message
+          : (err as { response?: { data?: { message?: string } } })?.response?.data?.message ||
+            "Failed to cancel order. Please try again.";
       setCancelError(errorMessage);
     } finally {
       setCancelling(false);
@@ -503,27 +603,45 @@ const OrderDetailPage: React.FC = () => {
                     </div>
 
                     {/* Review button */}
-                    {canReviewOrder() && !item.hasReview && (
-                      <motion.button
-                        whileHover={{ scale: 1.02 }}
-                        whileTap={{ scale: 0.98 }}
-                        onClick={() =>
-                          openReviewModal(item.productId, item.productName)
-                        }
-                        className="w-full bg-blue-600 text-white py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-semibold flex items-center justify-center gap-2 transition-colors hover:bg-blue-700"
-                        style={{
-                          boxShadow:
-                            "4px 4px 8px #c5cdd5, -4px -4px 8px #ffffff",
-                        }}
-                      >
-                        <StarIcon className="w-4 h-4" />
-                        Write a Review
-                      </motion.button>
-                    )}
+                    {canReviewOrder() && (
+                      <div className="grid grid-cols-2 gap-2">
+                        {!item.hasReview && (
+                          <motion.button
+                            whileHover={{ scale: 1.02 }}
+                            whileTap={{ scale: 0.98 }}
+                            onClick={() =>
+                              openReviewModal(item.productId, item.productName)
+                            }
+                            className="bg-blue-600 text-white py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-semibold flex items-center justify-center gap-2 transition-colors hover:bg-blue-700"
+                            style={{
+                              boxShadow:
+                                "4px 4px 8px #c5cdd5, -4px -4px 8px #ffffff",
+                            }}
+                          >
+                            <StarIcon className="w-4 h-4" />
+                            Write Review
+                          </motion.button>
+                        )}
 
-                    {item.hasReview && (
-                      <div className="text-center text-xs text-green-600 font-semibold bg-green-50 py-2 rounded-xl">
-                        ✓ Reviewed
+                        {item.hasReview && (
+                          <div className="text-center text-xs text-green-600 font-semibold bg-green-50 py-2 rounded-xl">
+                            ✓ Reviewed
+                          </div>
+                        )}
+
+                        <motion.button
+                          whileHover={{ scale: 1.02 }}
+                          whileTap={{ scale: 0.98 }}
+                          onClick={openComplaintModal}
+                          className="bg-red-600 text-white py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-semibold flex items-center justify-center gap-2 transition-colors hover:bg-red-700"
+                          style={{
+                            boxShadow:
+                              "4px 4px 8px #c5cdd5, -4px -4px 8px #ffffff",
+                          }}
+                        >
+                          <ExclamationTriangleIcon className="w-4 h-4" />
+                          Raise Complaint
+                        </motion.button>
                       </div>
                     )}
                   </div>
@@ -995,6 +1113,254 @@ const OrderDetailPage: React.FC = () => {
         )}
       </AnimatePresence>
 
+      {/* Complaint Modal */}
+      <AnimatePresence>
+        {showComplaintModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/60 backdrop-blur-lg flex items-center justify-center z-50 p-4"
+            onClick={() => {
+              if (!submittingComplaint) {
+                setShowComplaintModal(false);
+                setComplaintError(null);
+              }
+            }}
+          >
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              onClick={(e) => e.stopPropagation()}
+              className="bg-[#e8ecf0] rounded-3xl p-6 sm:p-8 w-full max-w-2xl relative max-h-[90vh] overflow-y-auto custom-scrollbar"
+              style={{
+                boxShadow: "20px 20px 40px #c5cdd5, -20px -20px 40px #ffffff",
+              }}
+            >
+              <button
+                onClick={() => {
+                  if (!submittingComplaint) {
+                    setShowComplaintModal(false);
+                    setComplaintError(null);
+                  }
+                }}
+                disabled={submittingComplaint}
+                className="absolute top-4 right-4 text-gray-600 hover:text-gray-900 disabled:opacity-50 transition-colors"
+              >
+                <XMarkIcon className="w-6 h-6" />
+              </button>
+
+              <div className="flex items-center gap-3 mb-6">
+                <div className="bg-red-100 rounded-full p-3 flex-shrink-0">
+                  <ExclamationTriangleIcon className="w-8 h-8 text-red-600" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <h3 className="text-xl sm:text-2xl font-bold text-gray-900">
+                    Raise a Complaint
+                  </h3>
+                  <p className="text-sm text-gray-600 truncate">
+                    Order #{order.orderNumber}
+                  </p>
+                </div>
+              </div>
+
+              {/* Existing Tickets */}
+              {loadingTickets ? (
+                <div className="text-center py-4">
+                  <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-red-600"></div>
+                  <p className="text-sm text-gray-600 mt-2">Loading tickets...</p>
+                </div>
+              ) : existingTickets.length > 0 ? (
+                <div className="mb-6">
+                  <h4 className="text-sm font-semibold text-gray-900 mb-3">
+                    Existing Complaints:
+                  </h4>
+                  <div className="space-y-2">
+                    {existingTickets.map((ticket) => (
+                      <div
+                        key={ticket.id}
+                        className="bg-[#e8ecf0] rounded-xl p-4 cursor-pointer hover:bg-gray-100 transition-colors"
+                        style={{
+                          boxShadow:
+                            "inset 4px 4px 8px #c5cdd5, inset -4px -4px 8px #ffffff",
+                        }}
+                        onClick={() => router.push(`/profile/tickets/${ticket.id}`)}
+                      >
+                        <div className="flex justify-between items-start mb-2">
+                          <p className="font-semibold text-gray-900 text-sm">
+                            {ticket.title}
+                          </p>
+                          <span
+                            className={`px-2 py-1 rounded-full text-xs font-semibold ${
+                              ticket.status === "OPEN"
+                                ? "bg-yellow-100 text-yellow-700"
+                                : ticket.status === "RESOLVED"
+                                ? "bg-green-100 text-green-700"
+                                : "bg-gray-100 text-gray-700"
+                            }`}
+                          >
+                            {ticket.status}
+                          </span>
+                        </div>
+                        <p className="text-xs text-gray-600">
+                          {ticket._count.messages} messages •{" "}
+                          {new Date(ticket.createdAt).toLocaleDateString()}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="mt-4 pt-4 border-t border-gray-300">
+                    <p className="text-sm font-semibold text-gray-900 mb-3">
+                      Or create a new complaint:
+                    </p>
+                  </div>
+                </div>
+              ) : (
+                <p className="text-sm text-gray-600 mb-4">
+                  No existing complaints for this order. Create one below:
+                </p>
+              )}
+
+              {/* New Complaint Form */}
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-semibold text-gray-900 mb-2">
+                    Complaint Title *
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="e.g., Defective Product Received"
+                    value={complaintTitle}
+                    onChange={(e) => setComplaintTitle(e.target.value)}
+                    disabled={submittingComplaint}
+                    maxLength={100}
+                    className="w-full px-4 py-3 rounded-xl bg-[#e8ecf0] text-gray-900 placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-red-600 disabled:opacity-50 text-sm"
+                    style={{
+                      boxShadow:
+                        "inset 4px 4px 8px #c5cdd5, inset -4px -4px 8px #ffffff",
+                    }}
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-semibold text-gray-900 mb-2">
+                    Description *
+                  </label>
+                  <textarea
+                    placeholder="Describe your issue in detail..."
+                    value={complaintDescription}
+                    onChange={(e) => setComplaintDescription(e.target.value)}
+                    disabled={submittingComplaint}
+                    maxLength={500}
+                    rows={4}
+                    className="w-full px-4 py-3 rounded-xl bg-[#e8ecf0] text-gray-900 placeholder-gray-600 resize-none focus:outline-none focus:ring-2 focus:ring-red-600 disabled:opacity-50 text-sm"
+                    style={{
+                      boxShadow:
+                        "inset 4px 4px 8px #c5cdd5, inset -4px -4px 8px #ffffff",
+                    }}
+                  />
+                  <p className="text-xs text-gray-600 mt-1 text-right">
+                    {complaintDescription.length}/500
+                  </p>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-semibold text-gray-900 mb-2">
+                    Priority
+                  </label>
+                  <div className="grid grid-cols-3 gap-2">
+                    {(["LOW", "MEDIUM", "HIGH"] as const).map((priority) => (
+                      <button
+                        key={priority}
+                        type="button"
+                        onClick={() => setComplaintPriority(priority)}
+                        disabled={submittingComplaint}
+                        className={`py-2 rounded-xl text-xs font-semibold transition-all ${
+                          complaintPriority === priority
+                            ? priority === "HIGH"
+                              ? "bg-red-600 text-white"
+                              : priority === "MEDIUM"
+                              ? "bg-yellow-600 text-yellow-50"
+                              : "bg-green-600 text-white"
+                            : "bg-[#e8ecf0] text-gray-700"
+                        }`}
+                        style={{
+                          boxShadow:
+                            complaintPriority === priority
+                              ? "inset 4px 4px 8px #c5cdd5, inset -4px -4px 8px #ffffff"
+                              : "4px 4px 8px #c5cdd5, -4px -4px 8px #ffffff",
+                        }}
+                      >
+                        {priority}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {complaintError && (
+                  <div className="p-3 bg-red-50 border border-red-200 rounded-xl">
+                    <p className="text-sm text-red-600">{complaintError}</p>
+                  </div>
+                )}
+
+                <div className="flex gap-3 pt-4">
+                  <button
+                    onClick={() => {
+                      setShowComplaintModal(false);
+                      setComplaintError(null);
+                    }}
+                    disabled={submittingComplaint}
+                    className="flex-1 bg-[#e8ecf0] text-gray-900 py-3 rounded-xl font-semibold disabled:opacity-50 hover:text-blue-600 transition-colors text-sm"
+                    style={{
+                      boxShadow: "6px 6px 12px #c5cdd5, -6px -6px 12px #ffffff",
+                    }}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleSubmitComplaint}
+                    disabled={
+                      submittingComplaint ||
+                      !complaintTitle.trim() ||
+                      !complaintDescription.trim()
+                    }
+                    className="flex-1 bg-red-600 text-white py-3 rounded-xl font-semibold disabled:opacity-50 disabled:cursor-not-allowed hover:bg-red-700 transition-colors text-sm"
+                    style={{
+                      boxShadow: "8px 8px 16px #c5cdd5, -6px -6px 12px #ffffff",
+                    }}
+                  >
+                    {submittingComplaint ? (
+                      <span className="flex items-center justify-center gap-2">
+                        <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
+                          <circle
+                            className="opacity-25"
+                            cx="12"
+                            cy="12"
+                            r="10"
+                            stroke="currentColor"
+                            strokeWidth="4"
+                            fill="none"
+                          />
+                          <path
+                            className="opacity-75"
+                            fill="currentColor"
+                            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                          />
+                        </svg>
+                        Submitting...
+                      </span>
+                    ) : (
+                      "Submit Complaint"
+                    )}
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       <style jsx global>{`
         .custom-scrollbar::-webkit-scrollbar {
           width: 8px;
@@ -1010,7 +1376,7 @@ const OrderDetailPage: React.FC = () => {
         .custom-scrollbar::-webkit-scrollbar-thumb:hover {
           background: #a8b3bd;
         }
-        
+
         .line-clamp-2 {
           display: -webkit-box;
           -webkit-line-clamp: 2;
