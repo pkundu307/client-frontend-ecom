@@ -1,5 +1,5 @@
 "use client";
-import React, { use } from "react";
+import React, { use, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import dynamic from "next/dynamic";
 import { Toaster } from "react-hot-toast";
@@ -29,6 +29,7 @@ import VariantSelector from "./(component)/VariantSelector";
 // Hooks & Types
 import { useProductDetails } from "../hooks/useProductDetails";
 import type { TabId } from "../hooks/useProductDetails";
+import { CheckIcon } from "lucide-react";
 
 const CustomizationModal = dynamic(() => import("./(component)/CustomizationModal"), {
   ssr: false,
@@ -68,6 +69,35 @@ interface Review {
 export default function ProductPage({ params }: ProductPageProps) {
   const resolvedParams = use(params instanceof Promise ? params : Promise.resolve(params));
   const { productId } = resolvedParams;
+   const [copied, setCopied] = useState(false);
+
+  const handleShare = async () => {
+    const shareData = {
+      title: document.title,
+      text: "Check out this product!",
+      url: window.location.href, // Gets the current page URL
+    };
+
+    // 1. Try Native Share (Mobile/Supported Browsers)
+    if (navigator.share) {
+      try {
+        await navigator.share(shareData);
+      } catch (err) {
+        console.log("Error sharing:", err);
+      }
+    } 
+    // 2. Fallback: Copy to Clipboard (Desktop)
+    else {
+      try {
+        await navigator.clipboard.writeText(window.location.href);
+        setCopied(true);
+        // Reset "Copied" status after 2 seconds
+        setTimeout(() => setCopied(false), 2000);
+      } catch (err) {
+        console.error("Failed to copy:", err);
+      }
+    }
+  };
 
   const {
     // State
@@ -284,16 +314,30 @@ export default function ProductPage({ params }: ProductPageProps) {
                   </motion.button>
 
                   <motion.button
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                    className="p-2 sm:p-2.5 rounded-xl bg-[#e8ecf0]"
-                    style={{
-                      boxShadow: "4px 4px 8px #c5cdd5, -4px -4px 8px #ffffff",
-                    }}
-                    aria-label="Share product"
-                  >
-                    <ShareIcon className="w-5 h-5 text-gray-600" />
-                  </motion.button>
+      onClick={handleShare}
+      whileHover={{ scale: 1.05 }}
+      whileTap={{ scale: 0.95 }}
+      className="p-2 sm:p-2.5 rounded-xl bg-[#e8ecf0] relative"
+      style={{
+        boxShadow: "4px 4px 8px #c5cdd5, -4px -4px 8px #ffffff",
+      }}
+      aria-label="Share product"
+    >
+      {/* Swap icon briefly if copied to clipboard */}
+      {copied ? (
+        <CheckIcon className="w-5 h-5 text-green-600" />
+      ) : (
+        <ShareIcon className="w-5 h-5 text-gray-600" />
+      )}
+      
+      {/* Optional: Tooltip for Desktop feedback */}
+      {copied && (
+        <span className="absolute -top-8 left-1/2 -translate-x-1/2 text-xs bg-gray-800 text-white px-2 py-1 rounded">
+          Copied!
+        </span>
+      )}
+    </motion.button>
+  
                 </div>
               </div>
 
