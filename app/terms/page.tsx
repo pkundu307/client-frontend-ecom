@@ -374,7 +374,7 @@ const TermsOfServicePage: React.FC = () => {
                   We’re committed to resolving issues quickly and fairly:
                 </p>
                 <ul className="list-disc list-inside text-sm text-gray-700 space-y-1 mb-3">
-                  <li>Email support: conact@jottosop.com (24-hour response)</li>
+                  <li>Email support: support@jottosop.in (24-hour response)</li>
                   <li>Live chat: Available 10AM-7PM IST</li>
                   <li>Order issues must be reported within 7 days of delivery</li>
                 </ul>
@@ -383,7 +383,7 @@ const TermsOfServicePage: React.FC = () => {
                 </p>
                 <div className="bg-blue-50 border border-blue-200 p-4 rounded-xl">
                   <p className="text-sm font-semibold text-blue-900 mb-1">
-                    Governing Law: Indian law applies. Courts in [City] have jurisdiction.
+                    Governing Law: Indian law applies. Courts in India have jurisdiction.
                   </p>
                 </div>
               </section>
@@ -408,7 +408,7 @@ const TermsOfServicePage: React.FC = () => {
                   <li>Terms effective immediately upon posting on jottoSop.in</li>
                 </ul>
                 <p className="text-xs text-gray-600">
-                  Questions? Contact <span className="font-semibold text-blue-700">conact@jottosop.com</span>
+                  Questions? Contact <span className="font-semibold text-blue-700">support@jottosop.in</span>
                 </p>
               </section>
             </div>

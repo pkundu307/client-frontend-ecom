@@ -169,7 +169,7 @@ const PrivacyPolicyPage: React.FC = () => {
                   <li>• Access, update, or delete your account data.</li>
                   <li>• Request a copy of your personal information.</li>
                   <li>• Opt out of non-essential marketing emails.</li>
-                  <li>• Ask questions at: privacy@jottosop.com</li>
+                  <li>• Ask questions at: support@jottosop.in</li>
                 </ul>
               </div>
             </div>
@@ -375,7 +375,7 @@ const PrivacyPolicyPage: React.FC = () => {
                   For any privacy question or request, you can email:
                 </p>
                 <p className="text-sm font-semibold text-blue-700">
-                  privacy@jottosop.com
+                  support@jottosop.in
                 </p>
                 <p className="text-xs text-gray-500 mt-3">
                   We may update this Privacy Policy from time to time. When we

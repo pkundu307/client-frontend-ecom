@@ -412,7 +412,7 @@ const CookiePolicyPage: React.FC = () => {
                 </p>
                 <div className="bg-gray-50 border border-gray-200 p-4 rounded-xl mb-3">
                   <p className="font-semibold text-gray-900 mb-1">
-                    Email: cookies@jottosop.com
+                    Email: support@jottosop.in
                   </p>
                   <p className="text-sm text-gray-700">
                     {`We'll respond within 48 hours.`}

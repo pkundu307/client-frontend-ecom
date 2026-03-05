@@ -18,7 +18,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || 'https://jottosop.com'),
+  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || 'https://jottosop.in'),
     verification: {
     google: process.env.NEXT_PUBLIC_GA_ID, // ✅ Add this exact code
   },

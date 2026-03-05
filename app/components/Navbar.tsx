@@ -1,6 +1,6 @@
 "use client";
 import { GoogleLogin, GoogleOAuthProvider } from "@react-oauth/google";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Search, ShoppingCart, User, Loader2, X, Bell } from "lucide-react";
 import { baseUrl } from "../utilities/baseUrl";
 import { useDispatch, useSelector } from "react-redux";
@@ -15,6 +15,42 @@ import { AppDispatch } from "../store/store";
 import Image from "next/image";
 import { motion, AnimatePresence, Variants } from "framer-motion";
 import axios, { AxiosError } from "axios";
+
+// --- Toast Styles ---
+const neuToast = {
+  success: {
+    style: {
+      background: "#e8ecf0",
+      color: "#1f2937",
+      border: "none",
+      boxShadow: "8px 8px 16px #a8d5b5, -8px -8px 16px #ffffff",
+      borderRadius: "16px",
+      fontWeight: "600",
+    },
+    iconTheme: { primary: "#10b981", secondary: "#e8ecf0" },
+  },
+  error: {
+    style: {
+      background: "#e8ecf0",
+      color: "#ef4444",
+      border: "none",
+      boxShadow: "8px 8px 16px #f5c0c0, -8px -8px 16px #ffffff",
+      borderRadius: "16px",
+      fontWeight: "600",
+    },
+    iconTheme: { primary: "#ef4444", secondary: "#e8ecf0" },
+  },
+  loading: {
+    style: {
+      background: "#e8ecf0",
+      color: "#1f2937",
+      border: "none",
+      boxShadow: "8px 8px 16px #c5cdd5, -8px -8px 16px #ffffff",
+      borderRadius: "16px",
+      fontWeight: "600",
+    },
+  },
+};
 
 // --- Search Interfaces ---
 interface ProductSearchResult {
@@ -38,7 +74,6 @@ interface Notification {
   id: string;
   isRead: boolean;
 }
-
 interface NotificationResponse {
   notifications: Notification[];
 }
@@ -60,10 +95,6 @@ export default function Navbar() {
   const user = useSelector((state: RootState) => state.user);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [isSignUp, setIsSignUp] = useState(false);
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
   const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const [mobileSearchTerm, setMobileSearchTerm] = useState("");
@@ -82,21 +113,28 @@ export default function Navbar() {
   const [searchFocused, setSearchFocused] = useState(false);
   const debouncedQuery = useDebounce(searchQuery, 300);
 
-  // Responsive / Mobile
+  // --- Google Button Width Ref ---
+  const googleBtnRef = useRef<HTMLDivElement>(null);
+  const [googleBtnWidth, setGoogleBtnWidth] = useState(360);
+
+  useEffect(() => {
+    if (isModalOpen && googleBtnRef.current) {
+      setGoogleBtnWidth(googleBtnRef.current.offsetWidth);
+    }
+  }, [isModalOpen]);
+
+  // --- Scroll: scrolling up detection ---
   useEffect(() => {
     const handleScroll = () => {
       const currentScrollY = window.scrollY;
-      if (currentScrollY < lastScrollY2) {
-        setIsScrollingUp(true);
-      } else if (currentScrollY > lastScrollY2) {
-        setIsScrollingUp(false);
-      }
+      setIsScrollingUp(currentScrollY < lastScrollY2);
       setLastScrollY2(currentScrollY);
     };
     window.addEventListener("scroll", handleScroll, { passive: true });
     return () => window.removeEventListener("scroll", handleScroll);
   }, [lastScrollY2]);
 
+  // --- Responsive ---
   useEffect(() => {
     const checkScreenSize = () => setIsMobile(window.innerWidth < 1024);
     checkScreenSize();
@@ -104,6 +142,7 @@ export default function Navbar() {
     return () => window.removeEventListener("resize", checkScreenSize);
   }, []);
 
+  // --- Mobile search bar hide on scroll down ---
   useEffect(() => {
     const handleScroll = () => {
       if (window.scrollY > lastScrollY) setShowSearchBar(false);
@@ -118,41 +157,27 @@ export default function Navbar() {
   useEffect(() => {
     const fetchNotificationCount = async (): Promise<void> => {
       const token = localStorage.getItem("token");
-      if (!token) {
-        setNotificationCount(0);
-        return;
-      }
-
+      if (!token) { setNotificationCount(0); return; }
       try {
         const response = await axios.get<NotificationResponse>(
           `${process.env.NEXT_PUBLIC_API_URL || baseUrl}/notifications/customer`,
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          }
+          { headers: { Authorization: `Bearer ${token}` } }
         );
         const unreadCount = response.data.notifications.filter((n) => !n.isRead).length;
         setNotificationCount(unreadCount);
       } catch (error) {
-        if (error instanceof AxiosError) {
-          console.error("Failed to fetch notification count:", error.message);
-        } else {
-          console.error("Failed to fetch notification count:", error);
-        }
+        if (error instanceof AxiosError) console.error("Failed to fetch notification count:", error.message);
+        else console.error("Failed to fetch notification count:", error);
         setNotificationCount(0);
       }
     };
 
     fetchNotificationCount();
-
-    // Poll for new notifications every 30 seconds
     const interval = setInterval(fetchNotificationCount, 30000);
-
     return () => clearInterval(interval);
-  }, [user.name]); // Re-fetch when user logs in/out
+  }, [user.name]);
 
-  // --- AUTH ---
+  // --- Restore user from localStorage ---
   useEffect(() => {
     const storedToken = localStorage.getItem("token");
     if (storedToken) {
@@ -161,69 +186,22 @@ export default function Navbar() {
     }
   }, [dispatch]);
 
-  const handleLoginSignup = async () => {
-    if (!email || !password || (isSignUp && !name)) {
-      toast.error("Please fill in all fields.", {
-        duration: 3000,
-        position: "top-right",
-        style: { background: "#1f2937", color: "#fff", border: "1px solid #d4af37" },
-        iconTheme: { primary: "#ef4444", secondary: "#fff" },
-      });
-      return;
-    }
-    const loadingToast = toast.loading("Signing you in...", {
-      position: "top-right",
-      style: { background: "#1f2937", color: "#fff", border: "1px solid #d4af37" },
-    });
-    try {
-      const endpoint = isSignUp ? `${baseUrl}/auth/register` : `${baseUrl}/auth/login`;
-      const response = await fetch(endpoint, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(isSignUp ? { name, email, password } : { email, password }),
-      });
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.message || "Authentication failed");
-      toast.success(
-        isSignUp ? "🎉 Account created successfully! Welcome to Jottosop!" : "✨ Welcome back! Login successful!",
-        {
-          duration: 4000,
-          position: "top-right",
-          style: { background: "#065f46", color: "#fff", border: "1px solid #d4af37" },
-          iconTheme: { primary: "#10b981", secondary: "#fff" },
-          id: loadingToast,
-        }
-      );
-      setIsModalOpen(false);
-      localStorage.setItem("token", data.token);
-      localStorage.setItem("user", JSON.stringify({ name: data.name, role: data.role }));
-      dispatch(setUser({ name: data.name, role: data.role }));
-      setName("");
-      setEmail("");
-      setPassword("");
-    } catch (error: unknown) {
-      const errorMessage = error instanceof Error ? error.message : "An error occurred during authentication";
-      toast.error(errorMessage, {
-        duration: 4000,
-        position: "top-right",
-        style: { background: "#1f2937", color: "#fff", border: "1px solid #ef4444" },
-        iconTheme: { primary: "#ef4444", secondary: "#fff" },
-        id: loadingToast,
-      });
-    }
-  };
-
+  // --- Google Login ---
   const handleGoogleLoginSuccess = async (credentialResponse: { credential?: string }) => {
     if (!credentialResponse?.credential) {
       toast.error("No credentials received from Google", {
         duration: 3000,
         position: "top-right",
-        style: { background: "#1f2937", color: "#fff", border: "1px solid #ef4444" },
-        iconTheme: { primary: "#ef4444", secondary: "#fff" },
+        ...neuToast.error,
       });
       return;
     }
-    const loadingToast = toast.loading("Signing in with Google...");
+
+    const loadingToast = toast.loading("Signing in with Google...", {
+      position: "top-right",
+      ...neuToast.loading,
+    });
+
     try {
       const response = await fetch(`${baseUrl}/auth/google-login`, {
         method: "POST",
@@ -232,40 +210,47 @@ export default function Navbar() {
       });
       const data = await response.json();
       if (!response.ok) throw new Error(data.message || "Google login failed");
-      toast.success(`🎉 Welcome back, ${data.name}! Login successful!`)
-      localStorage.setItem("token", data.token);
-      localStorage.setItem("user", JSON.stringify({ name: data.name, role: data.role }));
-      dispatch(setUser({ name: data.name, role: data.role }));
-      setIsModalOpen(false);
-      setName("");
-      setEmail("");
-      setPassword("");
-      const guestCart = JSON.parse(localStorage.getItem("guest_cart") || "[]");
-      if (guestCart.length > 0) {
-        // Reserved for future sync (kept intact).
-      }
-    } catch (error) {
-      toast.error(`${error}Google login failed. Please try again.`, {
+
+      toast.success(`🎉 Welcome, ${data.user.name}!`, {
+        id: loadingToast,
         duration: 4000,
         position: "top-right",
-        style: { background: "#1f2937", color: "#fff", border: "1px solid #ef4444" },
-        iconTheme: { primary: "#ef4444", secondary: "#fff" },
+        ...neuToast.success,
+      });
+
+      localStorage.setItem("token", data.accessToken);
+      localStorage.setItem("refreshToken", data.refreshToken);
+      localStorage.setItem("user", JSON.stringify({ name: data.user.name, role: data.user.role }));
+      dispatch(setUser({ name: data.user.name, role: data.user.role }));
+      setIsModalOpen(false);
+    } catch (error) {
+      console.error(error);
+      toast.error("Google login failed. Please try again.", {
         id: loadingToast,
+        duration: 4000,
+        position: "top-right",
+        ...neuToast.error,
       });
     }
   };
 
+  // --- Logout ---
   const handleLogout = () => {
     dispatch(logoutUser());
     localStorage.removeItem("user");
     localStorage.removeItem("token");
+    localStorage.removeItem("refreshToken");
     setProfileDropdownOpen(false);
-    setNotificationCount(0); // Reset notification count
-    toast.success(`👋 You have been logged out. See you again soon!`);
+    setNotificationCount(0);
+    toast.success("👋 You have been logged out. See you soon!", {
+      duration: 3000,
+      position: "top-right",
+      ...neuToast.success,
+    });
     window.location.href = "/";
   };
 
-  // --- Live Search Logic ---
+  // --- Live Search ---
   useEffect(() => {
     if (debouncedQuery.length < 2) {
       setSearchResults([]);
@@ -275,9 +260,7 @@ export default function Navbar() {
     setSearchLoading(true);
     (async () => {
       try {
-        const apiUrl = `${process.env.NEXT_PUBLIC_API_URL || baseUrl}/products/search?query=${encodeURIComponent(
-          debouncedQuery
-        )}`;
+        const apiUrl = `${process.env.NEXT_PUBLIC_API_URL || baseUrl}/products/search?query=${encodeURIComponent(debouncedQuery)}`;
         const response = await fetch(apiUrl);
         if (!response.ok) throw new Error("Search failed");
         const data: ProductSearchResult[] = await response.json();
@@ -302,48 +285,39 @@ export default function Navbar() {
   const dropdownVariants: Variants = {
     hidden: { opacity: 0, y: -6, scale: 0.98 },
     show: {
-      opacity: 1,
-      y: 0,
-      scale: 1,
-      transition: {
-        type: "spring",
-        stiffness: 420,
-        damping: 32,
-        mass: 0.7,
-      },
+      opacity: 1, y: 0, scale: 1,
+      transition: { type: "spring", stiffness: 420, damping: 32, mass: 0.7 },
     },
-    exit: {
-      opacity: 0,
-      y: -6,
-      scale: 0.98,
-      transition: { duration: 0.18 },
-    },
-  };
-
-  // Handle notification click
-  const handleNotificationClick = () => {
-    router.push("/notifications");
+    exit: { opacity: 0, y: -6, scale: 0.98, transition: { duration: 0.18 } },
   };
 
   return (
     <>
       <GoogleOAuthProvider clientId="939883123761-up76q4mal36sd3quh558ssccr1cqc035.apps.googleusercontent.com">
         <nav
-          className="py-4 px-6 z-23 sticky top-0 bg-[#e8ecf0]"
+          className="py-3 px-6 z-23 sticky top-0 bg-[#e8ecf0]"
           style={{ boxShadow: "0 4px 12px rgba(197, 205, 213, 0.5), 0 -2px 8px rgba(255, 255, 255, 0.8)" }}
         >
           <div className="max-w-7xl mx-auto flex justify-between items-center">
-            {/* LOGO */}
+
+            {/* LOGO — increased size */}
             <Link href="/" className="flex items-center gap-3">
               <div
-                className="rounded-2xl p-1"
+                className="rounded-2xl p-1.5"
                 style={{ boxShadow: "6px 6px 12px #c5cdd5, -6px -6px 12px #ffffff" }}
               >
-                <Image src="/logo.png" alt="Jotto Logo" width={56} height={56} className="rounded-xl" />
+                <Image
+                  src="/logo.png"
+                  alt="Jottosop Logo"
+                  width={120}
+                  height={48}
+                  className="rounded-xl object-contain"
+                  priority
+                />
               </div>
             </Link>
 
-            {/* SEARCH FIELD w/ Live Dropdown */}
+            {/* SEARCH FIELD */}
             {!isMobile && (
               <div className="flex-1 mx-6 relative">
                 <div className="relative w-full max-w-xl">
@@ -354,8 +328,8 @@ export default function Navbar() {
                     onFocus={() => setSearchFocused(true)}
                     onBlur={() => setTimeout(() => setSearchFocused(false), 120)}
                     placeholder="Search for products, brands..."
-                    className={`w-full pl-6 pr-14 py-3 rounded-2xl bg-[#e8ecf0] transition-all duration-300 focus:outline-none text-gray-900 ${
-                      isScrollingUp ? "placeholder-yellow-600" : "placeholder-gray-700"
+                    className={`w-full pl-6 pr-14 py-3 rounded-2xl bg-[#e8ecf0] transition-all duration-300 focus:outline-none text-gray-900 font-medium ${
+                      isScrollingUp ? "placeholder-yellow-600" : "placeholder-gray-500"
                     }`}
                     style={{ boxShadow: "inset 4px 4px 8px #c5cdd5, inset -4px -4px 8px #ffffff" }}
                   />
@@ -371,10 +345,7 @@ export default function Navbar() {
                     </motion.button>
                   )}
                   {searchLoading && (
-                    <Loader2
-                      className="absolute right-3 top-1/2 -translate-y-1/2 animate-spin text-gray-400"
-                      size={18}
-                    />
+                    <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 animate-spin text-gray-400" size={18} />
                   )}
                   <AnimatePresence>
                     {searchFocused && searchQuery.length > 1 && (
@@ -382,22 +353,16 @@ export default function Navbar() {
                         initial={{ opacity: 0, y: -8 }}
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0, y: -8 }}
-                        className="absolute left-0 right-0 mt-2 bg-[#e8ecf0] rounded-2xl shadow-lg border border-gray-200 z-20"
+                        className="absolute left-0 right-0 mt-2 bg-[#e8ecf0] rounded-2xl z-20"
                         style={{ boxShadow: "12px 12px 24px #c5cdd5, -12px -12px 24px #ffffff" }}
                       >
                         {searchResults.length ? (
                           searchResults.map((item) => (
                             <Link href={`/product/${item.slug}`} key={item.id} onClick={() => setSearchFocused(false)}>
-                              <div className="flex items-center gap-3 px-4 py-3 hover:bg-gray-100 transition">
+                              <div className="flex items-center gap-3 px-4 py-3 hover:bg-gray-200/40 transition rounded-2xl">
                                 {item.image && (
                                   <div className="w-10 h-10 rounded-xl overflow-hidden bg-white shrink-0 border border-gray-100">
-                                    <Image
-                                      width={40}
-                                      height={40}
-                                      src={item.image}
-                                      alt={item.text}
-                                      className="w-full h-full object-cover"
-                                    />
+                                    <Image width={40} height={40} src={item.image} alt={item.text} className="w-full h-full object-cover" />
                                   </div>
                                 )}
                                 <div>
@@ -417,7 +382,7 @@ export default function Navbar() {
               </div>
             )}
 
-            {/* CART + PROFILE + NOTIFICATIONS */}
+            {/* CART + NOTIFICATIONS + PROFILE */}
             <div className="flex items-center space-x-4">
               {/* Cart */}
               <Link href="/cart" aria-label="Cart">
@@ -441,10 +406,10 @@ export default function Navbar() {
                 </motion.button>
               </Link>
 
-              {/* Notification */}
+              {/* Notifications */}
               <motion.button
                 whileTap={tapBounce}
-                onClick={handleNotificationClick}
+                onClick={() => router.push("/notifications")}
                 className="relative text-royal-gold p-3 rounded-xl bg-[#e8ecf0]"
                 style={{ boxShadow: "6px 6px 12px #c5cdd5, -6px -6px 12px #ffffff" }}
                 aria-label="Notifications"
@@ -488,27 +453,19 @@ export default function Navbar() {
                     >
                       {user.name ? (
                         <>
-                          <div className="px-4 py-3 border-b border-gray-300/30 text-gray-900 font-semibold">
-                            Welcome, {user.name}
+                          <div className="px-4 py-3 border-b border-gray-300/30 text-gray-900 font-semibold text-sm">
+                            👋 {user.name}
                           </div>
-                          <motion.a
-                            whileTap={tapBounce}
-                            href="/profile"
-                            className="block px-4 py-3 hover:bg-gray-300/20 text-gray-800 transition-colors"
-                          >
+                          <motion.a whileTap={tapBounce} href="/profile" className="block px-4 py-3 hover:bg-gray-300/20 text-gray-700 font-medium text-sm transition-colors">
                             Profile
                           </motion.a>
-                          <motion.a
-                            whileTap={tapBounce}
-                            href="/orders"
-                            className="block px-4 py-3 hover:bg-gray-300/20 text-gray-800 transition-colors"
-                          >
+                          <motion.a whileTap={tapBounce} href="/orders" className="block px-4 py-3 hover:bg-gray-300/20 text-gray-700 font-medium text-sm transition-colors">
                             My Orders
                           </motion.a>
                           <motion.button
                             whileTap={tapBounce}
                             onClick={handleLogout}
-                            className="block w-full text-left px-4 py-3 hover:bg-gray-300/20 text-gray-800 transition-colors"
+                            className="block w-full text-left px-4 py-3 hover:bg-red-50 text-red-500 font-medium text-sm transition-colors"
                           >
                             Logout
                           </motion.button>
@@ -516,8 +473,8 @@ export default function Navbar() {
                       ) : (
                         <motion.button
                           whileTap={tapBounce}
-                          onClick={() => setIsModalOpen(true)}
-                          className="block w-full text-left px-4 py-3 text-gray-800 hover:bg-gray-300/20 transition-colors"
+                          onClick={() => { setIsModalOpen(true); setProfileDropdownOpen(false); }}
+                          className="block w-full text-left px-4 py-3 text-gray-800 font-medium hover:bg-gray-300/20 transition-colors"
                         >
                           Login
                         </motion.button>
@@ -538,103 +495,79 @@ export default function Navbar() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-black/40 backdrop-blur-lg flex justify-center items-center z-9999"
+              className="fixed inset-0 bg-black/50 backdrop-blur-lg flex justify-center items-center z-9999"
+              onClick={(e) => { if (e.target === e.currentTarget) setIsModalOpen(false); }}
             >
               <motion.div
                 key="auth-card"
-                initial={{ opacity: 0, y: 18, scale: 0.98 }}
+                initial={{ opacity: 0, y: 18, scale: 0.97 }}
                 animate={{ opacity: 1, y: 0, scale: 1 }}
-                exit={{ opacity: 0, y: 18, scale: 0.98 }}
+                exit={{ opacity: 0, y: 18, scale: 0.97 }}
                 transition={{ type: "spring", stiffness: 420, damping: 32, mass: 0.8 }}
-                className="relative bg-[#e8ecf0] p-8 rounded-3xl w-96 max-w-[90vw]"
-                style={{ boxShadow: "20px 20px 40px #c5cdd5, -20px -20px 40px #ffffff" }}
+                className="relative bg-[#e8ecf0] p-10 rounded-3xl w-105 max-w-[92vw] flex flex-col items-center"
+                style={{ boxShadow: "24px 24px 48px #c5cdd5, -24px -24px 48px #ffffff" }}
               >
+                {/* Close Button */}
                 <motion.button
                   whileTap={tapBounce}
-                  className="absolute -top-3 -right-3 text-gray-700 bg-[#e8ecf0] rounded-full w-10 h-10 flex items-center justify-center transition-all duration-200 font-bold text-xl"
-                  style={{ boxShadow: "6px 6px 12px #c5cdd5, -6px -6px 12px #ffffff" }}
+                  className="absolute top-4 right-4 text-gray-500 hover:text-gray-900 bg-[#e8ecf0] rounded-full w-9 h-9 flex items-center justify-center transition-all"
+                  style={{ boxShadow: "4px 4px 8px #c5cdd5, -4px -4px 8px #ffffff" }}
                   onClick={() => setIsModalOpen(false)}
                   aria-label="Close"
                 >
-                  ✖
+                  <X size={18} />
                 </motion.button>
-                <h2 className="text-3xl font-bold text-center mb-8 text-gray-900">
-                  {isSignUp ? "Join Jotto" : "Welcome Back"}
-                </h2>
-                {isSignUp && (
-                  <div className="mb-4">
-                    <input
-                      type="text"
-                      placeholder="Full Name"
-                      className="w-full px-5 py-3 rounded-2xl bg-[#e8ecf0] text-gray-900 placeholder-gray-600 transition-all duration-300 focus:outline-none"
-                      style={{ boxShadow: "inset 4px 4px 8px #c5cdd5, inset -4px -4px 8px #ffffff" }}
-                      value={name}
-                      onChange={(e) => setName(e.target.value)}
-                    />
-                  </div>
-                )}
-                <div className="mb-4">
-                  <input
-                    type="email"
-                    placeholder="Email Address"
-                    className="w-full px-5 py-3 rounded-2xl bg-[#e8ecf0] text-gray-900 placeholder-gray-600 transition-all duration-300 focus:outline-none"
-                    style={{ boxShadow: "inset 4px 4px 8px #c5cdd5, inset -4px -4px 8px #ffffff" }}
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                  />
-                </div>
-                <div className="mb-6">
-                  <input
-                    type="password"
-                    placeholder="Password"
-                    className="w-full px-5 py-3 rounded-2xl bg-[#e8ecf0] text-gray-900 placeholder-gray-600 transition-all duration-300 focus:outline-none"
-                    style={{ boxShadow: "inset 4px 4px 8px #c5cdd5, inset -4px -4px 8px #ffffff" }}
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                  />
-                </div>
-                <motion.button
-                  whileTap={tapBounce}
-                  className="w-full bg-[#e8ecf0] py-4 rounded-2xl font-bold text-lg mb-6 text-gray-900 transition-all duration-300"
-                  style={{ boxShadow: "8px 8px 16px #c5cdd5, -8px -8px 16px #ffffff" }}
-                  onClick={handleLoginSignup}
-                >
-                  {isSignUp ? "Create Account" : "Sign In"}
-                </motion.button>
-                <div className="relative mb-6">
-                  <div className="absolute inset-0 flex items-center">
-                    <div className="w-full border-t border-gray-400/30" />
-                  </div>
-                  <div className="relative flex justify-center text-sm">
-                    <span
-                      className="px-4 py-1 rounded-full bg-[#e8ecf0] text-gray-700 font-semibold"
-                      style={{ boxShadow: "inset 2px 2px 4px #c5cdd5, inset -2px -2px 4px #ffffff" }}
-                    >
-                      or
-                    </span>
-                  </div>
-                </div>
+
+                {/* Logo — larger in modal */}
                 <div
+                  className="rounded-2xl p-2 mb-6"
+                  style={{ boxShadow: "6px 6px 12px #c5cdd5, -6px -6px 12px #ffffff" }}
+                >
+                  <Image
+                    src="/logo.png"
+                    alt="Jottosop Logo"
+                    width={200}
+                    height={80}
+                    className="rounded-xl object-contain"
+                    priority
+                  />
+                </div>
+
+                {/* Heading */}
+                <h2 className="text-2xl font-extrabold text-center text-gray-900 tracking-tight mb-1">
+                  Welcome to Jottosop
+                </h2>
+                <p className="text-sm font-medium text-gray-500 text-center mb-8">
+                  Sign in with Google to continue shopping
+                </p>
+
+                {/* Google Login Button */}
+                <div
+                  ref={googleBtnRef}
                   className="w-full rounded-2xl overflow-hidden"
-                  style={{ boxShadow: "4px 4px 8px #c5cdd5, -4px -4px 8px #ffffff" }}
+                  style={{ boxShadow: "6px 6px 12px #c5cdd5, -6px -6px 12px #ffffff" }}
                 >
                   <GoogleLogin
                     onSuccess={handleGoogleLoginSuccess}
-                    onError={() => console.log("Google Login Failed")}
+                    onError={() =>
+                      toast.error("Google Login Failed", {
+                        duration: 3000,
+                        position: "top-right",
+                        ...neuToast.error,
+                      })
+                    }
                     theme="filled_blue"
                     size="large"
-                    width="100%"
-                    text={isSignUp ? "signup_with" : "signin_with"}
+                    width={googleBtnWidth}
+                    text="signin_with"
                   />
                 </div>
-                <p className="text-center text-sm mt-6 text-gray-700">
-                  {isSignUp ? "Already have an account?" : "Don't have an account?"}{" "}
-                  <button
-                    onClick={() => setIsSignUp(!isSignUp)}
-                    className="text-royal-gold font-bold hover:text-gray-900 transition-colors duration-200 underline"
-                  >
-                    {isSignUp ? "Sign In" : "Sign Up"}
-                  </button>
+
+                <p className="text-xs text-gray-400 text-center mt-6 leading-relaxed">
+                  By signing in, you agree to our{" "}
+                  <Link href="/terms" className="underline hover:text-gray-600 transition-colors">Terms</Link>{" "}
+                  and{" "}
+                  <Link href="/privacy" className="underline hover:text-gray-600 transition-colors">Privacy Policy</Link>
                 </p>
               </motion.div>
             </motion.div>
@@ -643,21 +576,20 @@ export default function Navbar() {
 
         <MegaMenu />
 
+        {/* Mobile Search Bar */}
         {isMobile && showSearchBar && !pathname.includes("/search") && (
           <Link href="/search">
             <motion.div
               whileHover={{ y: -2 }}
               transition={{ type: "spring", stiffness: 500, damping: 30 }}
               className="fixed bottom-4 left-4 right-4 bg-[#e8ecf0] py-3 px-3 z-9999 rounded-full"
-              style={{
-                boxShadow: "8px 8px 16px #c5cdd5, -8px -8px 16px #ffffff",
-              }}
+              style={{ boxShadow: "8px 8px 16px #c5cdd5, -8px -8px 16px #ffffff" }}
             >
               <div className="relative w-full">
                 <input
                   type="text"
-                  placeholder="Search premium 3D products..."
-                  className="w-full pl-6 pr-14 py-3 rounded-full bg-[#e8ecf0] placeholder:text-gray-600 text-gray-900 focus:outline-none"
+                  placeholder="Search products..."
+                  className="w-full pl-6 pr-14 py-3 rounded-full bg-[#e8ecf0] placeholder:text-gray-500 placeholder:font-medium text-gray-900 focus:outline-none"
                   style={{ boxShadow: "inset 3px 3px 6px #c5cdd5, inset -3px -3px 6px #ffffff" }}
                   value={mobileSearchTerm}
                   onChange={(e) => setMobileSearchTerm(e.target.value)}
@@ -666,10 +598,10 @@ export default function Navbar() {
                 <motion.button
                   whileTap={tapBounce}
                   type="button"
-                  className="absolute right-2 top-1/2 -translate-y-1/2 h-10 w-10 rounded-full bg-[#e8ecf0] flex items-center justify-center transition-all duration-200"
+                  className="absolute right-2 top-1/2 -translate-y-1/2 h-10 w-10 rounded-full bg-[#e8ecf0] flex items-center justify-center"
                   style={{ boxShadow: "4px 4px 8px #c5cdd5, -4px -4px 8px #ffffff" }}
                 >
-                  <Search className="text-gray-700 w-5 h-5" />
+                  <Search className="text-gray-600 w-5 h-5" />
                 </motion.button>
               </div>
             </motion.div>

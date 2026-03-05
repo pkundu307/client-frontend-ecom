@@ -141,7 +141,7 @@ const Footer = () => {
                   { icon: Facebook, href: "https://www.facebook.com/people/Jottosop/61587495520706", label: "Facebook" },
                   { icon: Instagram, href: "https://www.instagram.com/jottosop", label: "Instagram" },
                   { icon: Linkedin, href: "https://www.linkedin.com/company/112094205/", label: "LinkedIn" },
-                  { icon: Mail, href: "mailto:contact@jotto.in", label: "Email" }
+                  { icon: Mail, href: "mailto:support@jotto.in", label: "Email" }
                 ].map((social, idx) => (
                   <motion.a
                     key={idx}

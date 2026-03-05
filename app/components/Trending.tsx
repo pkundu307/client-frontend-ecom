@@ -2,10 +2,10 @@
 
 import { useEffect, useState } from "react";
 import { Swiper, SwiperSlide } from "swiper/react";
-import { Autoplay, Pagination, EffectFade } from "swiper/modules";
+import { Autoplay, Pagination, EffectCreative } from "swiper/modules";
 import "swiper/css";
 import "swiper/css/pagination";
-import "swiper/css/effect-fade";
+import "swiper/css/effect-creative";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
@@ -40,26 +40,38 @@ export default function MyntraCarousel() {
   return (
     <div className="relative w-full bg-[#e8ecf0] pt-4 md:pt-6 pb-8 md:pb-10">
       <div className="w-full max-w-[1920px] mx-auto px-3 sm:px-4 md:px-6 lg:px-8">
-        <div 
+        <div
           className="rounded-2xl md:rounded-3xl overflow-hidden"
-          style={{
-            boxShadow: '20px 20px 40px #c5cdd5, -20px -20px 40px #ffffff'
-          }}
+          style={{ boxShadow: "20px 20px 40px #c5cdd5, -20px -20px 40px #ffffff" }}
         >
           <Swiper
-            modules={[Autoplay, Pagination, EffectFade]}
+            modules={[Autoplay, Pagination, EffectCreative]}
             spaceBetween={0}
             slidesPerView={1}
             loop={true}
-            effect="fade"
-            autoplay={{ 
-              delay: 4000,
-              disableOnInteraction: false 
+            effect="creative"
+            // ✅ This is what enables finger swipe
+            allowTouchMove={true}
+            touchRatio={1}
+            threshold={10}
+            creativeEffect={{
+              prev: {
+                shadow: true,
+                translate: ["-20%", 0, -1],
+              },
+              next: {
+                translate: ["100%", 0, 0],
+              },
             }}
-            pagination={{ 
+            autoplay={{
+              delay: 4000,
+              disableOnInteraction: false,
+              pauseOnMouseEnter: true,
+            }}
+            pagination={{
               clickable: true,
               bulletActiveClass: "swiper-pagination-bullet-active",
-              bulletClass: "swiper-pagination-bullet"
+              bulletClass: "swiper-pagination-bullet",
             }}
             className="hero-carousel"
             style={{
@@ -72,11 +84,9 @@ export default function MyntraCarousel() {
           >
             {banners.map((banner, index) => (
               <SwiperSlide key={banner.id}>
-                <div
-                  onClick={() => router.push(banner.targetUrl)}
-                  className="relative cursor-pointer group"
-                >
-                  {/* Background Image - Fixed aspect ratio */}
+                {/* ✅ Removed onClick from this wrapper — it was eating touch events */}
+                <div className="relative group">
+                  {/* Background Image */}
                   <div className="relative w-full aspect-[16/9] sm:aspect-[21/9] md:aspect-[2.5/1] lg:aspect-[3/1] overflow-hidden">
                     <Image
                       src={banner.bannerImageUrl}
@@ -86,14 +96,14 @@ export default function MyntraCarousel() {
                       className="object-cover transition-transform duration-700 group-hover:scale-105"
                       sizes="(max-width: 640px) 100vw, (max-width: 1024px) 100vw, 1920px"
                     />
-                    
+
                     {/* Gradient Overlays */}
                     <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/50 to-transparent" />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
                   </div>
 
                   {/* Content Overlay */}
-                  <div className="absolute inset-0 flex items-center">
+                  <div className="absolute inset-0 flex items-center pointer-events-none">
                     <div className="w-full max-w-[1920px] mx-auto px-4 sm:px-6 md:px-8 lg:px-12 xl:px-16">
                       <motion.div
                         initial={{ opacity: 0, x: -50 }}
@@ -109,11 +119,9 @@ export default function MyntraCarousel() {
                             transition={{ delay: 0.4 }}
                             className="mb-3 md:mb-4"
                           >
-                            <div 
+                            <div
                               className="inline-block bg-white/95 backdrop-blur-xl p-2 md:p-3 rounded-xl md:rounded-2xl"
-                              style={{
-                                boxShadow: '0 8px 16px rgba(0,0,0,0.15)'
-                              }}
+                              style={{ boxShadow: "0 8px 16px rgba(0,0,0,0.15)" }}
                             >
                               <Image
                                 src={banner.brandLogoUrl}
@@ -131,20 +139,20 @@ export default function MyntraCarousel() {
                           initial={{ opacity: 0, y: 20 }}
                           animate={{ opacity: 1, y: 0 }}
                           transition={{ delay: 0.5 }}
-                          className="text-xl sm:text-2xl md:text-3xl lg:text-4xl xl:text-5xl font-extrabold text-white mb-2 md:mb-3 leading-tight"
+                          className="text-xl sm:text-2xl md:text-3xl lg:text-4xl xl:text-5xl font-extrabold text-white mb-2 md:mb-3 leading-tight drop-shadow-lg"
                         >
                           {banner.title}
                         </motion.h1>
 
-                        {/* Discount Text */}
+                        {/* Discount Badge */}
                         {banner.discountText && (
                           <motion.div
                             initial={{ opacity: 0, y: 20 }}
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ delay: 0.6 }}
-                            className="mb-3 md:mb-4"
+                            className="mb-3 md:mb-5"
                           >
-                            <div className="inline-flex items-center gap-1.5 md:gap-2 bg-gradient-to-r from-yellow-400 to-orange-500 px-3 md:px-4 py-1.5 md:py-2 rounded-full">
+                            <div className="inline-flex items-center gap-1.5 md:gap-2 bg-gradient-to-r from-yellow-400 to-orange-500 px-3 md:px-4 py-1.5 md:py-2 rounded-full shadow-lg">
                               <Sparkles className="w-4 h-4 md:w-5 md:h-5 text-white" />
                               <span className="text-white font-bold text-sm md:text-base lg:text-lg">
                                 {banner.discountText}
@@ -153,32 +161,24 @@ export default function MyntraCarousel() {
                           </motion.div>
                         )}
 
-                        {/* CTA Button */}
+                        {/* CTA Button — pointer-events re-enabled only here */}
                         <motion.div
                           initial={{ opacity: 0, y: 20 }}
                           animate={{ opacity: 1, y: 0 }}
                           transition={{ delay: 0.7 }}
+                          className="pointer-events-auto"
                         >
                           <motion.button
                             whileHover={{ scale: 1.05, x: 5 }}
                             whileTap={{ scale: 0.95 }}
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              router.push(banner.targetUrl);
-                            }}
-                            className="group/btn inline-flex items-center gap-2 md:gap-3 bg-white text-gray-900 px-5 sm:px-6 md:px-8 py-2.5 md:py-3 lg:py-4 rounded-xl md:rounded-2xl font-bold text-sm md:text-base lg:text-lg transition-all duration-300 hover:bg-gray-100"
-                            style={{
-                              boxShadow: '0 8px 16px rgba(0,0,0,0.2)'
-                            }}
+                            onClick={() => router.push(banner.targetUrl)}
+                            className="inline-flex items-center gap-2 md:gap-3 bg-white text-gray-900 px-5 sm:px-6 md:px-8 py-2.5 md:py-3 lg:py-4 rounded-xl md:rounded-2xl font-bold text-sm md:text-base lg:text-lg transition-all duration-300 hover:bg-gray-100"
+                            style={{ boxShadow: "0 8px 24px rgba(0,0,0,0.25)" }}
                           >
                             Explore Collection
                             <motion.div
                               animate={{ x: [0, 5, 0] }}
-                              transition={{ 
-                                duration: 1.5, 
-                                repeat: Infinity,
-                                ease: "easeInOut" 
-                              }}
+                              transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
                             >
                               <ArrowRight className="w-4 h-4 md:w-5 md:h-5" />
                             </motion.div>
@@ -194,16 +194,19 @@ export default function MyntraCarousel() {
         </div>
       </div>
 
-      {/* Custom Swiper Pagination Styles */}
       <style jsx global>{`
         .hero-carousel .swiper-pagination {
           bottom: 15px !important;
         }
         .hero-carousel .swiper-pagination-bullet {
           transition: all 0.3s ease;
+          width: 8px;
+          height: 8px;
         }
         .hero-carousel .swiper-pagination-bullet-active {
-          transform: scale(1.3);
+          transform: scale(1.4);
+          width: 24px;
+          border-radius: 4px;
         }
         @media (min-width: 768px) {
           .hero-carousel .swiper-pagination {
