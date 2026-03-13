@@ -2,7 +2,7 @@
 
 import React from "react";
 import { useRouter } from "next/navigation";
-import { motion, Variants } from "motion/react";
+import { motion, Variants } from "framer-motion";
 import {
   ArrowLeftIcon,
   EnvelopeIcon,
