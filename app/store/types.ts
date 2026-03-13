@@ -7,7 +7,9 @@ export interface CartProductInfo {
   id: string;
   title: string;
   slug: string;
-  images: string[]; // Fallback images
+  images: string[];
+  categoryId?: number | null;
+  brand?: string | null;
 }
 
 // ----------------------------------------------
@@ -15,10 +17,11 @@ export interface CartProductInfo {
 // ----------------------------------------------
 export interface CartVariantInfo {
   id: string;
-  sku?: string;
-  price: string; // keep as string/Decimal for precision
+  sku?: string | null;
+  price: string;
   images: string[];
-  product: CartProductInfo; // each variant belongs to a product
+  productId?: string;
+  product: CartProductInfo;
 }
 
 // ----------------------------------------------
@@ -29,13 +32,8 @@ export interface CartItem {
   productId: string;
   variantId: string | null;
   quantity: number;
-
-  // ✅ Backend fields
-  customizationImages: string[]; // now matches your Prisma model
-    customizationDetails: Record<string, string> | null; 
-
-
-  // ✅ Related data (from include in Prisma)
+  customizationImages: string[];
+  customizationDetails: Record<string, string> | null;
   product?: CartProductInfo | null;
   variant?: CartVariantInfo | null;
 }
@@ -48,7 +46,7 @@ export interface CartState {
   selected: CartItem[];
   isLoading: boolean;
   error: string | null;
-  isAuthenticated: boolean; // toggled on login/logout
+  isAuthenticated: boolean;
 }
 
 // ----------------------------------------------
@@ -58,10 +56,79 @@ export interface AddToCartPayload {
   productId: string;
   variantId?: string;
   quantity: number;
-
-  // ✅ Multiple images, handled as multipart
   customizationImages?: File[];
+  customizationDetails?: Record<string, string>;
+}
 
-  // ✅ JSON object (will be stringified before upload)
-  customizationDetails?: Record<string, string>; 
+// ----------------------------------------------
+// Coupon validate request item shape
+// used in useCheckout applyCoupon cartItems[]
+// ----------------------------------------------
+export interface CouponCartItem {
+  productId: string;
+  categoryId?: number | null;
+  brand?: string | null;
+}
+
+// ----------------------------------------------
+// Coupon validate API response
+// ----------------------------------------------
+export interface CouponValidateResponse {
+  valid: boolean;
+  code: string;
+  message?: string;
+  discount: {
+    calculatedDiscount: number;
+    type: string;
+    value: number;
+  };
+  newTotal: number;
+}
+
+// ----------------------------------------------
+// Coupon state used in useCheckout
+// ----------------------------------------------
+export interface AppliedCoupon {
+  code: string;
+  calculatedDiscount: number;
+  type: string;
+  value: number;
+}
+
+// ----------------------------------------------
+// Order item shape (from API responses)
+// ----------------------------------------------
+export interface OrderItem {
+  id: string;
+  productName: string;
+  imageUrl?: string;
+  quantity: number;
+  price: string;
+}
+
+// ----------------------------------------------
+// Address shape (shared across checkout + profile)
+// ----------------------------------------------
+export interface Address {
+  id: string;
+  street: string;
+  city: string;
+  state: string;
+  postalCode: string;
+  country: string;
+  alternativePhoneNumber: string | null;
+}
+
+// ----------------------------------------------
+// Order success data shape (from place-order API)
+// ----------------------------------------------
+export interface OrderData {
+  id: string;
+  orderNumber: string;
+  createdAt: string;
+  totalAmount: string;
+  selectedAddress: Address;
+  items: OrderItem[];
+  couponCode: string | null;
+  couponDiscount: number | null;
 }

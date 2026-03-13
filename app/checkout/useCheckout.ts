@@ -19,10 +19,11 @@ export type Address = {
 
 export type PaymentMethod = "cod" | "online" | "";
 
-const COUPON_CODE = "jotto50";
-const COUPON_DISCOUNT = 50;
 const COD_FEE = 30;
 const COD_THRESHOLD = 600;
+const PLATFORM_FEE = 4;
+const SHIPPING_FEE = 40;
+const SHIPPING_THRESHOLD = 599;
 
 type RazorpayHandlerResponse = {
   razorpay_order_id: string;
@@ -44,6 +45,8 @@ interface OrderData {
   totalAmount: string;
   selectedAddress: Address;
   items: OrderItem[];
+  couponCode: string | null;
+  couponDiscount: number | null;
 }
 
 declare global {
@@ -79,9 +82,18 @@ export const useCheckout = () => {
   });
   const [savingAddress, setSavingAddress] = useState(false);
 
+  // ─── COUPON STATE ─────────────────────────────────────────────────
   const [couponInput, setCouponInput] = useState("");
   const [couponApplied, setCouponApplied] = useState(false);
   const [couponError, setCouponError] = useState<string | null>(null);
+  const [couponLoading, setCouponLoading] = useState(false);
+  const [couponData, setCouponData] = useState<{
+    code: string;
+    calculatedDiscount: number;
+    type: string;
+    value: number;
+  } | null>(null);
+  // ─────────────────────────────────────────────────────────────────
 
   const [slideProgress, setSlideProgress] = useState(0);
   const [isSliding, setIsSliding] = useState(false);
@@ -89,11 +101,9 @@ export const useCheckout = () => {
   const slideRef = useRef<HTMLDivElement | null>(null);
   const progressRef = useRef(0);
 
-  // Order Success Modal
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [orderData, setOrderData] = useState<OrderData | null>(null);
 
-  // Mount + load Razorpay script
   useEffect(() => {
     setMounted(true);
     const script = document.createElement("script");
@@ -102,20 +112,15 @@ export const useCheckout = () => {
     document.body.appendChild(script);
   }, []);
 
-  // sync items
   useEffect(() => {
     if (!mounted) return;
     if (!selectedItems || selectedItems.length === 0) {
-      // Don't redirect if success modal is showing
-      if (!showSuccessModal) {
-        router.replace("/cart");
-      }
+      if (!showSuccessModal) router.replace("/cart");
       return;
     }
     setItems(selectedItems.map((item) => ({ ...item })));
   }, [mounted, selectedItems, router, showSuccessModal]);
 
-  // fetch addresses
   useEffect(() => {
     if (!mounted) return;
     void fetchAddresses();
@@ -128,9 +133,7 @@ export const useCheckout = () => {
       const token = localStorage.getItem("token");
       const res = await fetch(
         `${process.env.NEXT_PUBLIC_API_URL}/user/addresses`,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
+        { headers: { Authorization: `Bearer ${token}` } }
       );
       const data: Address[] = await res.json();
       setAddresses(data || []);
@@ -142,25 +145,88 @@ export const useCheckout = () => {
     }
   };
 
-  // pricing
+  // ─── PRICING ─────────────────────────────────────────────────────
   const subtotal = items.reduce(
     (sum, item) => sum + Number(item.variant?.price || 0) * item.quantity,
     0
   );
+
+  const isFreeShippingCoupon = couponApplied && couponData?.type === "free_shipping";
+
+  const shippingFee = isFreeShippingCoupon
+    ? 0
+    : subtotal >= SHIPPING_THRESHOLD
+    ? 0
+    : SHIPPING_FEE;
+
   const codFee =
     paymentMethod === "cod" && subtotal < COD_THRESHOLD ? COD_FEE : 0;
-  const discount = couponApplied ? COUPON_DISCOUNT : 0;
-  const total = Math.max(subtotal + codFee - discount, 0);
 
-  const applyCoupon = () => {
-    if (couponInput.trim().toLowerCase() === COUPON_CODE) {
+  const discount =
+    couponApplied && couponData ? couponData.calculatedDiscount : 0;
+
+  const total = Math.max(
+    subtotal + shippingFee + codFee + PLATFORM_FEE - discount,
+    0
+  );
+  // ─────────────────────────────────────────────────────────────────
+
+  // ─── APPLY COUPON ────────────────────────────────────────────────
+  const applyCoupon = async () => {
+    const code = couponInput.trim().toUpperCase();
+    if (!code) {
+      setCouponError("Please enter a coupon code.");
+      return;
+    }
+
+    setCouponLoading(true);
+    setCouponError(null);
+    setCouponApplied(false);
+    setCouponData(null);
+
+    try {
+      const cartItems = items.map((item) => ({
+        productId: item.productId ?? item.variant?.productId ?? "",
+        categoryId: item.variant?.product?.categoryId ?? undefined,
+        brand: item.variant?.product?.brand ?? undefined,
+      }));
+
+      const res = await axios.post(
+        `${process.env.NEXT_PUBLIC_API_URL}/coupons/validate`,
+        { code, subtotal, cartItems }
+      );
+
+      const data = res.data;
+      setCouponData({
+        code: data.code,
+        calculatedDiscount: data.discount.calculatedDiscount,
+        type: data.discount.type,
+        value: data.discount.value,
+      });
       setCouponApplied(true);
       setCouponError(null);
-    } else {
+    } catch (err: unknown) {
       setCouponApplied(false);
-      setCouponError("Invalid coupon code.");
+      setCouponData(null);
+      if (axios.isAxiosError(err)) {
+        setCouponError(
+          err.response?.data?.message || "Invalid coupon code."
+        );
+      } else {
+        setCouponError("Failed to validate coupon. Try again.");
+      }
+    } finally {
+      setCouponLoading(false);
     }
   };
+
+  const removeCoupon = () => {
+    setCouponApplied(false);
+    setCouponData(null);
+    setCouponInput("");
+    setCouponError(null);
+  };
+  // ─────────────────────────────────────────────────────────────────
 
   const handleAddAddress = async () => {
     if (
@@ -173,7 +239,6 @@ export const useCheckout = () => {
       alert("Please fill all address fields");
       return;
     }
-
     if (!/^\d{10}$/.test(newAddress.alternativePhoneNumber)) {
       alert("Please enter a valid 10-digit contact number");
       return;
@@ -187,7 +252,6 @@ export const useCheckout = () => {
         newAddress,
         { headers: { Authorization: `Bearer ${token}` } }
       );
-
       await fetchAddresses();
       setSelectedAddressId(res.data.id);
       setShowAddressModal(false);
@@ -214,10 +278,9 @@ export const useCheckout = () => {
 
   const initializeRazorpay = async (orderId: string) => {
     const selectedAddr = addresses.find((a) => a.id === selectedAddressId);
-
     const options = {
       key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
-      amount: total * 100,
+      amount: 5 * 100,
       currency: "INR",
       name: "Jottosop",
       description: "Order Payment",
@@ -234,16 +297,10 @@ export const useCheckout = () => {
             },
             { headers: { Authorization: `Bearer ${token}` } }
           );
-
           const data = verifyRes.data?.order;
-
           setSlideProgress(0);
           setIsPlacingOrder(false);
-          
-          // Clear cart first
           dispatch(clearSelected());
-          
-          // Then show success modal
           showOrderSuccess(data);
         } catch (err) {
           console.error("Payment verification failed:", err);
@@ -256,9 +313,7 @@ export const useCheckout = () => {
         name: selectedAddr?.street || "",
         contact: selectedAddr?.alternativePhoneNumber || "",
       },
-      theme: {
-        color: "#1e3a8a",
-      },
+      theme: { color: "#1e3a8a" },
       modal: {
         ondismiss: function () {
           setSlideProgress(0);
@@ -266,14 +321,12 @@ export const useCheckout = () => {
         },
       },
     };
-
     const razorpay = new window.Razorpay(options);
     razorpay.open();
   };
 
   const handlePlaceOrder = async () => {
     if (isPlacingOrder) return;
-
     if (items.length === 0) {
       alert("Please select at least one item to place the order.");
       return;
@@ -292,54 +345,50 @@ export const useCheckout = () => {
     try {
       const token = localStorage.getItem("token");
       const selectedAddr = addresses.find((a) => a.id === selectedAddressId);
-
       if (!selectedAddr) {
         alert("Selected address not found.");
         setIsPlacingOrder(false);
         return;
       }
 
-      // COD FLOW
+      // ─── COD FLOW ────────────────────────────────────────────────
       if (paymentMethod === "cod") {
         const cartItemIds = items.map((item) => item.id as string);
-
-        const dto = {
+        const dto: Record<string, unknown> = {
           selectedAddress: selectedAddr,
           cartItemIds,
-          shippingFee: codFee,
+          paymentMethod: "cash_on_delivery",
+          shippingFee: shippingFee + codFee,
+          platformFee: PLATFORM_FEE,
           taxAmount: 0,
           discount,
         };
 
+        if (couponApplied && couponData) {
+          dto.couponCode = couponData.code;
+          dto.couponDiscount = couponData.calculatedDiscount;
+        }
+
         const res = await axios.post(
           `${process.env.NEXT_PUBLIC_API_URL}/orders/place-order/cod`,
-          {
-            ...dto,
-            paymentMethod: "cash_on_delivery",
-          },
+          dto,
           { headers: { Authorization: `Bearer ${token}` } }
         );
 
-        const data = res.data;
-
         setSlideProgress(0);
         setIsPlacingOrder(false);
-        
-        // Clear cart first
         dispatch(clearSelected());
-        
-        // Then show success modal
-        showOrderSuccess(data);
+        showOrderSuccess(res.data);
         return;
       }
 
-      // ONLINE FLOW
+      // ─── ONLINE FLOW ─────────────────────────────────────────────
       const payload = {
         items: items.map((item) => ({
           variantId: item.variant?.id ?? "",
           quantity: item.quantity,
         })),
-        couponCode: "",
+        couponCode: couponApplied && couponData ? couponData.code : "",
       };
 
       const initiateRes = await axios.post(
@@ -348,9 +397,7 @@ export const useCheckout = () => {
         { headers: { Authorization: `Bearer ${token}` } }
       );
 
-      const razorpayOrder = initiateRes.data.razorpayOrder;
-
-      await initializeRazorpay(razorpayOrder.id);
+      await initializeRazorpay(initiateRes.data.razorpayOrder.id);
     } catch (err) {
       console.error("Order/payment initiation failed:", err);
       alert("Failed to initiate payment. Please try again.");
@@ -362,17 +409,14 @@ export const useCheckout = () => {
   const handleSlide = (e: React.PointerEvent<HTMLDivElement>) => {
     e.preventDefault();
     if (slideProgress > 0.97 || isPlacingOrder) return;
-
     setIsSliding(true);
     const track = slideRef.current;
     if (!track) return;
-
     const startX = e.clientX;
     const trackWidth = track.offsetWidth - 56;
 
     const onPointerMove = (moveEvent: PointerEvent) => {
-      const currentX = moveEvent.clientX;
-      const diff = currentX - startX;
+      const diff = moveEvent.clientX - startX;
       const newProgress = Math.min(Math.max(diff / trackWidth, 0), 1);
       setSlideProgress(newProgress);
       progressRef.current = newProgress;
@@ -382,7 +426,6 @@ export const useCheckout = () => {
       window.removeEventListener("pointermove", onPointerMove);
       window.removeEventListener("pointerup", onPointerUp);
       setIsSliding(false);
-
       if (progressRef.current > 0.97) {
         setSlideProgress(1);
         setTimeout(() => void handlePlaceOrder(), 100);
@@ -420,10 +463,16 @@ export const useCheckout = () => {
     setCouponInput,
     couponApplied,
     couponError,
+    couponLoading,
+    couponData,
     applyCoupon,
+    removeCoupon,
     handleAddAddress,
     subtotal,
+    shippingFee,
     codFee,
+    platformFee: PLATFORM_FEE,
+    shippingThreshold: SHIPPING_THRESHOLD,
     discount,
     total,
     slideRef,

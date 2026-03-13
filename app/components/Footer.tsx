@@ -103,7 +103,8 @@ const Footer = () => {
             <h3 className="text-white font-bold text-sm uppercase mb-4 tracking-wide">Consumer Policy</h3>
             <ul className="space-y-3">
               {[
-                { name: "Cancellation & Returns", href: "/faq#returns" },
+                { name: "Refunds", href: "/refund-policy" },
+                { name: "Cancellations", href: "/cancellation-policy" },
                 { name: "Terms Of Use", href: "/terms" },
                 { name: "Security", href: "/security" },
                 { name: "Privacy", href: "/privacy" },
@@ -183,6 +184,7 @@ const Footer = () => {
                 <Phone className="w-4 h-4" />
                 Help Center
               </Link>
+             
               <Link href="/profile/tickets" className="text-gray-400 hover:text-white transition-colors flex items-center gap-2">
                 <Mail className="w-4 h-4" />
                 Support Tickets

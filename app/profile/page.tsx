@@ -122,7 +122,7 @@ const ProfilePage: React.FC = () => {
     !showAllOrders && orders.length > 3 ? orders.slice(0, 3) : orders;
 
   const userPhoto =
-    typeof window !== "undefined" ? localStorage.getItem("photo") : null;
+    typeof window !== "undefined" ? localStorage.getItem("profilePhoto") : null;
 
   return (
     <div className="min-h-screen bg-[#e8ecf0] px-4 py-8">

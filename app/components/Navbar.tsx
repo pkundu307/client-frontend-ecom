@@ -213,7 +213,7 @@ export default function Navbar() {
 
       toast.success(`🎉 Welcome, ${data.user.name}!`, {
         id: loadingToast,
-        duration: 4000,
+        duration: 400,
         position: "top-right",
         ...neuToast.success,
       });
@@ -221,6 +221,8 @@ export default function Navbar() {
       localStorage.setItem("token", data.accessToken);
       localStorage.setItem("refreshToken", data.refreshToken);
       localStorage.setItem("user", JSON.stringify({ name: data.user.name, role: data.user.role }));
+      localStorage.setItem("tokenTimestamp", Date.now().toString());
+      localStorage.setItem("profilePhoto", data.user.picture || "");
       dispatch(setUser({ name: data.user.name, role: data.user.role }));
       setIsModalOpen(false);
     } catch (error) {
@@ -301,21 +303,33 @@ export default function Navbar() {
           <div className="max-w-7xl mx-auto flex justify-between items-center">
 
             {/* LOGO — increased size */}
-            <Link href="/" className="flex items-center gap-3">
-              <div
-                className="rounded-2xl p-1.5"
-                style={{ boxShadow: "6px 6px 12px #c5cdd5, -6px -6px 12px #ffffff" }}
-              >
-                <Image
-                  src="/logo.png"
-                  alt="Jottosop Logo"
-                  width={120}
-                  height={48}
-                  className="rounded-xl object-contain"
-                  priority
-                />
-              </div>
-            </Link>
+         {/* LOGO */}
+<Link href="/" className="flex items-center gap-3">
+  <div
+    className="flex items-center gap-2 rounded-2xl px-3 py-1.5"
+    style={{ boxShadow: "6px 6px 12px #c5cdd5, -6px -6px 12px #ffffff" }}
+  >
+    {/* Planet icon */}
+    <Image
+      src="/logo.webp"
+      alt="Jottosop Icon"
+      width={36}
+      height={40}
+      className="object-contain"
+      priority
+    />
+    {/* Brand name */}
+    <Image
+      src="/Name.webp"
+      alt="Jottosop"
+      width={120}
+      height={32}
+      className="object-contain"
+      priority
+    />
+  </div>
+</Link>
+
 
             {/* SEARCH FIELD */}
             {!isMobile && (
