@@ -44,12 +44,7 @@ const Footer = () => {
       width: 50,
       height: 20
     },
-    { 
-      src: "https://upload.wikimedia.org/wikipedia/commons/b/b5/PayPal.svg", 
-      alt: "PayPal",
-      width: 50,
-      height: 20
-    }
+
   ];
 
   return (
