@@ -312,10 +312,7 @@ useEffect(() => {
                 </div>
                 <div className="py-6 border-t border-gray-400/20">
                   <div className="flex justify-between mb-2">
-                    <span className="text-gray-600">Shipping</span>
-                    <span className="text-gray-900 font-semibold px-3 py-1 rounded-xl bg-[#e8ecf0] text-sm shadow-[inset_2px_2px_4px_#c5cdd5,inset_-2px_-2px_4px_#ffffff]">
-                      Free
-                    </span>
+                  
                   </div>
                 </div>
                 <div className="flex justify-between text-2xl font-bold pt-2">

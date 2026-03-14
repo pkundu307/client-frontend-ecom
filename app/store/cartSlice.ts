@@ -1,6 +1,7 @@
+// src/store/cartSlice.ts
 import { createSlice, createAsyncThunk, PayloadAction } from "@reduxjs/toolkit";
 import axios, { AxiosError } from "axios";
-import { CartState, CartItem, AddToCartPayload } from "./types";
+import { CartState, CartItem, AddToCartPayload, CartVariantInfo } from "./types";
 
 // -----------------------------
 // API CONFIG
@@ -14,12 +15,8 @@ const API_BASE_URL =
 const getAuthHeaders = () => {
   const token =
     typeof window !== "undefined" ? localStorage.getItem("token") : null;
-  if (!token) return {}; 
-  return {
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-  };
+  if (!token) return {};
+  return { headers: { Authorization: `Bearer ${token}` } };
 };
 
 // -----------------------------
@@ -33,7 +30,9 @@ const handleAxiosError = (error: unknown, defaultMessage: string): string => {
   if (axios.isAxiosError(error)) {
     const axiosError = error as AxiosError<ErrorResponse>;
     return (
-      axiosError.response?.data?.message || axiosError.message || defaultMessage
+      axiosError.response?.data?.message ||
+      axiosError.message ||
+      defaultMessage
     );
   }
   try {
@@ -78,8 +77,30 @@ const sameCustomization = (
   }
 };
 
+// --------------------------------------------------
+// Extract dimension snapshot from variant
+// Called when enriching cart item from product page
+// --------------------------------------------------
+const extractDimensionSnapshot = (
+  variant: CartVariantInfo
+): Pick<
+  CartItem,
+  | "snapshotWeightInGrams"
+  | "snapshotDimensionUnit"
+  | "snapshotHeight"
+  | "snapshotLength"
+  | "snapshotWidth"
+> => ({
+  snapshotWeightInGrams: variant.weightInGrams ?? null,
+  snapshotDimensionUnit: variant.dimensionUnit ?? null,
+  snapshotHeight: variant.height ?? null,
+  snapshotLength: variant.length ?? null,
+  snapshotWidth: variant.width ?? null,
+});
+
 // -----------------------------
-// 🟢 DEFENSIVE MERGE FUNCTION (Keeps Images!)
+// 🟢 DEFENSIVE MERGE FUNCTION
+// Keeps images + merges supplyState + dimensions
 // -----------------------------
 const mergeServerItem = (items: CartItem[], newItem: CartItem) => {
   const idx = items.findIndex((i) => i.id === newItem.id);
@@ -87,29 +108,49 @@ const mergeServerItem = (items: CartItem[], newItem: CartItem) => {
     const existingItem = items[idx];
     const mergedItem = { ...existingItem };
 
-    // 1. Update basic fields
+    // 1. Basic fields
     mergedItem.quantity = newItem.quantity;
-    
-    // 2. Update Customization
-    if (newItem.customizationDetails) {
-        mergedItem.customizationDetails = newItem.customizationDetails;
-    }
-    if (newItem.customizationImages && newItem.customizationImages.length > 0) {
-        mergedItem.customizationImages = newItem.customizationImages;
-    }
 
-    // 3. DEFENSIVE UPDATE for Relations
-    // Only overwrite 'variant' if the new one has images or price data
+    // 2. Supply state snapshot
+    if (newItem.supplyState !== undefined)
+      mergedItem.supplyState = newItem.supplyState;
+    if (newItem.supplyStateCode !== undefined)
+      mergedItem.supplyStateCode = newItem.supplyStateCode;
+    if (newItem.customerUserId !== undefined)
+      mergedItem.customerUserId = newItem.customerUserId;
+
+    // 3. Dimension snapshot — only overwrite if new item has them
+    if (newItem.snapshotWeightInGrams != null)
+      mergedItem.snapshotWeightInGrams = newItem.snapshotWeightInGrams;
+    if (newItem.snapshotDimensionUnit != null)
+      mergedItem.snapshotDimensionUnit = newItem.snapshotDimensionUnit;
+    if (newItem.snapshotHeight != null)
+      mergedItem.snapshotHeight = newItem.snapshotHeight;
+    if (newItem.snapshotLength != null)
+      mergedItem.snapshotLength = newItem.snapshotLength;
+    if (newItem.snapshotWidth != null)
+      mergedItem.snapshotWidth = newItem.snapshotWidth;
+
+    // 4. Customization
+    if (newItem.customizationDetails)
+      mergedItem.customizationDetails = newItem.customizationDetails;
+    if (newItem.customizationImages?.length > 0)
+      mergedItem.customizationImages = newItem.customizationImages;
+
+    // 5. DEFENSIVE relation update
     if (
-      newItem.variant && 
+      newItem.variant &&
       (newItem.variant.images?.length > 0 || newItem.variant.price)
     ) {
       mergedItem.variant = newItem.variant;
+      // Auto-extract dimension snapshot from variant if not already set
+      if (!mergedItem.snapshotWeightInGrams && newItem.variant.weightInGrams) {
+        Object.assign(mergedItem, extractDimensionSnapshot(newItem.variant));
+      }
     }
 
-    // Only overwrite 'product' if the new one has a title or images
     if (
-      newItem.product && 
+      newItem.product &&
       (newItem.product.title || newItem.product.images?.length > 0)
     ) {
       mergedItem.product = newItem.product;
@@ -117,14 +158,21 @@ const mergeServerItem = (items: CartItem[], newItem: CartItem) => {
 
     items[idx] = mergedItem;
   } else {
-    items.push(newItem);
+    // New item — auto-extract dimensions from variant if available
+    const enriched = { ...newItem };
+    if (
+      newItem.variant?.weightInGrams &&
+      !newItem.snapshotWeightInGrams
+    ) {
+      Object.assign(enriched, extractDimensionSnapshot(newItem.variant));
+    }
+    items.push(enriched);
   }
 };
 
 // -----------------------------
 // Async thunks
 // -----------------------------
-
 export const fetchCartItems = createAsyncThunk<
   CartItem[],
   void,
@@ -168,7 +216,6 @@ export const addItemToServer = createAsyncThunk<
         "customizationDetails",
         JSON.stringify(customizationDetails)
       );
-
     if (Array.isArray(customizationImages)) {
       customizationImages.forEach((file) => {
         formData.append("customizationImages", file as File);
@@ -178,11 +225,7 @@ export const addItemToServer = createAsyncThunk<
     const res = await axios.post<CartItem>(
       `${API_BASE_URL}/cart/add-item`,
       formData,
-      {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      }
+      { headers: { Authorization: `Bearer ${token}` } }
     );
 
     return res.data;
@@ -263,8 +306,8 @@ export const cartSlice = createSlice({
           item.productId === newItem.productId &&
           item.variantId === newItem.variantId &&
           sameCustomization(
-            item.customizationDetails,
-            newItem.customizationDetails
+            item.customizationDetails as Record<string, unknown>,
+            newItem.customizationDetails as Record<string, unknown>
           ) &&
           JSON.stringify(item.customizationImages || []) ===
             JSON.stringify(newItem.customizationImages || [])
@@ -273,7 +316,12 @@ export const cartSlice = createSlice({
       if (existing) {
         existing.quantity += newItem.quantity;
       } else {
-        state.items.push(newItem);
+        // Auto-extract dimensions from variant if available
+        const enriched = { ...newItem };
+        if (newItem.variant?.weightInGrams && !newItem.snapshotWeightInGrams) {
+          Object.assign(enriched, extractDimensionSnapshot(newItem.variant));
+        }
+        state.items.push(enriched);
       }
       saveCartToStorage(state.items);
     },
@@ -299,6 +347,26 @@ export const cartSlice = createSlice({
       state.items = [];
       saveCartToStorage(state.items);
     },
+
+    // ── NEW: called from product detail page to enrich cart item
+    // with full weight + dimension data ──
+    enrichCartItemDimensions: (
+      state,
+      action: PayloadAction<{
+        cartItemId: string;
+        variant: CartVariantInfo;
+      }>
+    ) => {
+      const { cartItemId, variant } = action.payload;
+      const idx = state.items.findIndex((i) => i.id === cartItemId);
+      if (idx !== -1) {
+        state.items[idx] = {
+          ...state.items[idx],
+          ...extractDimensionSnapshot(variant),
+        };
+        saveCartToStorage(state.items);
+      }
+    },
   },
 
   extraReducers: (builder) => {
@@ -312,7 +380,13 @@ export const cartSlice = createSlice({
         fetchCartItems.fulfilled,
         (state, action: PayloadAction<CartItem[]>) => {
           state.isLoading = false;
-          state.items = action.payload;
+          // Auto-extract dimension snapshots on fetch
+          state.items = action.payload.map((item) => {
+            if (item.variant?.weightInGrams && !item.snapshotWeightInGrams) {
+              return { ...item, ...extractDimensionSnapshot(item.variant) };
+            }
+            return item;
+          });
         }
       )
       .addCase(fetchCartItems.rejected, (state, action) => {
@@ -388,14 +462,19 @@ export const {
   setAuthStatus,
   setSelected,
   clearSelected,
+  enrichCartItemDimensions,  // ← NEW: call this from product detail page
 } = cartSlice.actions;
 
 export default cartSlice.reducer;
 
 // -----------------------------
-// 🟢 RESTORED SELECTORS
+// 🟢 SELECTORS
 // -----------------------------
-export const selectCartItems = (state: { cart: CartState }) => state.cart.items;
-export const selectCartLoading = (state: { cart: CartState }) => state.cart.isLoading;
-export const selectCartError = (state: { cart: CartState }) => state.cart.error;
-export const selectUniqueItemCount = (state: { cart: CartState }) => state.cart.items.length;
+export const selectCartItems = (state: { cart: CartState }) =>
+  state.cart.items;
+export const selectCartLoading = (state: { cart: CartState }) =>
+  state.cart.isLoading;
+export const selectCartError = (state: { cart: CartState }) =>
+  state.cart.error;
+export const selectUniqueItemCount = (state: { cart: CartState }) =>
+  state.cart.items.length;

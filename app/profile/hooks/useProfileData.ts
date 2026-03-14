@@ -12,6 +12,10 @@ export interface Address {
   state: string;
   postalCode: string;
   country: string;
+  landmark: string | null;
+  alternativePhoneNumber: string | null;
+  isDefault: boolean;
+  type: string | null;
 }
 
 export interface User {

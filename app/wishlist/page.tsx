@@ -207,8 +207,8 @@ const WishlistPage = () => {
   };
 
   // Navigate to product details
-  const handleViewProduct = (productId: string) => {
-    router.push(`/product/${productId}`);
+  const handleViewProduct = (slug: string) => {
+    router.push(`/product/${slug}`);
   };
 
   // Format date
@@ -303,7 +303,7 @@ const WishlistPage = () => {
                   {/* Product Image */}
                   <div
                     className="relative w-full aspect-square rounded-2xl overflow-hidden mb-4 cursor-pointer shadow-[inset_6px_6px_12px_#c5cdd5,inset_-6px_-6px_12px_#ffffff]"
-                    onClick={() => handleViewProduct(item.product.id)}
+                    onClick={() => handleViewProduct(item.product.slug)}
                   >
                     <Image
                       fill
