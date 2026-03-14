@@ -305,11 +305,10 @@ export default function Navbar() {
             {/* LOGO — increased size */}
          {/* LOGO */}
 <Link href="/" className="flex items-center gap-3">
-  <div
+ <div
     className="flex items-center gap-2 rounded-2xl px-3 py-1.5"
     style={{ boxShadow: "6px 6px 12px #c5cdd5, -6px -6px 12px #ffffff" }}
   >
-    {/* Planet icon */}
     <Image
       src="/logo.webp"
       alt="Jottosop Icon"
@@ -318,13 +317,13 @@ export default function Navbar() {
       className="object-contain"
       priority
     />
-    {/* Brand name */}
+    {/* ↓ only visible on sm (640px) and above */}
     <Image
       src="/Name.webp"
       alt="Jottosop"
       width={120}
       height={32}
-      className="object-contain"
+      className="object-contain hidden sm:block"   // ← ADD THIS
       priority
     />
   </div>
