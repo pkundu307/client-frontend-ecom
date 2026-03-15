@@ -1,3 +1,4 @@
+// app/layout.tsx
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
@@ -92,6 +93,10 @@ export default function RootLayout({
         <meta name="theme-color" content="#e8ecf0" />
         
         {/* Google Analytics */}
+        <Script 
+          src="https://checkout.razorpay.com/v1/checkout.js" 
+          strategy="beforeInteractive" 
+        />
         <Script
           src={`https://www.googletagmanager.com/gtag/js?id=${process.env.NEXT_PUBLIC_GA_ID}`}
           strategy="afterInteractive"

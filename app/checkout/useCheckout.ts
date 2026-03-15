@@ -305,16 +305,40 @@ export const useCheckout = () => {
           ? `+${digits}`
           : rawContact;
 
-    const options = {
-      key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
-      amount: Math.round(total * 100),
-      currency: "INR",
-      name: "Jottosop",
-      description: "Order Payment",
-      order_id: orderId,
+ const options = {
+    key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
+    amount: Math.round(total * 100),
+    currency: "INR",
+    name: "Jottosop",
+    description: "Order Payment",
+    order_id: orderId,
+    // ADD THIS CONFIG BLOCK
+    config: {
+      display: {
+        blocks: {
+          banks: {
+            name: 'All Payment Methods',
+            instruments: [
+              {
+                method: 'upi',
+                apps: ['google_pay', 'phonepe', 'paytm'],
+              },
+              {
+                method: 'card',
+              },
+              {
+                method: 'netbanking',
+              },
+            ],
+          },
+        },
+        sequence: ['block.banks'],
+        preferences: {
+          show_default_blocks: true,
+        },
+      },
+    },
 
-      // ✅ NO config.display — let Razorpay handle it automatically
-      // UPI will appear on mobile, hidden on desktop (expected by NPCI)
 
       handler: async (response: RazorpayHandlerResponse) => {
         try {

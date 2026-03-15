@@ -30,6 +30,9 @@ import VariantSelector from "./(component)/VariantSelector";
 import { useProductDetails } from "../hooks/useProductDetails";
 import type { TabId } from "../hooks/useProductDetails";
 import { CheckIcon } from "lucide-react";
+import SimilarProducts from "./(component)/SimilarProducts";
+import RecentlyViewed from "@/app/components/RecentlyViewed";
+import InYourWishlist from "./(component)/Wishlist";
 
 const CustomizationModal = dynamic(() => import("./(component)/CustomizationModal"), {
   ssr: false,
@@ -946,6 +949,16 @@ export default function ProductPage({ params }: ProductPageProps) {
           selectedVariant={selectedVariant}
         />
       )}
+         {!loading && product && (
+        <SimilarProducts
+          slug={product.slug}
+          currentProductId={product.id}
+        />
+      )}
+            {!loading && product && (
+        <RecentlyViewed/>     )}
+          {!loading && product && (
+        <InYourWishlist/>     )}
     </div>
   );
 }
