@@ -415,34 +415,47 @@ export const useCheckout = () => {
       }
 
       // ── COD flow ────────────────────────────────────────
-      if (paymentMethod === "cod") {
-        const cartItemIds = items.map((item) => item.id);
-        const dto: Record<string, unknown> = {
-          selectedAddress: selectedAddr,
-          cartItemIds,
-          paymentMethod: "cash_on_delivery",
-          shippingFee: shippingFee + codFee,
-          platformFee: PLATFORM_FEE,
-          taxAmount: 0,
-          discount,
-        };
-        if (couponApplied && couponData) {
-          dto.couponCode = couponData.code;
-          dto.couponDiscount = couponData.calculatedDiscount;
-        }
+     if (paymentMethod === "cod") {
+  const cartItemIds = items.map((item) => item.id);
 
-        const res = await axios.post<OrderData>(
-          `${process.env.NEXT_PUBLIC_API_URL}/orders/place-order/cod`,
-          dto,
-          { headers: { Authorization: `Bearer ${token ?? ""}` } },
-        );
+  const dto: Record<string, unknown> = {
+    selectedAddress:  selectedAddr,
+    cartItemIds,
+    paymentMethod:    "cash_on_delivery",
+    shippingFee:      shippingFee,        // ✅ keep shippingFee and codFee SEPARATE
+    codFee:           codFee,             // ✅ backend now expects codFee on its own
+    platformFee:      PLATFORM_FEE,
+    taxAmount:        0,
+    discount,
+  };
+  if (couponApplied && couponData) {
+    dto.couponCode      = couponData.code;
+    dto.couponDiscount  = couponData.calculatedDiscount;
+  }
 
-        setSlideProgress(0);
-        setIsPlacingOrder(false);
-        dispatch(clearSelected());
-        showOrderSuccess(res.data);
-        return;
-      }
+  const res = await axios.post<OrderData>(
+    `${process.env.NEXT_PUBLIC_API_URL}/orders/place-order/cod`,
+    dto,
+    { headers: { Authorization: `Bearer ${token ?? ""}` } },
+  );
+
+  // ✅ normalise totalAmount — could be Decimal string from Prisma
+  const raw = res.data;
+  const safeOrder: OrderData = {
+    ...raw,
+    totalAmount:   String(raw.totalAmount),
+    items:         Array.isArray(raw.items) ? raw.items : [],   // ✅ crash guard
+    couponDiscount: raw.couponDiscount != null
+                      ? Number(raw.couponDiscount)
+                      : null,
+  };
+
+  setSlideProgress(0);
+  setIsPlacingOrder(false);
+  dispatch(clearSelected());
+  showOrderSuccess(safeOrder);
+  return;
+}
 
       // ── Online flow ──────────────────────────────────────
       const payload = {
