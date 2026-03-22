@@ -13,7 +13,7 @@ interface Product {
   name:  string;
   image: string;
   price: number;
-  sku:   string;
+  slug:   string;
 }
 
 interface Category {
@@ -31,7 +31,7 @@ const ProductCard = ({ product, index }: { product: Product; index: number }) =>
     transition={{ delay: index * 0.07 }}
     className="h-full"
   >
-    <Link href={`/product/${product.sku}`} className="block h-full">
+    <Link href={`/product/${product.slug}`} className="block h-full">
       <div
         className="bg-[#e8ecf0] rounded-xl overflow-hidden hover:shadow-lg transition-shadow h-full flex flex-col"
         style={{ boxShadow: "6px 6px 12px #c5cdd5, -6px -6px 12px #ffffff" }}
