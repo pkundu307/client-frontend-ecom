@@ -3,224 +3,184 @@ import type { CartItem, Address } from '../store/types';
 import { resolveStateCode } from './state-codes';
 
 // ─────────────────────────────────────────────────────────
-// ZONE TYPES
+// CONSTANTS & TYPES
 // ─────────────────────────────────────────────────────────
-export type ShippingZone =
-  | 'ALL_BENGAL'      // West Bengal destination
-  | 'NE_NORTH_MP'     // NE states + HP, Uttarakhand, Chandigarh, MP
-  | 'SPECIAL'         // J&K, Ladakh, Lakshadweep, A&N
-  | 'REST_OF_INDIA';  // Everything else
+export type ShippingZone = 'ALL_BENGAL' | 'NE_NORTH_MP' | 'SPECIAL' | 'REST_OF_INDIA';
 
-// ─────────────────────────────────────────────────────────
-// ZONE MAPS  (destination state codes → zone)
-// ─────────────────────────────────────────────────────────
-const ALL_BENGAL_SET = new Set(['19']);
+const BENGAL_CODE = '19';
+const NE_NORTH_MP_SET = new Set(['18', '16', '13', '14', '15', '17', '12', '11', '23', '02', '05', '04']);
+const SPECIAL_SET = new Set(['01', '38', '31', '35']);
 
-const NE_NORTH_MP_SET = new Set([
-  '18', // Assam
-  '16', // Tripura
-  '13', // Nagaland
-  '14', // Manipur
-  '15', // Mizoram
-  '17', // Meghalaya
-  '12', // Arunachal Pradesh
-  '11', // Sikkim
-  '23', // Madhya Pradesh
-  '02', // Himachal Pradesh
-  '05', // Uttarakhand
-  '04', // Chandigarh
-]);
-
-const SPECIAL_SET = new Set([
-  '01', // Jammu & Kashmir
-  '38', // Ladakh
-  '31', // Lakshadweep
-  '35', // Andaman & Nicobar Islands
-]);
-
-export function getDestinationZone(stateCode: string): ShippingZone {
-  if (ALL_BENGAL_SET.has(stateCode))  return 'ALL_BENGAL';
-  if (NE_NORTH_MP_SET.has(stateCode)) return 'NE_NORTH_MP';
-  if (SPECIAL_SET.has(stateCode))     return 'SPECIAL';
-  return 'REST_OF_INDIA';
-}
+// REAL MARKET COD RATES (Xpressbees SME Tier)
+const MIN_COD_CHARGE = 45; // Minimum fixed fee
+const COD_PERCENTAGE = 0.012; // 1.2% of order value
 
 // ─────────────────────────────────────────────────────────
-// WEIGHT HELPERS
+// HELPERS
 // ─────────────────────────────────────────────────────────
 
-/**
- * Volumetric weight in grams.
- * Formula: (L × W × H in CM) / 5 → grams
- */
 export function calcVolumetricWeight(l: number, w: number, h: number): number {
-  return (l * w * h) / 5;
+  return (l * w * h) / 5; // (L*W*H)/5000 * 1000 for grams
 }
 
-/**
- * Chargeable weight = max(actual, volumetric), rounded UP to nearest 500g.
- */
-export function chargeableWeight(actualG: number, volG: number): number {
+export function getChargeableGrams(actualG: number, volG: number): number {
   return Math.ceil(Math.max(actualG, volG) / 500) * 500;
 }
 
 // ─────────────────────────────────────────────────────────
-// XPRESSBEES RATE FUNCTIONS
+// RATE TABLES (Xpressbees 2025-26)
 // ─────────────────────────────────────────────────────────
 
 function allBengalRate(g: number): number {
-  // ≤500g=₹50 | ≤1kg=₹70 | +₹25/500g | 10kg+: ₹30/kg | 20kg+: ₹25/kg
   if (g <= 500)  return 50;
   if (g <= 1000) return 70;
-  if (g <= 10000) {
-    return 70 + Math.ceil((g - 1000) / 500) * 25;
-  }
-  const base10 = 70 + Math.ceil((10000 - 1000) / 500) * 25; // ₹520
+  if (g <= 10000) return 70 + Math.ceil((g - 1000) / 500) * 25;
+  
+  // Bulk Bengal
+  const base10 = 520; 
   if (g <= 20000) return base10 + Math.ceil((g - 10000) / 1000) * 30;
-  const base20 = base10 + 10 * 30; // ₹820
-  return base20 + Math.ceil((g - 20000) / 1000) * 25;
+  return 820 + Math.ceil((g - 20000) / 1000) * 25;
 }
 
 function restOfIndiaRate(g: number): number {
-  // ≤500g=₹70 | ≤1kg=₹90 | +₹40/500g | 10kg+: ₹40/kg | 20kg+: ₹30/kg
   if (g <= 500)  return 70;
   if (g <= 1000) return 90;
-  if (g <= 10000) {
-    return 90 + Math.ceil((g - 1000) / 500) * 40;
-  }
-  const base10 = 90 + Math.ceil((10000 - 1000) / 500) * 40; // ₹810
+  if (g <= 10000) return 90 + Math.ceil((g - 1000) / 500) * 40;
+  
+  // Bulk National
+  const base10 = 810;
   if (g <= 20000) return base10 + Math.ceil((g - 10000) / 1000) * 40;
-  const base20 = base10 + 10 * 40; // ₹1210
-  return base20 + Math.ceil((g - 20000) / 1000) * 30;
+  return 1210 + Math.ceil((g - 20000) / 1000) * 30;
 }
 
 function neNorthMpRate(g: number): number {
-  // ≤500g=₹90 | ≤1kg=₹140 | +₹60/500g | 10kg+: ₹55/kg
   if (g <= 500)  return 90;
   if (g <= 1000) return 140;
-  if (g <= 10000) {
-    return 140 + Math.ceil((g - 1000) / 500) * 60;
-  }
-  const base10 = 140 + Math.ceil((10000 - 1000) / 500) * 60; // ₹1220
-  return base10 + Math.ceil((g - 10000) / 1000) * 55;
+  if (g <= 10000) return 140 + Math.ceil((g - 1000) / 500) * 60;
+  return 1220 + Math.ceil((g - 10000) / 1000) * 55;
 }
 
 function specialZoneRate(g: number): number {
-  // 1–5kg: ₹75/kg | 6–10kg: ₹70/kg | 11kg+: ₹60/kg
   const kg = Math.max(Math.ceil(g / 1000), 1);
   if (kg <= 5)  return kg * 75;
-  if (kg <= 10) return 5 * 75 + (kg - 5) * 70;
-  return 5 * 75 + 5 * 70 + (kg - 10) * 60;
-}
-
-export function calcXpressbeesRate(grams: number, zone: ShippingZone): number {
-  switch (zone) {
-    case 'ALL_BENGAL':    return allBengalRate(grams);
-    case 'NE_NORTH_MP':   return neNorthMpRate(grams);
-    case 'SPECIAL':       return specialZoneRate(grams);
-    case 'REST_OF_INDIA': return restOfIndiaRate(grams);
-  }
-}
-
-// ─────────────────────────────────────────────────────────
-// RESULT TYPES
-// ─────────────────────────────────────────────────────────
-export interface SellerShipment {
-  businessId: string;
-  businessName: string;
-  supplyState: string;
-  supplyStateCode: string;
-  items: CartItem[];
-  totalActualGrams: number;
-  totalVolumetricGrams: number;
-  chargeableGrams: number;
-  destinationZone: ShippingZone;
-  shippingCharge: number;
-}
-
-export interface ShippingResult {
-  shipments: SellerShipment[];
-  totalShippingCharge: number;
-  destinationState: string;
-  destinationStateCode: string;
-  destinationZone: ShippingZone;
+  if (kg <= 10) return 375 + (kg - 5) * 70;
+  return 725 + (kg - 10) * 60;
 }
 
 // ─────────────────────────────────────────────────────────
 // MAIN CALCULATOR
 // ─────────────────────────────────────────────────────────
+
+export interface SellerShipment {
+  businessId: string;
+  businessName: string;
+  items: CartItem[];
+  chargeableWeightGrams: number;
+  shippingCharge: number;
+  codCharge: number; // New field
+  zone: ShippingZone;
+}
+
+export interface ShippingResult {
+  shipments: SellerShipment[];
+  totalShippingCharge: number;
+  totalCodCharge: number; // New field
+  grandTotalLogistics: number; // shipping + cod
+}
+
+/**
+ * @param items - Cart items
+ * @param deliveryAddress - Address object
+ * @param isCod - Whether the user selected Cash on Delivery
+ */
 export function calculateShipping(
   items: CartItem[],
   deliveryAddress: Address,
+  isCod: boolean = false 
 ): ShippingResult {
-  // 1. Resolve destination state code
-  const destStateCode =
-    (deliveryAddress.stateCode?.trim() || null) ??
-    resolveStateCode(deliveryAddress.state) ??
-    '00';
+  
+  const destCode = deliveryAddress.stateCode || resolveStateCode(deliveryAddress.state) || '00';
 
-  const destinationZone = getDestinationZone(destStateCode);
-
-  // 2. Group items by seller businessId
+  // 1. Group by Seller
   const sellerMap = new Map<string, CartItem[]>();
-  for (const item of items) {
-    const key =
-      item.variant?.product?.business?.id ??
-      item.variant?.product?.businessId ??
-      item.productId;
-    if (!sellerMap.has(key)) sellerMap.set(key, []);
-    sellerMap.get(key)!.push(item);
-  }
+  items.forEach(item => {
+    const bId = item.variant?.product?.businessId || 'unknown';
+    if (!sellerMap.has(bId)) sellerMap.set(bId, []);
+    sellerMap.get(bId)!.push(item);
+  });
 
-  // 3. Per-seller shipment calculation
   const shipments: SellerShipment[] = [];
 
-  for (const [businessId, sellerItems] of sellerMap) {
-    let totalActualGrams = 0;
-    let totalVolumetricGrams = 0;
+  // 2. Process per Seller
+  sellerMap.forEach((sellerItems, businessId) => {
+    let actualWeight = 0;
+    let volWeight = 0;
+    let sellerSubtotal = 0;
 
-    for (const item of sellerItems) {
+    sellerItems.forEach(item => {
       const qty = item.quantity;
+      const price = Number(item.variant?.price || 0);
+      sellerSubtotal += price * qty;
 
-      // Actual weight (fallback 500g if missing)
-      const wPerUnit =
-        item.snapshotWeightInGrams ??
-        item.variant?.weightInGrams ??
-        500;
-      totalActualGrams += wPerUnit * qty;
+      actualWeight += (item.variant?.weightInGrams || 500) * qty;
 
-      // Volumetric weight
-      const l = parseFloat(item.snapshotLength ?? item.variant?.length ?? '0');
-      const w = parseFloat(item.snapshotWidth  ?? item.variant?.width  ?? '0');
-      const h = parseFloat(item.snapshotHeight ?? item.variant?.height ?? '0');
+      const l = parseFloat(item.variant?.length?.toString() || '0');
+      const w = parseFloat(item.variant?.width?.toString() || '0');
+      const h = parseFloat(item.variant?.height?.toString() || '0');
       if (l > 0 && w > 0 && h > 0) {
-        totalVolumetricGrams += calcVolumetricWeight(l, w, h) * qty;
+        volWeight += calcVolumetricWeight(l, w, h) * qty;
       }
+    });
+
+    const chargeableGrams = getChargeableGrams(actualWeight, volWeight);
+    
+    // Zone Selection (with origin-destination validation)
+    const originCode = sellerItems[0]?.supplyStateCode || '00';
+    let zone: ShippingZone = 'REST_OF_INDIA';
+
+    if (destCode === BENGAL_CODE && originCode === BENGAL_CODE) {
+      zone = 'ALL_BENGAL';
+    } else if (SPECIAL_SET.has(destCode)) {
+      zone = 'SPECIAL';
+    } else if (NE_NORTH_MP_SET.has(destCode)) {
+      zone = 'NE_NORTH_MP';
     }
 
-    const chargeableGrams = chargeableWeight(totalActualGrams, totalVolumetricGrams);
-    const shippingCharge  = calcXpressbeesRate(chargeableGrams, destinationZone);
-    const firstItem       = sellerItems[0];
+    // Shipping Charge
+    let shipRate = 0;
+    switch (zone) {
+      case 'ALL_BENGAL':    shipRate = allBengalRate(chargeableGrams); break;
+      case 'NE_NORTH_MP':   shipRate = neNorthMpRate(chargeableGrams); break;
+      case 'SPECIAL':       shipRate = specialZoneRate(chargeableGrams); break;
+      case 'REST_OF_INDIA': shipRate = restOfIndiaRate(chargeableGrams); break;
+    }
+
+    // REAL COD Calculation
+    let codFee = 0;
+    if (isCod) {
+      // Whichever is higher: ₹45 or 1.2% of the amount collected from customer
+      const percentFee = sellerSubtotal * COD_PERCENTAGE;
+      codFee = Math.max(MIN_COD_CHARGE, percentFee);
+    }
 
     shipments.push({
       businessId,
-      businessName:    firstItem.variant?.product?.business?.name ?? 'Seller',
-      supplyState:     firstItem.supplyState     ?? '',
-      supplyStateCode: firstItem.supplyStateCode ?? '',
-      items:           sellerItems,
-      totalActualGrams,
-      totalVolumetricGrams,
-      chargeableGrams,
-      destinationZone,
-      shippingCharge,
+      businessName: sellerItems[0]?.variant?.product?.business?.name || 'Seller',
+      items: sellerItems,
+      chargeableWeightGrams: chargeableGrams,
+      shippingCharge: shipRate,
+      codCharge: codFee,
+      zone
     });
-  }
+  });
+
+  const totalShipping = shipments.reduce((sum, s) => sum + s.shippingCharge, 0);
+  const totalCod = shipments.reduce((sum, s) => sum + s.codCharge, 0);
 
   return {
     shipments,
-    totalShippingCharge: shipments.reduce((s, x) => s + x.shippingCharge, 0),
-    destinationState:     deliveryAddress.state,
-    destinationStateCode: destStateCode,
-    destinationZone,
+    totalShippingCharge: totalShipping,
+    totalCodCharge: totalCod,
+    grandTotalLogistics: totalShipping + totalCod
   };
 }

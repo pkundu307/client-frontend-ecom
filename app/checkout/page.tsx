@@ -95,12 +95,11 @@ const CheckoutPage: React.FC = () => {
       Object.keys(item.customizationDetails).length > 0
   );
 
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (hasCustomizableItems && paymentMethod === "cod") {
       setPaymentMethod("online");
     }
-  }, [items]);
+  }, [hasCustomizableItems, paymentMethod, setPaymentMethod]);
 
   if (!mounted) return null;
 
@@ -468,21 +467,18 @@ const CheckoutPage: React.FC = () => {
                   )}
                 </div>
 
-
                 {/* Per-seller shipping breakdown */}
                 {shippingResult &&
                   shippingResult.shipments.length > 1 &&
                   !isFreeShippingCoupon && (
-                    <div
-                      className="space-y-1 ml-3 pl-3 border-l-2 border-gray-200"
-                    >
+                    <div className="space-y-1 ml-3 pl-3 border-l-2 border-gray-200">
                       {shippingResult.shipments.map((shipment, i) => (
                         <div key={i} className="flex justify-between text-xs text-gray-500">
                           <span className="truncate flex items-center gap-1">
                             <TruckIcon className="w-3 h-3 flex-shrink-0" />
                             {shipment.businessName}
                             <span className="text-gray-400">
-                              ({(shipment.chargeableGrams / 1000).toFixed(1)}kg)
+                              ({(shipment.chargeableWeightGrams / 1000).toFixed(1)}kg)
                             </span>
                           </span>
                           <span className="font-medium">₹{shipment.shippingCharge}</span>
@@ -510,13 +506,16 @@ const CheckoutPage: React.FC = () => {
                   </div>
                   <span className="font-semibold">+₹4</span>
                 </div>
-<div className="flex justify-between text-gray-700 text-sm sm:text-base">
-  <div className="flex flex-col">
-    <span>Packaging & Handling</span>
-    <span className="text-xs text-gray-400 mt-0.5">Safe packaging</span>
-  </div>
-  <span className="font-semibold">+₹{packagingFee}</span>
-</div>
+
+                {/* Packaging Fee */}
+                <div className="flex justify-between text-gray-700 text-sm sm:text-base">
+                  <div className="flex flex-col">
+                    <span>Packaging & Handling</span>
+                    <span className="text-xs text-gray-400 mt-0.5">Safe packaging</span>
+                  </div>
+                  <span className="font-semibold">+₹{packagingFee}</span>
+                </div>
+
                 {/* Coupon Discount */}
                 {couponApplied && couponData && (
                   <div className="flex justify-between text-green-700 text-sm sm:text-base">
