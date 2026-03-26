@@ -1,4 +1,5 @@
 "use client";
+export const runtime = 'edge';
 import React, { use, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import dynamic from "next/dynamic";

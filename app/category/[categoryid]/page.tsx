@@ -1,7 +1,7 @@
 // src/app/category/[categoryid]/page.tsx
 
 "use client";
-
+export const runtime = 'edge';
 import { useState, useEffect, useCallback, use } from "react";
 import { motion, type Variants, AnimatePresence } from "framer-motion";
 import {
