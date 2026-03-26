@@ -19,13 +19,17 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+// Fallback values to prevent "undefined" strings in your HTML
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://jottosop.in';
+const GA_ID = process.env.NEXT_PUBLIC_GA_ID || '';
+
 export const metadata: Metadata = {
-  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || 'https://jottosop.in'),
-    verification: {
-    google: process.env.NEXT_PUBLIC_GA_ID, // ✅ Add this exact code
+  metadataBase: new URL(SITE_URL),
+  verification: {
+    google: GA_ID,
   },
- alternates: {
-    canonical: '/', // Or use process.env.NEXT_PUBLIC_SITE_URL for the base
+  alternates: {
+    canonical: '/',
   },
   title: {
     default: 'Jottosop - Online Electronics Shopping Store in India',
@@ -33,49 +37,24 @@ export const metadata: Metadata = {
   },
   description: 'Shop latest electronics, mobiles, laptops, TVs & more at best prices. Free shipping on orders above ₹499. Customizable products available. Shop now!',
   keywords: ['online shopping', 'electronics', 'mobiles', 'laptops', 'TVs', 'customizable products', 'India', 'e-commerce', 'Jottosop'],
-  authors: [{ name: 'Jottosop' }],
-  creator: 'Jottosop',
-  publisher: 'Jottosop',
-  formatDetection: {
-    email: false,
-    address: false,
-    telephone: false,
-  },
   openGraph: {
     type: 'website',
     locale: 'en_IN',
-    url: process.env.NEXT_PUBLIC_SITE_URL,
+    url: SITE_URL,
     title: 'Jottosop - Best Online Shopping Site for Electronics',
-    description: 'Shop latest electronics at best prices with free shipping. Customizable products available.',
+    description: 'Shop latest electronics at best prices with free shipping.',
     siteName: 'Jottosop',
-    images: [
-      {
-        url: '/og-image.png',
-        width: 1200,
-        height: 630,
-        alt: 'Jottosop Online Shopping',
-      },
-    ],
+    images: [{ url: '/og-image.png', width: 1200, height: 630 }],
   },
   twitter: {
     card: 'summary_large_image',
     title: 'Jottosop - Online Electronics Shopping',
-    description: 'Shop latest electronics at best prices',
     images: ['/twitter-image.png'],
-    creator: '@jottosop',
   },
   robots: {
     index: true,
     follow: true,
-    googleBot: {
-      index: true,
-      follow: true,
-      'max-video-preview': -1,
-      'max-image-preview': 'large',
-      'max-snippet': -1,
-    },
   },
-
 };
 
 export default function RootLayout({
@@ -86,39 +65,41 @@ export default function RootLayout({
   return (
     <html lang="en">
       <head>
-        <link rel="canonical" href={process.env.NEXT_PUBLIC_SITE_URL} />
-        <link rel="icon" href="/favicon.ico" sizes="any" />
-        <link rel="icon" href="/icon.svg" type="image/svg+xml" />
-        <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
-        <link rel="manifest" href="/manifest.json" />
+        {/* Next.js Metadata handles canonical, but keeping this for safety - ensure it has a fallback */}
+        <link rel="canonical" href={SITE_URL} />
         <meta name="theme-color" content="#e8ecf0" />
         
-        {/* Google Analytics */}
+        {/* Razorpay - strategy: beforeInteractive is better for payment pages */}
         <Script 
           src="https://checkout.razorpay.com/v1/checkout.js" 
           strategy="beforeInteractive" 
         />
-        <Script
-          src={`https://www.googletagmanager.com/gtag/js?id=${process.env.NEXT_PUBLIC_GA_ID}`}
-          strategy="afterInteractive"
-        />
-        <Script id="google-analytics" strategy="afterInteractive">
-          {`
-            window.dataLayer = window.dataLayer || [];
-            function gtag(){dataLayer.push(arguments);}
-            gtag('js', new Date());
-            gtag('config', '${process.env.NEXT_PUBLIC_GA_ID}');
-          `}
-        </Script>
       </head>
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
         <Providers>
           <Toaster />
           <Navbar />
-          {children}
+          <main>{children}</main>
+          <Footer />
         </Providers>
-        <Footer />
-        <Script src="https://checkout.razorpay.com/v1/checkout.js" />
+
+        {/* Google Analytics Logic */}
+        {GA_ID && (
+          <>
+            <Script
+              src={`https://www.googletagmanager.com/gtag/js?id=${GA_ID}`}
+              strategy="afterInteractive"
+            />
+            <Script id="google-analytics" strategy="afterInteractive">
+              {`
+                window.dataLayer = window.dataLayer || [];
+                function gtag(){dataLayer.push(arguments);}
+                gtag('js', new Date());
+                gtag('config', '${GA_ID}');
+              `}
+            </Script>
+          </>
+        )}
       </body>
     </html>
   );
