@@ -1,7 +1,7 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-    async rewrites() {
+  async rewrites() {
     return [
       {
         source: '/sitemap.xml',
@@ -14,10 +14,14 @@ const nextConfig: NextConfig = {
     ];
   },
   images: {
+    // ✅ Fix: Move unoptimized here (Top level of images)
+    unoptimized: true, 
+    
+    // ✅ Keep remotePatterns to allow your specific image sources
     remotePatterns: [
       {
         protocol: 'https',
-        hostname: '**', // Wildcard to match any domain
+        hostname: '**', // This allows all HTTPS images
       },
     ],
   },
