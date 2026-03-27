@@ -134,6 +134,9 @@ export default function Navbar() {
 
   // ── Notification State ────────────────────────────────────────────────────
   const [notificationCount, setNotificationCount] = useState(0);
+const GOOGLE_CLIENT_ID = 
+  process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || 
+  "939883123761-up76q4mal36sd3quh558ssccr1cqc035.apps.googleusercontent.com";
 
   // ─── Effect 1: Mount + Screen Size + Auth Restore ────────────────────────
   // Must be first effect — sets mounted=true so SSR skeleton is replaced safely
@@ -305,7 +308,7 @@ export default function Navbar() {
 
   // ─── Render ───────────────────────────────────────────────────────────────
   return (
-    <GoogleOAuthProvider clientId={process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID!}>
+    <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
 
       {/* ── Top Navbar ── */}
       <nav
