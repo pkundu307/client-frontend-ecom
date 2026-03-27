@@ -1,33 +1,26 @@
-"use client"; // ✅ Must be a client component for the guard to work
+"use client";
 
 export const runtime = 'edge';
 
-import React, { useEffect, useState } from 'react'
-import Home from './page/Home'
+import React from 'react';
+import dynamic from 'next/dynamic';
 
-const Page = () => {
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  // While the server is rendering or client is hydrating, 
-  // we show a consistent container.
-  if (!mounted) {
-    return (
-      <div className="min-h-screen bg-[#e8ecf0] flex items-center justify-center">
-        {/* Replace this with your actual logo/spinner if you have one */}
-        <div className="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
-      </div>
-    );
-  }
-
-  return (
-    <div className='no-scrollbar'>
-      <Home />
+// ✅ This prevents the 'Home' code from even being loaded on the server.
+// It only downloads and runs when the browser is ready.
+const Home = dynamic(() => import('./page/Home'), { 
+  ssr: false,
+  loading: () => (
+    <div className="min-h-screen bg-[#e8ecf0] flex items-center justify-center">
+      {/* While the JS is loading, show this simple spinner */}
+      <div className="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
     </div>
   )
-}
+});
 
-export default Page;
+export default function Page() {
+  return (
+    <main className='no-scrollbar'>
+      <Home />
+    </main>
+  );
+}

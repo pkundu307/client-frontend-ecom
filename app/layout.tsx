@@ -19,9 +19,9 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
-// Fallback values to prevent "undefined" strings in your HTML
+// ✅ Safer fallback logic
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://jottosop.in';
-const GA_ID = process.env.NEXT_PUBLIC_GA_ID || '';
+const GA_ID = process.env.NEXT_PUBLIC_GA_ID;
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
@@ -64,26 +64,14 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <head>
-        {/* Next.js Metadata handles canonical, but keeping this for safety - ensure it has a fallback */}
-        <link rel="canonical" href={SITE_URL} />
-        <meta name="theme-color" content="#e8ecf0" />
-        
-        {/* Razorpay - strategy: beforeInteractive is better for payment pages */}
+      <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
+        {/* ✅ Razorpay moved here, removed the duplicate from the bottom */}
         <Script 
           src="https://checkout.razorpay.com/v1/checkout.js" 
-          strategy="beforeInteractive" 
+          strategy="lazyOnload" 
         />
-      </head>
-      <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
-        <Providers>
-          <Toaster />
-          <Navbar />
-          <main>{children}</main>
-          <Footer />
-        </Providers>
 
-        {/* Google Analytics Logic */}
+        {/* ✅ Google Analytics Logic with safety check */}
         {GA_ID && (
           <>
             <Script
@@ -100,6 +88,13 @@ export default function RootLayout({
             </Script>
           </>
         )}
+
+        <Providers>
+          <Toaster />
+          <Navbar />
+          <main>{children}</main>
+          <Footer />
+        </Providers>
       </body>
     </html>
   );
