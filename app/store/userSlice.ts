@@ -10,6 +10,7 @@ const initialState: UserState = {
   role: null,
 };
 
+
 const userSlice = createSlice({
   name: "user",
   initialState,
