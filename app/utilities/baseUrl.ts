@@ -1,1 +1,1 @@
-export const baseUrl: string = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+export const baseUrl: string = process.env.NEXT_PUBLIC_API_URL ||'https://api.jottosop.in'; 
