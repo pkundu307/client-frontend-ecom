@@ -1,6 +1,5 @@
 // app/product/[productId]/page.tsx
 "use client";
-export const runtime = "edge";
 import React, { use, useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import dynamic from "next/dynamic";

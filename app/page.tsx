@@ -1,26 +1,14 @@
-"use client";
+// app/page.tsx
+export const runtime = "edge";
 
-export const runtime = 'edge';
-
-import React from 'react';
-import dynamic from 'next/dynamic';
-
-// ✅ This prevents the 'Home' code from even being loaded on the server.
-// It only downloads and runs when the browser is ready.
-const Home = dynamic(() => import('./page/Home'), { 
-  ssr: false,
-  loading: () => (
-    <div className="min-h-screen bg-[#e8ecf0] flex items-center justify-center">
-      {/* While the JS is loading, show this simple spinner */}
-      <div className="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
-    </div>
-  )
-});
+// ✅ No "use client" here — edge runtime pages must NOT be client components
+// ✅ No next/dynamic with ssr:false — incompatible with edge runtime on Cloudflare
+import HomeClient from "./page/HomeClient";
 
 export default function Page() {
   return (
-    <main className='no-scrollbar'>
-      <Home />
+    <main className="no-scrollbar">
+      <HomeClient />
     </main>
   );
 }
