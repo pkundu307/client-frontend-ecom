@@ -30,6 +30,7 @@ import { CheckIcon } from "lucide-react";
 import SimilarProducts from "./(component)/SimilarProducts";
 import RecentlyViewed from "@/app/components/RecentlyViewed";
 import InYourWishlist from "./(component)/Wishlist";
+import Link from "next/link";
 
 const CustomizationModal = dynamic(() => import("./(component)/CustomizationModal"), {
   ssr: false,
@@ -594,7 +595,15 @@ export default function ProductPage({ params }: ProductPageProps) {
                   <p className="text-xs sm:text-sm text-gray-600 mt-0.5 truncate">
                     {product.business.city}, {product.business.state}
                   </p>
-                  <p className="text-xs text-gray-500 mt-1">GST: {product.business.gstNumber}</p>
+                 <Link href={`/business/${product.business.id}`} className="text-xs text-gray-500 mt-1 hover:text-gray-700 transition-colors">
+                                    <div className="flex items-center gap-1.5 text-green-700 bg-white/40 px-3 py-1.5 rounded-full   flex-shrink-0">
+
+                     View Store
+                     </div>
+                                       <p className="text-xs text-gray-500 mt-1">Click to see other Products of {product.business.name}</p>
+
+                  </Link>
+                  
                 </div>
                 {product.business.isVerified && (
                   <div className="flex items-center gap-1.5 text-green-700 bg-white/40 px-3 py-1.5 rounded-full border-2 border-green-500 flex-shrink-0">

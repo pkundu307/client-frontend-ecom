@@ -1,3 +1,4 @@
+// app/product/[productId]/layout.tsx
 import { Metadata } from 'next';
 
 interface ProductPageProps {
