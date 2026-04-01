@@ -9,7 +9,6 @@ import {
   ListBulletIcon,
   EyeIcon,
   SparklesIcon,
-  ChevronDownIcon,
 } from "@heroicons/react/24/outline";
 import { StarIcon as StarSolid } from "@heroicons/react/24/solid";
 import Image from "next/image";
@@ -39,25 +38,17 @@ interface BusinessInfo {
 interface BusinessResponse {
   business: BusinessInfo;
   products: Product[];
-  pagination: {
-    total: number;
-    page: number;
-    limit: number;
-    lastPage: number;
-  };
 }
 
 /* ================= API ================= */
 
-const BASE_URL = process.env.NEXT_PUBLIC_API_URL || "https://api.example.com";
+const BASE_URL = process.env.NEXT_PUBLIC_API_URL || "https://api.jottosop.in";
 
 const fetchProducts = async (
-  businessId: string,
-  page = 1,
-  limit = 12
+  businessId: string
 ): Promise<BusinessResponse> => {
   const res = await fetch(
-    `${BASE_URL}/products/public/business/${businessId}?page=${page}&limit=${limit}`
+    `${BASE_URL}/business/${businessId}/products`
   );
   if (!res.ok) throw new Error("Failed to fetch products");
   return res.json();
@@ -194,40 +185,31 @@ const BusinessCatalog = ({ params }: { params: Promise<{ businessid: string }> }
 
   const [data,        setData]        = useState<BusinessResponse | null>(null);
   const [products,    setProducts]    = useState<Product[]>([]);
-  const [pagination,  setPagination]  = useState<BusinessResponse["pagination"] | null>(null);
   const [loading,     setLoading]     = useState(true);
-  const [loadingMore, setLoadingMore] = useState(false);
   const [error,       setError]       = useState<string | null>(null);
   const [isGridView,  setIsGridView]  = useState(true);
 
   // ── Load ─────────────────────────────────────────────────────────────────
   const loadProducts = useCallback(
-    async (pageNum = 1, append = false) => {
-      const setL = append ? setLoadingMore : setLoading;
+    async () => {
+      setLoading(true);
       try {
-        setL(true);
-        const res = await fetchProducts(businessid, pageNum, 12);
+        const res = await fetchProducts(businessid);
         setData(res);
-        setProducts(prev => append ? [...prev, ...res.products] : res.products);
-        setPagination(res.pagination);
+        setProducts(res.products);
       } catch (err) {
         setError((err as Error).message);
       } finally {
-        setL(false);
+        setLoading(false);
       }
     },
     [businessid]
   );
 
   useEffect(() => {
-    loadProducts(1, false);
+    loadProducts();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [businessid]);
-
-  const handleLoadMore = () => {
-    if (!pagination || pagination.page >= pagination.lastPage || loadingMore) return;
-    loadProducts(pagination.page + 1, true);
-  };
 
   // ── States ────────────────────────────────────────────────────────────────
   if (error) {
@@ -235,7 +217,7 @@ const BusinessCatalog = ({ params }: { params: Promise<{ businessid: string }> }
       <div className="min-h-screen bg-[#e8ecf0] flex items-center justify-center p-4">
         <div className="text-center bg-red-50 p-8 rounded-3xl shadow-lg">
           <p className="text-red-600 font-semibold text-lg mb-4">{error}</p>
-          <button onClick={() => loadProducts(1)}
+          <button 
             className="px-6 py-2 bg-red-600 text-white rounded-xl font-semibold hover:bg-red-700 transition-colors">
             Try Again
           </button>
@@ -259,10 +241,9 @@ const BusinessCatalog = ({ params }: { params: Promise<{ businessid: string }> }
                   <span className="inline-block h-7 w-40 bg-gray-300 rounded animate-pulse" />
                 ) : data?.business.name}
               </h1>
-              {!loading && pagination && (
+              {!loading && data?.products && (
                 <p className="text-xs text-gray-500">
-                  {pagination.total} products
-                  {pagination.lastPage > 1 && ` · Page ${pagination.page}/${pagination.lastPage}`}
+                  {data.products.length} products
                 </p>
               )}
             </div>
@@ -349,32 +330,7 @@ const BusinessCatalog = ({ params }: { params: Promise<{ businessid: string }> }
                   </AnimatePresence>
                 </motion.div>
 
-                {/* Load More */}
-                {pagination && pagination.page < pagination.lastPage && (
-                  <motion.div
-                    initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
-                    className="mt-10 text-center"
-                  >
-                    <button onClick={handleLoadMore} disabled={loadingMore}
-                      className="inline-flex items-center gap-2 px-8 py-3.5 bg-gray-900 text-white rounded-2xl font-bold hover:bg-gray-800 disabled:bg-gray-400 disabled:cursor-not-allowed transition-all hover:scale-105 active:scale-95">
-                      {loadingMore ? (
-                        <>
-                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white" />
-                          Loading...
-                        </>
-                      ) : (
-                        <>
-                          Load More
-                          <ChevronDownIcon className="w-4 h-4" />
-                        </>
-                      )}
-                    </button>
-                    <p className="text-xs text-gray-500 mt-3">
-                      Showing {products.length} of {pagination.total} products
-                    </p>
-                  </motion.div>
-                )}
-              </>
+                              </>
             )}
           </div>
         </div>
