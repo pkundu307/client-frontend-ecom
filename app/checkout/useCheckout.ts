@@ -13,10 +13,11 @@ import { calculateShipping, ShippingResult } from "./shippingCalculator";
 export type { Address };
 export type PaymentMethod = "cod" | "online" | "";
 
-const COD_FEE = 30;
-const COD_THRESHOLD = 600;
-const PLATFORM_FEE = 4;
-const PACKAGING_FEE = 8.5;
+const COD_FEE        = 30;
+// const COD_THRESHOLD  = 600;
+const PLATFORM_FEE   = 4;
+const PACKAGING_FEE  = 8.5;
+
 type RazorpayHandlerResponse = {
   razorpay_order_id: string;
   razorpay_payment_id: string;
@@ -25,93 +26,89 @@ type RazorpayHandlerResponse = {
 
 interface OrderItem {
   productName: string;
-  imageUrl: string;
-  quantity: number;
-  price: string;
+  imageUrl:    string;
+  quantity:    number;
+  price:       string;
 }
 
 interface OrderData {
-  id: string;
-  orderNumber: string;
-  createdAt: string;
-  totalAmount: string;
+  id:              string;
+  orderNumber:     string;
+  createdAt:       string;
+  totalAmount:     string;
   selectedAddress: Address;
-  items: OrderItem[];
-  couponCode: string | null;
-  couponDiscount: number | null;
+  items:           OrderItem[];
+  couponCode:      string | null;
+  couponDiscount:  number | null;
 }
 
 declare global {
   interface Window {
     Razorpay: new (options: Record<string, unknown>) => {
-      open: () => void;
+      open:  () => void;
       close: () => void;
     };
   }
 }
 
 const emptyNewAddress = () => ({
-  street: "",
-  city: "",
-  state: "",
-  postalCode: "",
-  country: "India",
-  landmark: "",
+  street:                 "",
+  city:                   "",
+  state:                  "",
+  postalCode:             "",
+  country:                "India",
+  landmark:               "",
   alternativePhoneNumber: "",
-  type: "HOME",
-  isDefault: false,
+  type:                   "HOME",
+  isDefault:              false,
 });
 
 export const useCheckout = () => {
-  const router = useRouter();
-  const dispatch = useDispatch();
+  const router        = useRouter();
+  const dispatch      = useDispatch();
   const selectedItems = useSelector((state: RootState) => state.cart.selected);
 
-  const [mounted, setMounted] = useState(false);
-  const [items, setItems] = useState<typeof selectedItems>([]);
-  const [addresses, setAddresses] = useState<Address[]>([]);
-
+  const [mounted,           setMounted]           = useState(false);
+  const [items,             setItems]             = useState<typeof selectedItems>([]);
+  const [addresses,         setAddresses]         = useState<Address[]>([]);
   const [selectedAddressId, setSelectedAddressId] = useState<string>("");
-  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("");
-  const [loadingAddresses, setLoadingAddresses] = useState(false);
+  const [paymentMethod,     setPaymentMethod]     = useState<PaymentMethod>("");
+  const [loadingAddresses,  setLoadingAddresses]  = useState(false);
+  const [showAddressModal,  setShowAddressModal]  = useState(false);
+  const [newAddress,        setNewAddress]        = useState(emptyNewAddress());
+  const [savingAddress,     setSavingAddress]     = useState(false);
 
-  const [showAddressModal, setShowAddressModal] = useState(false);
-  const [newAddress, setNewAddress] = useState(emptyNewAddress());
-  const [savingAddress, setSavingAddress] = useState(false);
-
-  // ── Coupon ────────────────────────────────────────────
-  const [couponInput, setCouponInput] = useState("");
+  // ── Coupon ─────────────────────────────────────────────
+  const [couponInput,   setCouponInput]   = useState("");
   const [couponApplied, setCouponApplied] = useState(false);
-  const [couponError, setCouponError] = useState<string | null>(null);
+  const [couponError,   setCouponError]   = useState<string | null>(null);
   const [couponLoading, setCouponLoading] = useState(false);
-  const [couponData, setCouponData] = useState<{
-    code: string;
+  const [couponData,    setCouponData]    = useState<{
+    code:               string;
     calculatedDiscount: number;
-    type: string;
-    value: number;
+    type:               string;
+    value:              number;
   } | null>(null);
 
-  // ── Shipping ──────────────────────────────────────────
-  const [shippingResult, setShippingResult] = useState<ShippingResult | null>(
-    null,
-  );
+  // ── Shipping ───────────────────────────────────────────
+  const [shippingResult, setShippingResult] = useState<ShippingResult | null>(null);
 
-  // ── Slide / Order ─────────────────────────────────────
-  const [slideProgress, setSlideProgress] = useState(0);
-  const [isSliding, setIsSliding] = useState(false);
+  // ── Slide / Order ──────────────────────────────────────
+  const [slideProgress,  setSlideProgress]  = useState(0);
+  const [isSliding,      setIsSliding]      = useState(false);
   const [isPlacingOrder, setIsPlacingOrder] = useState(false);
-  const slideRef = useRef<HTMLDivElement | null>(null);
+  const slideRef    = useRef<HTMLDivElement | null>(null);
   const progressRef = useRef(0);
 
   const [showSuccessModal, setShowSuccessModal] = useState(false);
-  const [orderData, setOrderData] = useState<OrderData | null>(null);
+  const [orderData,        setOrderData]        = useState<OrderData | null>(null);
 
-  // ── Boot ──────────────────────────────────────────────
+  // ── Boot ───────────────────────────────────────────────
   useEffect(() => {
     setMounted(true);
-    const script = document.createElement("script");
-    script.src = "https://checkout.razorpay.com/v1/checkout.js";
-    script.async = true;
+    const script  = document.createElement("script");
+    script.src    = "https://checkout.razorpay.com/v1/checkout.js";
+    script.async  = true;
     document.body.appendChild(script);
   }, []);
 
@@ -146,7 +143,7 @@ export const useCheckout = () => {
     setLoadingAddresses(true);
     try {
       const token = localStorage.getItem("token");
-      const res = await fetch(
+      const res   = await fetch(
         `${process.env.NEXT_PUBLIC_API_URL}/user/addresses`,
         { headers: { Authorization: `Bearer ${token ?? ""}` } },
       );
@@ -164,10 +161,33 @@ export const useCheckout = () => {
   };
 
   // ── Pricing ────────────────────────────────────────────
+
+  // Raw subtotal using manipulated prices from backend
   const subtotal = items.reduce(
     (sum, item) => sum + Number(item.variant?.price ?? 0) * item.quantity,
     0,
   );
+
+  // Shipping discount: for items where shipping was baked in (price > 399),
+  // the checkout shipping calculator will add shipping again — we cancel it out
+  // by discounting exactly shippingCharge × quantity per such item.
+const bakedShippingDiscount = (() => {
+  if (!shippingResult) return 0;
+
+  let discount = 0;
+  for (const shipment of shippingResult.shipments) {
+    // Get all items belonging to this seller
+    const sellerItems = items.filter(
+      (item) => item.variant?.product?.business?.id === shipment.businessId,
+    );
+    // If every item from this seller has price > 399, discount their shipping
+    const allEligible = sellerItems.every(
+      (item) => Number(item.variant?.price ?? 0) > 399,
+    );
+    if (allEligible) discount += shipment.shippingCharge;
+  }
+  return discount;
+})();
 
   const isFreeShippingCoupon =
     couponApplied && couponData?.type === "free_shipping";
@@ -176,14 +196,27 @@ export const useCheckout = () => {
     ? 0
     : (shippingResult?.totalShippingCharge ?? 0);
 
-  const codFee =
-    paymentMethod === "cod" && subtotal < COD_THRESHOLD ? COD_FEE : 0;
+  // COD fee: flat ₹30 only if subtotal < threshold
+  // src/app/checkout/useCheckout.ts
 
-  const discount =
+const codFee = paymentMethod === "cod" ? COD_FEE : 0;
+
+  // Coupon discount (separate from baked shipping discount)
+  const couponDiscount =
     couponApplied && couponData ? couponData.calculatedDiscount : 0;
 
+  // Total discount shown in UI = coupon discount only
+  // (bakedShippingDiscount is applied silently in total)
+  const discount = couponDiscount;
+
   const total = Math.max(
-    subtotal + shippingFee + codFee + PACKAGING_FEE + PLATFORM_FEE - discount,
+    subtotal
+    + shippingFee
+    + codFee
+    + PACKAGING_FEE
+    + PLATFORM_FEE
+    - bakedShippingDiscount   // ← silently cancel baked shipping
+    - couponDiscount,
     0,
   );
 
@@ -201,9 +234,9 @@ export const useCheckout = () => {
 
     try {
       const cartItems = items.map((item) => ({
-        productId: item.productId ?? item.variant?.productId ?? "",
+        productId:  item.productId ?? item.variant?.productId ?? "",
         categoryId: item.variant?.product?.categoryId ?? undefined,
-        brand: item.variant?.product?.brand ?? undefined,
+        brand:      item.variant?.product?.brand ?? undefined,
       }));
 
       const res = await axios.post(
@@ -211,15 +244,15 @@ export const useCheckout = () => {
         { code, subtotal, cartItems },
       );
       const data = res.data as {
-        code: string;
+        code:     string;
         discount: { calculatedDiscount: number; type: string; value: number };
       };
 
       setCouponData({
-        code: data.code,
+        code:               data.code,
         calculatedDiscount: data.discount.calculatedDiscount,
-        type: data.discount.type,
-        value: data.discount.value,
+        type:               data.discount.type,
+        value:              data.discount.value,
       });
       setCouponApplied(true);
       setCouponError(null);
@@ -266,7 +299,7 @@ export const useCheckout = () => {
     setSavingAddress(true);
     try {
       const token = localStorage.getItem("token");
-      const res = await axios.post<{ id: string }>(
+      const res   = await axios.post<{ id: string }>(
         `${process.env.NEXT_PUBLIC_API_URL}/user/addresses`,
         newAddress,
         { headers: { Authorization: `Bearer ${token ?? ""}` } },
@@ -290,14 +323,10 @@ export const useCheckout = () => {
   };
 
   // ── Razorpay init ──────────────────────────────────────
-  // src/app/checkout/useCheckout.ts
-
-  // src/app/checkout/useCheckout.ts
-
   const initializeRazorpay = async (orderId: string) => {
-    const selectedAddr = addresses.find((a) => a.id === selectedAddressId);
-    const rawContact = selectedAddr?.alternativePhoneNumber ?? "";
-    const digits = rawContact.replace(/\D/g, "");
+    const selectedAddr  = addresses.find((a) => a.id === selectedAddressId);
+    const rawContact    = selectedAddr?.alternativePhoneNumber ?? "";
+    const digits        = rawContact.replace(/\D/g, "");
     const formattedContact =
       digits.length === 10
         ? `+91${digits}`
@@ -305,50 +334,38 @@ export const useCheckout = () => {
           ? `+${digits}`
           : rawContact;
 
- const options = {
-    key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
-    amount: Math.round(total * 100),
-    currency: "INR",
-    name: "Jottosop",
-    description: "Order Payment",
-    order_id: orderId,
-    // ADD THIS CONFIG BLOCK
-    config: {
-      display: {
-        blocks: {
-          banks: {
-            name: 'All Payment Methods',
-            instruments: [
-              {
-                method: 'upi',
-                apps: ['google_pay', 'phonepe', 'paytm'],
-              },
-              {
-                method: 'card',
-              },
-              {
-                method: 'netbanking',
-              },
-            ],
+    const options = {
+      key:         process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
+      amount:      Math.round(total * 100),
+      currency:    "INR",
+      name:        "Jottosop",
+      description: "Order Payment",
+      order_id:    orderId,
+      config: {
+        display: {
+          blocks: {
+            banks: {
+              name: "All Payment Methods",
+              instruments: [
+                { method: "upi", apps: ["google_pay", "phonepe", "paytm"] },
+                { method: "card" },
+                { method: "netbanking" },
+              ],
+            },
           },
-        },
-        sequence: ['block.banks'],
-        preferences: {
-          show_default_blocks: true,
+          sequence:    ["block.banks"],
+          preferences: { show_default_blocks: true },
         },
       },
-    },
-
-
       handler: async (response: RazorpayHandlerResponse) => {
         try {
-          const token = localStorage.getItem("token");
+          const token     = localStorage.getItem("token");
           const verifyRes = await axios.post<{ order: OrderData }>(
             `${process.env.NEXT_PUBLIC_API_URL}/payment/verify`,
             {
-              razorpay_order_id: response.razorpay_order_id,
+              razorpay_order_id:   response.razorpay_order_id,
               razorpay_payment_id: response.razorpay_payment_id,
-              razorpay_signature: response.razorpay_signature,
+              razorpay_signature:  response.razorpay_signature,
             },
             { headers: { Authorization: `Bearer ${token ?? ""}` } },
           );
@@ -363,14 +380,11 @@ export const useCheckout = () => {
           setIsPlacingOrder(false);
         }
       },
-
       prefill: {
-        name: selectedAddr?.street ?? "",
+        name:    selectedAddr?.street ?? "",
         contact: formattedContact,
       },
-
       theme: { color: "#1e3a8a" },
-
       modal: {
         ondismiss: () => {
           setSlideProgress(0);
@@ -406,7 +420,7 @@ export const useCheckout = () => {
     setIsPlacingOrder(true);
 
     try {
-      const token = localStorage.getItem("token");
+      const token        = localStorage.getItem("token");
       const selectedAddr = addresses.find((a) => a.id === selectedAddressId);
       if (!selectedAddr) {
         alert("Selected address not found.");
@@ -414,57 +428,56 @@ export const useCheckout = () => {
         return;
       }
 
-      // ── COD flow ────────────────────────────────────────
-     if (paymentMethod === "cod") {
-  const cartItemIds = items.map((item) => item.id);
+      // ── COD flow ─────────────────────────────────────────
+      if (paymentMethod === "cod") {
+        const cartItemIds = items.map((item) => item.id);
 
-  const dto: Record<string, unknown> = {
-    selectedAddress:  selectedAddr,
-    cartItemIds,
-    paymentMethod:    "cash_on_delivery",
-    shippingFee:      shippingFee,        // ✅ keep shippingFee and codFee SEPARATE
-    codFee:           codFee,             // ✅ backend now expects codFee on its own
-    platformFee:      PLATFORM_FEE,
-    taxAmount:        0,
-    discount,
-  };
-  if (couponApplied && couponData) {
-    dto.couponCode      = couponData.code;
-    dto.couponDiscount  = couponData.calculatedDiscount;
-  }
+        const dto: Record<string, unknown> = {
+          selectedAddress: selectedAddr,
+          cartItemIds,
+          paymentMethod:   "cash_on_delivery",
+          shippingFee:     shippingFee,
+          codFee:          codFee,
+          platformFee:     PLATFORM_FEE,
+          taxAmount:       0,
+          discount:        couponDiscount + bakedShippingDiscount, // ← send full discount to backend
+        };
+        if (couponApplied && couponData) {
+          dto.couponCode     = couponData.code;
+          dto.couponDiscount = couponData.calculatedDiscount;
+        }
 
-  const res = await axios.post<OrderData>(
-    `${process.env.NEXT_PUBLIC_API_URL}/orders/place-order/cod`,
-    dto,
-    { headers: { Authorization: `Bearer ${token ?? ""}` } },
-  );
+        const res = await axios.post<OrderData>(
+          `${process.env.NEXT_PUBLIC_API_URL}/orders/place-order/cod`,
+          dto,
+          { headers: { Authorization: `Bearer ${token ?? ""}` } },
+        );
 
-  // ✅ normalise totalAmount — could be Decimal string from Prisma
-  const raw = res.data;
-  const safeOrder: OrderData = {
-    ...raw,
-    totalAmount:   String(raw.totalAmount),
-    items:         Array.isArray(raw.items) ? raw.items : [],   // ✅ crash guard
-    couponDiscount: raw.couponDiscount != null
-                      ? Number(raw.couponDiscount)
-                      : null,
-  };
+        const raw        = res.data;
+        const safeOrder: OrderData = {
+          ...raw,
+          totalAmount:    String(raw.totalAmount),
+          items:          Array.isArray(raw.items) ? raw.items : [],
+          couponDiscount: raw.couponDiscount != null
+                            ? Number(raw.couponDiscount)
+                            : null,
+        };
 
-  setSlideProgress(0);
-  setIsPlacingOrder(false);
-  dispatch(clearSelected());
-  showOrderSuccess(safeOrder);
-  return;
-}
+        setSlideProgress(0);
+        setIsPlacingOrder(false);
+        dispatch(clearSelected());
+        showOrderSuccess(safeOrder);
+        return;
+      }
 
-      // ── Online flow ──────────────────────────────────────
+      // ── Online flow ───────────────────────────────────────
       const payload = {
         items: items.map((item) => ({
           variantId: item.variant?.id ?? "",
-          quantity: item.quantity,
+          quantity:  item.quantity,
         })),
         selectedAddressId: selectedAddressId,
-        couponCode: couponApplied && couponData ? couponData.code : "",
+        couponCode:        couponApplied && couponData ? couponData.code : "",
       };
 
       const initiateRes = await axios.post<{ razorpayOrder: { id: string } }>(
@@ -489,7 +502,7 @@ export const useCheckout = () => {
     setIsSliding(true);
     const track = slideRef.current;
     if (!track) return;
-    const startX = e.clientX;
+    const startX     = e.clientX;
     const trackWidth = track.offsetWidth - 56;
 
     const onPointerMove = (ev: PointerEvent) => {
@@ -538,7 +551,6 @@ export const useCheckout = () => {
     newAddress,
     setNewAddress,
     savingAddress,
-    // coupon
     couponInput,
     setCouponInput,
     couponApplied,
@@ -547,18 +559,16 @@ export const useCheckout = () => {
     couponData,
     applyCoupon,
     removeCoupon,
-    // shipping
     shippingResult,
     isFreeShippingCoupon,
-    // pricing
     subtotal,
     shippingFee,
     codFee,
-    platformFee: PLATFORM_FEE,
-    packagingFee: PACKAGING_FEE,
+    platformFee:          PLATFORM_FEE,
+    packagingFee:         PACKAGING_FEE,
     discount,
+    bakedShippingDiscount, // ← expose so UI can show "Free Shipping" line
     total,
-    // slide / place order
     slideRef,
     slideProgress,
     isSliding,
@@ -566,7 +576,6 @@ export const useCheckout = () => {
     handleSlide,
     handlePlaceOrder,
     handleAddAddress,
-    // modals
     showSuccessModal,
     orderData,
     handleSuccessOk,

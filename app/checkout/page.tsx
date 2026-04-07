@@ -73,6 +73,7 @@ const CheckoutPage: React.FC = () => {
     isFreeShippingCoupon,
     subtotal,
     shippingFee,
+    bakedShippingDiscount ,
     codFee,
     discount,
     total,
@@ -119,7 +120,6 @@ const CheckoutPage: React.FC = () => {
     );
   }
 
-  const COD_THRESHOLD = 600;
 
   return (
     <div className="min-h-screen bg-[#e8ecf0] px-3 sm:px-4 py-6 sm:py-8">
@@ -488,7 +488,7 @@ const CheckoutPage: React.FC = () => {
                   )}
 
                 {/* COD Fee */}
-                {paymentMethod === "cod" && subtotal < COD_THRESHOLD && (
+                {paymentMethod === "cod" && (
                   <div className="flex justify-between text-gray-700 text-sm sm:text-base">
                     <div className="flex flex-col">
                       <span>COD Fee</span>
@@ -497,7 +497,17 @@ const CheckoutPage: React.FC = () => {
                     <span className="font-semibold">+₹{codFee}</span>
                   </div>
                 )}
-
+{bakedShippingDiscount > 0 && (
+  <div className="flex justify-between text-green-700 text-sm sm:text-base">
+    <div className="flex flex-col">
+      <span>Free Shipping</span>
+      <span className="text-xs text-green-500 mt-0.5">
+        Applied on eligible products
+      </span>
+    </div>
+    <span className="font-semibold">-₹{bakedShippingDiscount}</span>
+  </div>
+)}
                 {/* Platform Fee */}
                 <div className="flex justify-between text-gray-700 text-sm sm:text-base">
                   <div className="flex flex-col">
