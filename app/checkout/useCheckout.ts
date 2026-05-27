@@ -187,7 +187,15 @@ export const useCheckout = () => {
       );
       const data = await res.json();
       if (data && data.data && Array.isArray(data.data)) {
-        const formatted = data.data.map((coupon: any) => ({
+        const formatted = data.data.map((coupon: {
+          code: string;
+          discount?: {
+            name: string;
+            discountType: string;
+            discountValue: string | number;
+          };
+          firstOrderOnly: boolean;
+        }) => ({
           code:           coupon.code,
           discountName:   coupon.discount?.name ?? "",
           discountType:   coupon.discount?.discountType ?? "",
