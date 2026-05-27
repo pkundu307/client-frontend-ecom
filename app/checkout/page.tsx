@@ -67,7 +67,10 @@ const CheckoutPage: React.FC = () => {
     couponError,
     couponLoading,
     couponData,
+    activeCoupons,
+    loadingCoupons,
     applyCoupon,
+    applyCouponByCode,
     removeCoupon,
     shippingResult,
     isFreeShippingCoupon,
@@ -387,35 +390,78 @@ const CheckoutPage: React.FC = () => {
                   </motion.button>
                 </div>
               ) : (
-                <div
-                  className="flex items-center bg-[#e8ecf0] rounded-xl overflow-hidden"
-                  style={{ boxShadow: neuInset }}
-                >
-                  <input
-                    type="text" placeholder="ENTER CODE"
-                    value={couponInput}
-                    onChange={(e) => setCouponInput(e.target.value.toUpperCase())}
-                    disabled={couponLoading}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter" && !couponApplied) void applyCoupon();
-                    }}
-                    className="flex-1 px-4 py-3 bg-transparent text-gray-900 placeholder-gray-400 text-sm font-mono tracking-widest outline-none"
-                  />
-                  <motion.button
-                    whileTap={tap}
-                    onClick={() => void applyCoupon()}
-                    disabled={couponLoading || !couponInput.trim()}
-                    className="m-1.5 px-5 py-2.5 rounded-lg font-semibold text-sm bg-gray-800 text-white whitespace-nowrap disabled:opacity-40 flex items-center gap-2 hover:bg-gray-700"
-                    style={{ boxShadow: "4px 4px 8px #c5cdd5, -2px -2px 6px #ffffff" }}
+                <>
+                  {/* Active Coupons List */}
+                  {loadingCoupons ? (
+                    <div className="bg-[#e8ecf0] rounded-xl p-4 text-center" style={{ boxShadow: neuInset }}>
+                      <p className="text-gray-500 text-sm">Loading coupons...</p>
+                    </div>
+                  ) : activeCoupons.length > 0 ? (
+                    <div className="space-y-2 mb-3">
+                      <p className="text-xs text-gray-500 mb-2">Tap to apply:</p>
+                      {activeCoupons.map((coupon, idx) => (
+                        <motion.button
+                          key={idx}
+                          whileTap={tap}
+                          onClick={() => void applyCouponByCode(coupon.code)}
+                          disabled={couponLoading}
+                          className="w-full text-left px-4 py-3 rounded-xl bg-[#e8ecf0] transition-all"
+                          style={{ boxShadow: neuInset }}
+                        >
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <p className="font-bold text-gray-900 text-sm font-mono tracking-widest">
+                                {coupon.code}
+                              </p>
+                              {coupon.description && (
+                                <p className="text-xs text-amber-600 mt-0.5">{coupon.description}</p>
+                              )}
+                            </div>
+                            <div className="text-right">
+                              <p className="text-sm font-bold text-green-600">
+                                {coupon.discountType === "fixed_amount"
+                                  ? `₹${coupon.discountValue}`
+                                  : `${coupon.discountValue}%`}
+                              </p>
+                              <p className="text-xs text-gray-400">{coupon.discountName}</p>
+                            </div>
+                          </div>
+                        </motion.button>
+                      ))}
+                    </div>
+                  ) : null}
+
+                  {/* Manual Enter Code */}
+                  <div
+                    className="flex items-center bg-[#e8ecf0] rounded-xl overflow-hidden"
+                    style={{ boxShadow: neuInset }}
                   >
-                    {couponLoading ? (
-                      <svg className="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                      </svg>
-                    ) : "Apply"}
-                  </motion.button>
-                </div>
+                    <input
+                      type="text" placeholder="ENTER CODE"
+                      value={couponInput}
+                      onChange={(e) => setCouponInput(e.target.value.toUpperCase())}
+                      disabled={couponLoading}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" && !couponApplied) void applyCoupon();
+                      }}
+                      className="flex-1 px-4 py-3 bg-transparent text-gray-900 placeholder-gray-400 text-sm font-mono tracking-widest outline-none"
+                    />
+                    <motion.button
+                      whileTap={tap}
+                      onClick={() => void applyCoupon()}
+                      disabled={couponLoading || !couponInput.trim()}
+                      className="m-1.5 px-5 py-2.5 rounded-lg font-semibold text-sm bg-gray-800 text-white whitespace-nowrap disabled:opacity-40 flex items-center gap-2 hover:bg-gray-700"
+                      style={{ boxShadow: "4px 4px 8px #c5cdd5, -2px -2px 6px #ffffff" }}
+                    >
+                      {couponLoading ? (
+                        <svg className="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                        </svg>
+                      ) : "Apply"}
+                    </motion.button>
+                  </div>
+                </>
               )}
 
               {couponError && !couponApplied && (

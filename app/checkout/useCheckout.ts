@@ -90,6 +90,16 @@ export const useCheckout = () => {
     value:              number;
   } | null>(null);
 
+  // Active coupons list
+  const [activeCoupons, setActiveCoupons] = useState<Array<{
+    code: string;
+    discountName: string;
+    discountType: string;
+    discountValue: number;
+    description?: string;
+  }>>([]);
+  const [loadingCoupons, setLoadingCoupons] = useState(false);
+
   // ── Shipping ───────────────────────────────────────────
   const [shippingResult, setShippingResult] = useState<ShippingResult | null>(null);
 
@@ -126,6 +136,12 @@ export const useCheckout = () => {
     void fetchAddresses();
   }, [mounted]);
 
+  // Fetch active coupons on mount
+  useEffect(() => {
+    if (!mounted) return;
+    void fetchActiveCoupons();
+  }, [mounted]);
+
   // ── Recalculate shipping when address or items change ──
   useEffect(() => {
     if (!selectedAddressId || items.length === 0) {
@@ -157,6 +173,34 @@ export const useCheckout = () => {
       setAddresses([]);
     } finally {
       setLoadingAddresses(false);
+    }
+  };
+
+  // ── Fetch active coupons ────────────────────────────────────
+  const fetchActiveCoupons = async () => {
+    setLoadingCoupons(true);
+    try {
+      const token = localStorage.getItem("token");
+      const res   = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/admin/coupons/active`,
+        { headers: { Authorization: `Bearer ${token ?? ""}` } },
+      );
+      const data = await res.json();
+      if (data && data.data && Array.isArray(data.data)) {
+        const formatted = data.data.map((coupon: any) => ({
+          code:           coupon.code,
+          discountName:   coupon.discount?.name ?? "",
+          discountType:   coupon.discount?.discountType ?? "",
+          discountValue:  Number(coupon.discount?.discountValue ?? 0),
+          description:    coupon.firstOrderOnly ? "First order only" : undefined,
+        }));
+        setActiveCoupons(formatted);
+      }
+    } catch (err) {
+      console.error("Failed to fetch active coupons:", err);
+      setActiveCoupons([]);
+    } finally {
+      setLoadingCoupons(false);
     }
   };
 
@@ -277,6 +321,53 @@ const codFee = paymentMethod === "cod" ? COD_FEE : 0;
     setCouponData(null);
     setCouponInput("");
     setCouponError(null);
+  };
+
+  // ── Apply coupon by code (select from list) ──────────────
+  const applyCouponByCode = async (code: string) => {
+    setCouponLoading(true);
+    setCouponError(null);
+    setCouponApplied(false);
+    setCouponData(null);
+
+    try {
+      const cartItems = items.map((item) => ({
+        productId:  item.productId ?? item.variant?.productId ?? "",
+        categoryId: item.variant?.product?.categoryId ?? undefined,
+        brand:      item.variant?.product?.brand ?? undefined,
+      }));
+
+      const res = await axios.post(
+        `${process.env.NEXT_PUBLIC_API_URL}/coupons/validate`,
+        { code: code.toUpperCase(), subtotal, cartItems },
+      );
+      const data = res.data as {
+        code:     string;
+        discount: { calculatedDiscount: number; type: string; value: number };
+      };
+
+      setCouponData({
+        code:               data.code,
+        calculatedDiscount: data.discount.calculatedDiscount,
+        type:               data.discount.type,
+        value:              data.discount.value,
+      });
+      setCouponApplied(true);
+      setCouponError(null);
+    } catch (err: unknown) {
+      setCouponApplied(false);
+      setCouponData(null);
+      if (axios.isAxiosError(err)) {
+        setCouponError(
+          (err.response?.data as { message?: string })?.message ??
+            "Invalid coupon code.",
+        );
+      } else {
+        setCouponError("Failed to validate coupon. Try again.");
+      }
+    } finally {
+      setCouponLoading(false);
+    }
   };
 
   // ── Add address ────────────────────────────────────────
@@ -558,7 +649,11 @@ const codFee = paymentMethod === "cod" ? COD_FEE : 0;
     couponLoading,
     couponData,
     applyCoupon,
+    applyCouponByCode,
     removeCoupon,
+    activeCoupons,
+    loadingCoupons,
+    fetchActiveCoupons,
     shippingResult,
     isFreeShippingCoupon,
     subtotal,
