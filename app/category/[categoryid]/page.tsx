@@ -313,30 +313,31 @@ const FilterPanel = ({
       </FilterAccordion>
 
       {/* Dynamic Attribute Filters */}
-      {availableFilters.map(filter => {
-        // Skip filters with more than 10 options
-        if (filter.options.length > 10) return null;
-        return (
-          <FilterAccordion key={filter.name} title={filter.name} defaultOpen>
-            <div className="flex flex-wrap gap-2">
-              {filter.options.map(opt => {
-                const active = activeFilters.attributes[filter.name] === opt;
-                return (
-                  <button key={opt} type="button"
-                    onClick={() => toggleAttr(filter.name, opt)}
-                    className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all border ${
-                      active
-                        ? "bg-purple-600 text-white border-purple-600 shadow"
-                        : "bg-white/60 text-gray-700 border-gray-200 hover:bg-white hover:border-purple-300"
-                    }`}>
-                    {opt}
-                  </button>
-                );
-              })}
-            </div>
-          </FilterAccordion>
-        );
-      })}
+{availableFilters
+  .filter(filter => filter.options.length <= 10)
+  .map(filter => (
+    <FilterAccordion key={filter.name} title={filter.name} defaultOpen>
+      <div className="flex flex-wrap gap-2">
+        {filter.options.map(opt => {
+          const active = activeFilters.attributes[filter.name] === opt;
+          return (
+            <button
+              key={opt}
+              type="button"
+              onClick={() => toggleAttr(filter.name, opt)}
+              className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all border ${
+                active
+                  ? "bg-purple-600 text-white border-purple-600 shadow"
+                  : "bg-white/60 text-gray-700 border-gray-200 hover:bg-white hover:border-purple-300"
+              }`}
+            >
+              {opt}
+            </button>
+          );
+        })}
+      </div>
+    </FilterAccordion>
+  ))}
     </div>
   );
 };
