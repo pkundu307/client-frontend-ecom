@@ -81,18 +81,18 @@ export default function MyntraCarousel() {
         {banners.map((banner, index) => (
           <SwiperSlide key={banner.id}>
             <div
-              className="relative w-full aspect-[4/3] sm:aspect-[16/9] md:aspect-[2.5/1] lg:aspect-[3/1] overflow-hidden cursor-pointer"
+className="relative w-full aspect-[3/2] sm:aspect-[16/9] md:aspect-[2.5/1] lg:aspect-[3/1] overflow-hidden cursor-pointer"
               onClick={() => router.push(banner.targetUrl)}
             >
-              <Image
-                src={banner.bannerImageUrl}
-                alt={`Promotional banner ${index + 1}`}
-                fill
-                priority={index === 0}
-                className="object-cover"
-                sizes="(max-width: 640px) 100vw, (max-width: 1024px) 100vw, 1920px"
-                draggable={false}
-              />
+      <Image
+  src={banner.bannerImageUrl}
+  alt={`Promotional banner ${index + 1}`}
+  fill
+  priority={index === 0}
+  className="object-cover object-left md:object-center"
+  sizes="(max-width: 640px) 100vw, (max-width: 1024px) 100vw, 1920px"
+  draggable={false}
+/>
             </div>
           </SwiperSlide>
         ))}
