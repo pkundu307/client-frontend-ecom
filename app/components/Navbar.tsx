@@ -324,7 +324,8 @@ const GOOGLE_CLIENT_ID =
               style={{ boxShadow: "6px 6px 12px #c5cdd5, -6px -6px 12px #ffffff" }}
             >
               <Image src="/logo.webp" alt="Jottosop Icon" width={36} height={40} className="object-contain" priority />
-              TEST
+              TEST 
+              
               <Image
                 src="/Name.webp"
                 alt="Jottosop"
