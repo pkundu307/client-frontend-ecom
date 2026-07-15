@@ -3,3 +3,4 @@ name = "jottosop"
 compatibility_date = "2024-09-23"
 compatibility_flags = ["nodejs_compat"]
 pages_build_output_dir = ".vercel/output/static"
+NEXT_PUBLIC_API_URL = "https://seller-side-backend-fastify-nest.onrender.com"
