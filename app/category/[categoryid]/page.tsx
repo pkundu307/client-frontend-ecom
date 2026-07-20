@@ -158,6 +158,11 @@ const fetchProducts = async (
   limit = 12,
   filters: ActiveFilters
 ): Promise<CategoryResponse> => {
+  // Validate that categorySlug is provided and not empty
+  if (!categorySlug || categorySlug === "undefined" || categorySlug === "null") {
+    throw new Error("Invalid category slug");
+  }
+
   const params = new URLSearchParams({
     page:  String(page),
     limit: String(limit),
@@ -877,6 +882,10 @@ const ProductListing = ({ params }: { params: Promise<{ categoryid: string }> })
     async (pageNum = 1, filters = activeFilters, append = false) => {
       const setL = append ? setLoadingMore : setLoading;
       try {
+        // Validate categoryid before making API call
+        if (!categoryid || categoryid === "undefined" || categoryid === "null") {
+          throw new Error("Invalid category. Please select a valid category.");
+        }
         setL(true);
         const res = await fetchProducts(categoryid, pageNum, 12, filters);
         setData(res);
@@ -911,6 +920,11 @@ const ProductListing = ({ params }: { params: Promise<{ categoryid: string }> })
   );
 
   useEffect(() => {
+    if (!categoryid || categoryid === "undefined" || categoryid === "null") {
+      setError("Invalid category. Please select a valid category.");
+      setLoading(false);
+      return;
+    }
     loadProducts(1, activeFilters, false);
     setShowAllProducts(false); // reset the reveal state when the category changes
     // eslint-disable-next-line react-hooks/exhaustive-deps
