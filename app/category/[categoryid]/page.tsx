@@ -29,6 +29,7 @@ import {
 import { StarIcon as StarSolid } from "@heroicons/react/24/solid";
 import Image from "next/image";
 import Link from "next/link";
+import { baseUrl } from "@/app/utilities/baseUrl";
 
 /* ================= NEUMORPHIC SHADOW CONSTANTS ================= */
 
@@ -176,7 +177,7 @@ const fetchProducts = async (
   }
 
   const res = await fetch(
-    `${process.env.NEXT_PUBLIC_API_URL}/products/category-page/${categorySlug}?${params}`
+    `${baseUrl}/products/category-page/${categorySlug}?${params}`
   );
   if (!res.ok) throw new Error("Failed to fetch products");
   return res.json();
