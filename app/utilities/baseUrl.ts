@@ -1,1 +1,1 @@
-export const baseUrl: string = process.env.NEXT_PUBLIC_API_URL ||'https://seller-side-backend-fastify-nest.onrender.com'; 
+export const baseUrl: string ='https://seller-side-backend-fastify-nest.onrender.com'; 
