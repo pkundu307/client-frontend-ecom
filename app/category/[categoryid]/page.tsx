@@ -850,6 +850,9 @@ const LayoutSkeleton = () => (
 const ProductListing = ({ params }: { params: Promise<{ categoryid: string }> }) => {
   const { categoryid } = use(params);
 
+  // Normalize categoryid - handle string "undefined" or "null"
+  const normalizedCategory = categoryid === "undefined" || categoryid === "null" ? "" : categoryid;
+
   const [data,        setData]        = useState<CategoryResponse | null>(null);
   const [sections,    setSections]    = useState<LayoutSection[]>([]);
   const [hasLayout,   setHasLayout]   = useState(false);
@@ -883,11 +886,11 @@ const ProductListing = ({ params }: { params: Promise<{ categoryid: string }> })
       const setL = append ? setLoadingMore : setLoading;
       try {
         // Validate categoryid before making API call
-        if (!categoryid || categoryid === "undefined" || categoryid === "null") {
+        if (!normalizedCategory) {
           throw new Error("Invalid category. Please select a valid category.");
         }
         setL(true);
-        const res = await fetchProducts(categoryid, pageNum, 12, filters);
+        const res = await fetchProducts(normalizedCategory, pageNum, 12, filters);
         setData(res);
 
         // Layout sections are only ever attached to the "effective" page 1
@@ -916,11 +919,11 @@ const ProductListing = ({ params }: { params: Promise<{ categoryid: string }> })
         setL(false);
       }
     },
-    [categoryid, activeFilters]
+    [normalizedCategory, activeFilters]
   );
 
   useEffect(() => {
-    if (!categoryid || categoryid === "undefined" || categoryid === "null") {
+    if (!normalizedCategory) {
       setError("Invalid category. Please select a valid category.");
       setLoading(false);
       return;
@@ -928,7 +931,7 @@ const ProductListing = ({ params }: { params: Promise<{ categoryid: string }> })
     loadProducts(1, activeFilters, false);
     setShowAllProducts(false); // reset the reveal state when the category changes
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [categoryid]);
+  }, [normalizedCategory]);
 
   // When filters change → reset to page 1
   const applyFilters = (filters: ActiveFilters) => {
@@ -949,15 +952,16 @@ const ProductListing = ({ params }: { params: Promise<{ categoryid: string }> })
   };
 
   // ── States ────────────────────────────────────────────────────────────────
-  if (error) {
+  if (error || !normalizedCategory) {
     return (
       <div className="min-h-screen bg-[#e8ecf0] flex items-center justify-center p-4">
         <div className="text-center bg-red-50 p-8 rounded-3xl shadow-lg">
-          <p className="text-red-600 font-semibold text-lg mb-4">{error}</p>
-          <button onClick={() => loadProducts(1)}
-            className="px-6 py-2 bg-red-600 text-white rounded-xl font-semibold hover:bg-red-700 transition-colors">
-            Try Again
-          </button>
+          <p className="text-red-600 font-semibold text-lg mb-4">
+            {error || "Invalid category. Please select a valid category."}
+          </p>
+          <Link href="/" className="px-6 py-2 bg-red-600 text-white rounded-xl font-semibold hover:bg-red-700 transition-colors inline-block">
+            Go Home
+          </Link>
         </div>
       </div>
     );
