@@ -7,7 +7,7 @@ import { CartState, CartItem, AddToCartPayload, CartVariantInfo } from "./types"
 // API CONFIG
 // -----------------------------
 const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_URL || "https://seller-side-backend-fastify-nest.onrender.com";
+  process.env.NEXT_PUBLIC_API_URL || "https://api.jottosop.in";
 
 // -----------------------------
 // Auth header helper

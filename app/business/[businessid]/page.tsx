@@ -42,7 +42,7 @@ interface BusinessResponse {
 
 /* ================= API ================= */
 
-const BASE_URL = process.env.NEXT_PUBLIC_API_URL || "https://seller-side-backend-fastify-nest.onrender.com";
+const BASE_URL = process.env.NEXT_PUBLIC_API_URL || "https://api.jottosop.in";
 
 const fetchProducts = async (
   businessId: string
